@@ -1,6 +1,6 @@
 # NIGHTFALL — Phase 0 Architecture Review
 
-Status: **Proposed — awaiting approval.** Nothing has been installed, deployed, or tested against any external system.
+Status: **Approved 2026-11-04 — all decisions in §11 accepted as proposed.** Nothing has been installed, deployed, or tested against any external system.
 Revision 3: adds **Addendum 3 — BLACKSITE** (§16).
 Revision 2: incorporates **Addendum A** (local-first AI, open-source integrations, BLACK ICE, offline operation) and the **command-center mockup** (§13–§15).
 Date: 2026-11-04 · Spec: NIGHTFALL Engineering Handoff v1.0
@@ -9,7 +9,7 @@ Date: 2026-11-04 · Spec: NIGHTFALL Engineering Handoff v1.0
 
 ## 1. Existing repository overview
 
-- **NIGHTFALL repository:** does not exist yet. This is a greenfield build. No inherited code, dependencies, auth, or tech debt.
+- **NIGHTFALL repository:** `bosafett/nightfall`, empty at review time. This is a greenfield build. No inherited code, dependencies, auth, or tech debt.
 - **Kept separate from `zuse-holding/Charon`** (Selene OS + live consumer product) by decision. No code, database, secrets, or deploy targets are shared.
 - **Patterns worth carrying over from Charon (ideas, not code):**
   - Agents can only *propose*; consequences happen in an executor gated by human approval (`propose_action` → `approval_queue`). NIGHTFALL's operation/approval model is the same idea.
@@ -293,6 +293,8 @@ Stops after step 8 for approval (spec §12.5).
 
 ## 11. Decisions requiring human approval
 
+**All approved as proposed (2026-11-04).**
+
 1. **Repository visibility:** `bosafett/nightfall` is currently **public**. Recommend private before Phase 1, because scope definitions, lab configs, and client names will follow. Also confirm that the first commit goes to `main`.
 2. **Tenant naming:** `workspaces` = tenant, `organizations` = investigated targets (§4.1).
 3. **Auth (rev 2):** API-owned sessions + argon2id + TOTP, invite-only, offline password reset (§5). This replaces Supabase Auth.
@@ -308,8 +310,8 @@ Stops after step 8 for approval (spec §12.5).
 
 ## 12. Blockers
 
-- **First commit:** waiting on decision 1 (visibility, plus confirming `main`).
-- **Logo:** the raccoon mark is needed as a source file (SVG preferred) before Phase 1 step 5. I won't trace it from the screenshot.
+- **Repository visibility:** approved to switch to private. The owner has to change it in GitHub settings.
+- **Logo:** received as `brand/nightfall-mark.svg`.
 - **Host hardware** (decision 9): needed by Phase 5 only.
 - Nothing else blocks Phase 1.
 
