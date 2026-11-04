@@ -315,6 +315,23 @@ export interface paths {
         patch: operations["update_organization_api_workspaces__workspace_id__organizations__org_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_workspaces__workspace_id__overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects": {
         parameters: {
             query?: never;
@@ -371,6 +388,32 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
         };
+        /** AssessmentItem */
+        AssessmentItem: {
+            assessment_type: components["schemas"]["AssessmentType"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Activity At
+             * Format: date-time
+             */
+            last_activity_at: string;
+            /** Name */
+            name: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Organization Name */
+            organization_name: string;
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["ProjectStatus"];
+        };
         /**
          * AssessmentType
          * @enum {string}
@@ -385,6 +428,52 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "down";
+        };
+        /** Graph */
+        Graph: {
+            /** Edges */
+            edges: components["schemas"]["GraphEdge"][];
+            /** Nodes */
+            nodes: components["schemas"]["GraphNode"][];
+            /** Truncated */
+            truncated: boolean;
+        };
+        /** GraphEdge */
+        GraphEdge: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @constant
+             */
+            kind: "has_project";
+            /** Source */
+            source: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "observed" | "hypothesis";
+            /** Target */
+            target: string;
+        };
+        /** GraphNode */
+        GraphNode: {
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "organization" | "project";
+            /** Label */
+            label: string;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            status?: components["schemas"]["ProjectStatus"] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -567,6 +656,25 @@ export interface components {
             /** Notes */
             notes?: string | null;
         };
+        /** OverviewOut */
+        OverviewOut: {
+            agent_activity: components["schemas"]["Unavailable"];
+            /** Assessments */
+            assessments: components["schemas"]["AssessmentItem"][];
+            assets: components["schemas"]["Unavailable"];
+            critical_findings: components["schemas"]["Unavailable"];
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            graph: components["schemas"]["Graph"];
+            operations: components["schemas"]["Unavailable"];
+            projects: components["schemas"]["ProjectKpi"];
+            recent_findings: components["schemas"]["Unavailable"];
+            risk: components["schemas"]["Unavailable"];
+            window: components["schemas"]["Window"];
+        };
         /** PasswordResetIn */
         PasswordResetIn: {
             /** New Password */
@@ -589,6 +697,21 @@ export interface components {
              * Format: uuid
              */
             organization_id: string;
+        };
+        /** ProjectKpi */
+        ProjectKpi: {
+            /** Active */
+            active: number;
+            /**
+             * Available
+             * @default true
+             * @constant
+             */
+            available: true;
+            /** Open */
+            open: number;
+            /** Started In Window */
+            started_in_window: number;
         };
         /** ProjectOut */
         ProjectOut: {
@@ -647,6 +770,17 @@ export interface components {
             /** Mfa Verified */
             mfa_verified: boolean;
         };
+        /** Unavailable */
+        Unavailable: {
+            /**
+             * Available
+             * @default false
+             * @constant
+             */
+            available: false;
+            /** Phase */
+            phase: number;
+        };
         /** UserOut */
         UserOut: {
             /** Display Name */
@@ -674,6 +808,11 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * Window
+         * @enum {string}
+         */
+        Window: "1h" | "24h" | "7d" | "30d";
         /** WorkspaceOut */
         WorkspaceOut: {
             /**
@@ -1395,6 +1534,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrganizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_workspaces__workspace_id__overview_get: {
+        parameters: {
+            query?: {
+                window?: components["schemas"]["Window"];
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewOut"];
                 };
             };
             /** @description Validation Error */

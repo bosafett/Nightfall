@@ -24,7 +24,7 @@ export default async function OrganizationPage({ params }: { params: Promise<{ w
     <>
       <nav className="mb-2 text-sm text-muted"><Link href={`/w/${ws}/targets`} className="hover:text-text">Target Registry</Link> /</nav>
       <PageHeader title={org.name} subtitle={org.notes || "No notes."} />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-4">
           {writable && <NewProject ws={ws} orgId={org.id} />}
           {projects.length === 0 ? (

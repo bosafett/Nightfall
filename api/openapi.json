@@ -56,6 +56,64 @@
         "title": "AcceptInviteOut",
         "type": "object"
       },
+      "AssessmentItem": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment_type": {
+            "$ref": "#/components/schemas/AssessmentType"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_activity_at": {
+            "format": "date-time",
+            "title": "Last Activity At",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "organization_name",
+          "name",
+          "assessment_type",
+          "status",
+          "started_at",
+          "last_activity_at"
+        ],
+        "title": "AssessmentItem",
+        "type": "object"
+      },
       "AssessmentType": {
         "enum": [
           "reconnaissance",
@@ -87,6 +145,119 @@
           "status"
         ],
         "title": "ComponentStatus",
+        "type": "object"
+      },
+      "Graph": {
+        "additionalProperties": false,
+        "properties": {
+          "edges": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEdge"
+            },
+            "title": "Edges",
+            "type": "array"
+          },
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/GraphNode"
+            },
+            "title": "Nodes",
+            "type": "array"
+          },
+          "truncated": {
+            "title": "Truncated",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "nodes",
+          "edges",
+          "truncated"
+        ],
+        "title": "Graph",
+        "type": "object"
+      },
+      "GraphEdge": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "const": "has_project",
+            "title": "Kind",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "observed",
+              "hypothesis"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "source",
+          "target",
+          "kind",
+          "status"
+        ],
+        "title": "GraphEdge",
+        "type": "object"
+      },
+      "GraphNode": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "organization",
+              "project"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "record_id": {
+            "format": "uuid",
+            "title": "Record Id",
+            "type": "string"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "record_id"
+        ],
+        "title": "GraphNode",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -528,6 +699,65 @@
         "title": "OrganizationPatch",
         "type": "object"
       },
+      "OverviewOut": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_activity": {
+            "$ref": "#/components/schemas/Unavailable"
+          },
+          "assessments": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentItem"
+            },
+            "title": "Assessments",
+            "type": "array"
+          },
+          "assets": {
+            "$ref": "#/components/schemas/Unavailable"
+          },
+          "critical_findings": {
+            "$ref": "#/components/schemas/Unavailable"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "graph": {
+            "$ref": "#/components/schemas/Graph"
+          },
+          "operations": {
+            "$ref": "#/components/schemas/Unavailable"
+          },
+          "projects": {
+            "$ref": "#/components/schemas/ProjectKpi"
+          },
+          "recent_findings": {
+            "$ref": "#/components/schemas/Unavailable"
+          },
+          "risk": {
+            "$ref": "#/components/schemas/Unavailable"
+          },
+          "window": {
+            "$ref": "#/components/schemas/Window"
+          }
+        },
+        "required": [
+          "window",
+          "generated_at",
+          "projects",
+          "critical_findings",
+          "assets",
+          "operations",
+          "assessments",
+          "recent_findings",
+          "agent_activity",
+          "risk",
+          "graph"
+        ],
+        "title": "OverviewOut",
+        "type": "object"
+      },
       "PasswordResetIn": {
         "additionalProperties": false,
         "properties": {
@@ -581,6 +811,36 @@
           "assessment_type"
         ],
         "title": "ProjectIn",
+        "type": "object"
+      },
+      "ProjectKpi": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "title": "Active",
+            "type": "integer"
+          },
+          "available": {
+            "const": true,
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "started_in_window": {
+            "title": "Started In Window",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "active",
+          "open",
+          "started_in_window"
+        ],
+        "title": "ProjectKpi",
         "type": "object"
       },
       "ProjectOut": {
@@ -740,6 +1000,26 @@
         "title": "SessionInfo",
         "type": "object"
       },
+      "Unavailable": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "const": false,
+            "default": false,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "phase"
+        ],
+        "title": "Unavailable",
+        "type": "object"
+      },
       "UserOut": {
         "additionalProperties": false,
         "properties": {
@@ -809,6 +1089,16 @@
         ],
         "title": "ValidationError",
         "type": "object"
+      },
+      "Window": {
+        "enum": [
+          "1h",
+          "24h",
+          "7d",
+          "30d"
+        ],
+        "title": "Window",
+        "type": "string"
       },
       "WorkspaceOut": {
         "additionalProperties": false,
@@ -1870,6 +2160,58 @@
         "summary": "Update Organization",
         "tags": [
           "registry"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/overview": {
+      "get": {
+        "operationId": "overview_api_workspaces__workspace_id__overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "window",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Window",
+              "default": "24h"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "overview"
         ]
       }
     },

@@ -4,8 +4,8 @@ Adversarial intelligence workbench by Digital Raccoon Engineering (DRE).
 
 Use is limited to targets you are explicitly authorized to assess.
 
-**Status:** Phase 1 (application foundation) — sign-in with two-factor, workspaces and roles,
-organizations and projects, audit log, app shell. See
+**Status:** Phase 2 (Command Center) on top of Phase 1 — sign-in with two-factor, workspaces and roles,
+organizations and projects, audit log, app shell, Command Center with live counts and the intelligence graph. See
 [`docs/PHASE0_ARCHITECTURE_REVIEW.md`](docs/PHASE0_ARCHITECTURE_REVIEW.md) for the approved architecture and roadmap.
 
 ## Layout

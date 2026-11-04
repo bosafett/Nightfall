@@ -24,7 +24,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
         <Link href={`/w/${ws}/targets/${orgId}`} className="hover:text-text">{project.organization_name}</Link> /
       </nav>
       <PageHeader title={project.name} subtitle={assessmentTypeLabel[project.assessment_type]} actions={<ProjectStatusBadge status={project.status} />} />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Panel title="Project"><EditProject ws={ws} project={project} canWrite={can.writeRegistry(me.role)} /></Panel>
         <Panel title="Timeline">
           <dl className="space-y-3 text-sm">

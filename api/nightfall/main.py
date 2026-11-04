@@ -16,6 +16,7 @@ from nightfall.core.identity.throttle import mutations_by_ip
 from nightfall.core.request_info import client_ip
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.routes import router as workspace_router
+from nightfall.overview.routes import router as overview_router
 from nightfall.registry.routes import router as registry_router
 
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
@@ -75,7 +76,7 @@ class RequestGuard(BaseHTTPMiddleware):
         return response
 
 
-ROUTERS = (health_router, auth_router, workspace_router, registry_router)
+ROUTERS = (health_router, auth_router, workspace_router, registry_router, overview_router)
 
 
 def create_app(*, check_settings: bool = True) -> FastAPI:

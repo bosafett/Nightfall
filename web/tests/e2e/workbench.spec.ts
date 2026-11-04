@@ -48,6 +48,11 @@ test("owner signs in, is required to enrol two-factor, then reaches the workspac
 
   await page.getByRole("link", { name: /Back to DRE Lab/ }).click();
   await expect(page.getByRole("heading", { name: "Command Center" })).toBeVisible();
+  // Empty workspace: real zeros for what exists, honest "not tracked yet" for the rest.
+  await expect(page.getByTestId("kpi-Active projects")).toContainText("0");
+  await expect(page.getByTestId("kpi-Critical findings")).toContainText("Tracked from phase 4");
+  await expect(page.getByText("No relationships yet")).toBeVisible();
+  await expect(page.getByText("No open assessments")).toBeVisible();
   workspaceUrl = new URL(page.url()).pathname;
   await page.context().storageState({ path: STATE });
 });
@@ -103,6 +108,20 @@ test.describe("as the owner", () => {
     await expect(alertIn(page)).toContainText("already exists");
   });
 
+  test("command center reflects the registry and graph nodes open records", async ({ page }) => {
+    await page.goto(workspaceUrl);
+    await expect(page.getByTestId("kpi-Active projects")).toContainText("1");
+    await expect(page.getByRole("link", { name: "Acme Corporation — External reconnaissance" })).toBeVisible();
+    await page.getByRole("navigation", { name: "Time window" }).getByRole("link", { name: "1h" }).click();
+    await expect(page).toHaveURL(/window=1h/);
+    await expect(page.getByTestId("kpi-Active projects")).toContainText("1 started in the last hour");
+
+    const graph = page.getByTestId("intelligence-graph");
+    await expect(graph.getByText("Acme Corporation")).toBeVisible();
+    await graph.getByText("External reconnaissance").click();
+    await expect(page.getByRole("heading", { level: 1, name: "External reconnaissance" })).toBeVisible();
+  });
+
   test("invite an analyst who joins and sees the shared registry read-only for settings", async ({ page, browser }) => {
     await page.goto(`${workspaceUrl}/settings`);
     await page.getByLabel("Email").fill("analyst@nightfall.test");
@@ -140,6 +159,9 @@ test.describe("as the owner", () => {
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
+    await page.goto(workspaceUrl);
+    await expect(page.getByTestId("intelligence-graph")).toBeVisible();
+    await noHorizontalScroll(page);
     await page.goto(`${workspaceUrl}/targets`);
     await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCount(0);
     await noHorizontalScroll(page);

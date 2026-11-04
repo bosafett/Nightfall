@@ -26,7 +26,7 @@ export function Panel({ title, actions, children, className }: { title?: string;
   return (
     <section className={cx("rounded-lg border border-border bg-surface", className)}>
       {title && (
-        <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-border px-4 py-3">
           <h2 className="text-base font-semibold tracking-wide">{title}</h2>
           {actions}
         </header>
