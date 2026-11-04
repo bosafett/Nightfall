@@ -6,7 +6,7 @@ Use is limited to targets you are explicitly authorized to assess.
 
 **Status:** Phase 3 (scope and passive reconnaissance) — sign-in with two-factor, workspaces and roles,
 organizations, projects and assets, versioned scopes with authorization, passive collection (certificate
-transparency, DNS) with stored evidence, audit log, Command Center. See
+transparency, DNS), approved technology identification, stored evidence, audit log, Command Center. See
 [`docs/PHASE0_ARCHITECTURE_REVIEW.md`](docs/PHASE0_ARCHITECTURE_REVIEW.md) for the approved architecture and roadmap.
 
 ## Layout
@@ -85,4 +85,8 @@ CI fails if either generated file is stale.
   The worker re-checks scope when it runs a job and refuses it if the scope changed in between.
 - Collectors are passive: certificate-transparency search (contacts crt.sh only) and DNS lookups. Discovered names
   outside scope stay in the raw evidence and are never registered as assets.
+- Anything above passive (technology identification) waits for approval by an operator, admin or owner who
+  didn't request it; the approval is tied to the scope version. Probes resolve the host once, refuse private,
+  metadata and scope-excluded addresses, connect to the checked address, never follow redirects, and send at most
+  three GET requests.
 - Raw collector output is stored once, content-addressed by SHA-256, and verified on every download.

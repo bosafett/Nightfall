@@ -6,9 +6,12 @@ import { OperationStatusBadge } from "./OperationStatusBadge";
 
 function outcome(op: Operation): string {
   if (op.status === "denied") return op.denial_reason ?? "Denied";
+  if (op.status === "awaiting_approval") return "Needs approval from someone other than the requester";
+  if (op.status === "rejected") return "Rejected";
   if (op.status === "failed") return op.error ?? "Failed";
   if (op.status !== "succeeded") return "—";
-  const s = op.result_summary as { assets_new?: number; assets_seen?: number; out_of_scope?: number };
+  const s = op.result_summary as { assets_new?: number; assets_seen?: number; out_of_scope?: number; technologies?: { name: string }[] };
+  if (op.tool === "http") return `${s.technologies?.length ?? 0} technologies identified`;
   return `${s.assets_new ?? 0} new · ${s.assets_seen ?? 0} seen · ${s.out_of_scope ?? 0} outside scope`;
 }
 

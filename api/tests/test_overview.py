@@ -46,6 +46,7 @@ def test_empty_workspace_reports_zeros_and_unavailable_modules(
         "in_window": 0,
         "pending": 0,
         "failed_in_window": 0,
+        "awaiting_approval": 0,
     }
     for key, phase in [
         ("critical_findings", 4),

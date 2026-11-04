@@ -25,15 +25,16 @@ export function CollectionForm({ ws, projectId, suggestions }: { ws: string; pro
           <Select name="tool" defaultValue="ct">
             <option value="ct">Certificate transparency</option>
             <option value="dns">DNS records</option>
+            <option value="http">Technology identification (low risk · needs approval)</option>
           </Select>
         </Field>
-        <Field label="Target" hint="Must be inside the authorized scope. Passive: the target itself isn't contacted by CT search.">
+        <Field label="Target" hint="Must be inside the authorized scope. CT and DNS are passive. Technology identification sends up to 3 GET requests to the target and needs a second person to approve.">
           <Input name="target" list={`scope-suggestions-${projectId}`} required maxLength={300} className="font-mono" placeholder="example.com" />
           <datalist id={`scope-suggestions-${projectId}`}>{suggestions.map((s) => <option key={s} value={s} />)}</datalist>
         </Field>
       </div>
       {error && <Alert>{error}</Alert>}
-      {queued && <Alert tone="green">Queued {queued.tool_label} for {queued.target}.</Alert>}
+      {queued && <Alert tone="green">{queued.status === "awaiting_approval" ? `Requested ${queued.tool_label} for ${queued.target}. It runs once an operator, admin or owner other than you approves it.` : `Queued ${queued.tool_label} for ${queued.target}.`}</Alert>}
       <Button type="submit" variant="primary" disabled={busy}>{busy ? "Checking scope…" : "Run passive collection"}</Button>
     </form>
   );

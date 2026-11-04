@@ -20,6 +20,8 @@ from nightfall.config import get_settings
 from nightfall.core.audit.writer import record, record_detached
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
+    Approval,
+    ApprovalDecision,
     Evidence,
     Operation,
     OperationStatus,
@@ -43,11 +45,11 @@ from nightfall.scope.repository import active_scope, snapshot
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["recon"])
 
 HOURLY_LIMIT = 120  # collection requests per workspace per hour
-PENDING = (OperationStatus.QUEUED, OperationStatus.RUNNING)
+PENDING = (OperationStatus.AWAITING_APPROVAL, OperationStatus.QUEUED, OperationStatus.RUNNING)
 
 
 class CollectionIn(Model):
-    tool: Literal["ct", "dns"]
+    tool: Literal["ct", "dns", "http"]
     target: Annotated[str, StringConstraints(max_length=300)]
 
 
@@ -70,6 +72,7 @@ class OperationOut(Model):
     target: str
     status: OperationStatus
     requested_by: str | None
+    requested_by_user_id: uuid.UUID | None
     denial_reason: str | None
     error: str | None
     result_summary: dict[str, Any]
@@ -79,7 +82,19 @@ class OperationOut(Model):
     finished_at: datetime | None
 
 
+class ApprovalOut(Model):
+    decision: ApprovalDecision
+    decided_by: str
+    reason: str
+    decided_at: datetime
+
+
+class DecisionIn(Model):
+    reason: Annotated[str, StringConstraints(strip_whitespace=True, max_length=1000)] = ""
+
+
 class OperationDetail(OperationOut):
+    approval: ApprovalOut | None
     evidence: list[EvidenceSummary]
 
 
@@ -124,6 +139,7 @@ def _out(row: Any) -> OperationOut:
         target=op.target_value,
         status=op.status,
         requested_by=requester,
+        requested_by_user_id=op.requested_by_user_id,
         denial_reason=op.denial_reason,
         error=op.error,
         result_summary=op.result_summary,
@@ -162,8 +178,8 @@ def request_collection(
     if project is None:
         raise not_found("Project not found.")
     label, risk = TOOLS[body.tool]
-    if risk is not RiskClass.PASSIVE:  # only passive tools exist in this phase
-        raise api_error(403, "approval_required", "This tool needs an approved operation.")
+    if risk not in (RiskClass.PASSIVE, RiskClass.LOW):  # moderate/high: not in this phase
+        raise api_error(403, "not_available", "This tool isn't available.")
 
     scope = active_scope(db, project_id)
     decision = evaluate(snapshot(db, scope) if scope else None, body.target, utcnow())
@@ -217,6 +233,10 @@ def request_collection(
         target_value=decision.target,
         params={"method": label},
         requested_by_user_id=ctx.user_id,
+        # Passive runs within scope; anything above passive waits for a second person.
+        status=OperationStatus.QUEUED
+        if risk is RiskClass.PASSIVE
+        else OperationStatus.AWAITING_APPROVAL,
     )
     db.add(op)
     db.flush()
@@ -241,11 +261,14 @@ def list_operations(
     db: DB,
     ctx: WorkspaceContext = ws_permission(Permission.READ),
     project_id: Annotated[uuid.UUID | None, Query()] = None,
+    status: Annotated[OperationStatus | None, Query()] = None,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> list[OperationOut]:
     q = _query().where(Operation.workspace_id == ctx.workspace_id)
     if project_id is not None:
         q = q.where(Operation.project_id == project_id)
+    if status is not None:
+        q = q.where(Operation.status == status)
     return [_out(r) for r in db.execute(q.order_by(Operation.queued_at.desc()).limit(limit))]
 
 
@@ -257,7 +280,11 @@ def get_operation(
     ev = db.scalars(
         select(Evidence).where(Evidence.operation_id == op_id).order_by(Evidence.collected_at)
     ).all()
-    return OperationDetail(**_out(row).model_dump(), evidence=[evidence_summary(e) for e in ev])
+    return OperationDetail(
+        **_out(row).model_dump(),
+        evidence=[evidence_summary(e) for e in ev],
+        approval=_approval(db, op_id),
+    )
 
 
 @router.post("/operations/{op_id}/cancel", response_model=OkOut)
@@ -271,8 +298,8 @@ def cancel_operation(
     )
     if op is None:
         raise not_found("Operation not found.")
-    if op.status is not OperationStatus.QUEUED:
-        raise api_error(409, "not_queued", "Only queued operations can be cancelled.")
+    if op.status not in (OperationStatus.QUEUED, OperationStatus.AWAITING_APPROVAL):
+        raise api_error(409, "not_queued", "Only queued or unapproved operations can be cancelled.")
     op.status = OperationStatus.CANCELLED
     op.finished_at = utcnow()
     record(
@@ -335,3 +362,130 @@ def get_evidence_content(
             "Content-Security-Policy": "default-src 'none'; sandbox",
         },
     )
+
+
+def _approval(db: Session, op_id: uuid.UUID) -> ApprovalOut | None:
+    row = db.execute(
+        select(Approval, User.display_name)
+        .join(User, User.id == Approval.approver_user_id)
+        .where(Approval.operation_id == op_id)
+    ).first()
+    if row is None:
+        return None
+    a, name = row
+    return ApprovalOut(
+        decision=a.decision, decided_by=name, reason=a.reason, decided_at=a.decided_at
+    )
+
+
+def _awaiting(db: Session, ctx: WorkspaceContext, op_id: uuid.UUID) -> Operation:
+    op = db.scalar(
+        select(Operation)
+        .where(Operation.id == op_id, Operation.workspace_id == ctx.workspace_id)
+        .with_for_update()
+    )
+    if op is None:
+        raise not_found("Operation not found.")
+    if op.status is not OperationStatus.AWAITING_APPROVAL:
+        raise api_error(409, "not_awaiting", "This operation isn't waiting for a decision.")
+    if op.requested_by_user_id == ctx.user_id:
+        raise api_error(
+            409,
+            "self_approval",
+            "You requested this operation, so someone else has to decide on it.",
+        )
+    return op
+
+
+@router.post("/operations/{op_id}/approve", response_model=OperationDetail)
+def approve_operation(
+    op_id: uuid.UUID,
+    body: DecisionIn,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+) -> OperationDetail:
+    op = _awaiting(db, ctx, op_id)
+    # The approval is only meaningful against the scope it was requested under.
+    current = active_scope(db, op.project_id)
+    decision = (
+        evaluate(snapshot(db, current), op.target_value, utcnow())
+        if current is not None and current.id == op.scope_id
+        else None
+    )
+    if decision is None or not decision.allowed:
+        op.status = OperationStatus.DENIED
+        op.finished_at = utcnow()
+        op.denial_reason = (
+            "The scope changed after this was requested. Request it again."
+            if decision is None
+            else decision.reason
+        )
+        record(
+            db,
+            "operation.denied",
+            entity_type="operation",
+            entity_id=op.id,
+            data={"reason": op.denial_reason, "at": "approval"},
+            **ctx.audit_kwargs(),
+        )
+        db.flush()
+        return get_operation(op_id, db, ctx)
+    db.add(
+        Approval(
+            workspace_id=ctx.workspace_id,
+            operation_id=op.id,
+            approver_user_id=ctx.user_id,
+            decision=ApprovalDecision.APPROVED,
+            reason=body.reason,
+            scope_id_at_decision=op.scope_id,
+        )
+    )
+    op.status = OperationStatus.QUEUED
+    op.queued_at = utcnow()
+    record(
+        db,
+        "operation.approved",
+        entity_type="operation",
+        entity_id=op.id,
+        data={
+            "tool": op.tool,
+            "target": op.target_value,
+            "risk_class": op.risk_class.value,
+            "reason": body.reason,
+        },
+        **ctx.audit_kwargs(),
+    )
+    db.flush()
+    return get_operation(op_id, db, ctx)
+
+
+@router.post("/operations/{op_id}/reject", response_model=OperationDetail)
+def reject_operation(
+    op_id: uuid.UUID,
+    body: DecisionIn,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+) -> OperationDetail:
+    op = _awaiting(db, ctx, op_id)
+    db.add(
+        Approval(
+            workspace_id=ctx.workspace_id,
+            operation_id=op.id,
+            approver_user_id=ctx.user_id,
+            decision=ApprovalDecision.REJECTED,
+            reason=body.reason,
+            scope_id_at_decision=op.scope_id,
+        )
+    )
+    op.status = OperationStatus.REJECTED
+    op.finished_at = utcnow()
+    record(
+        db,
+        "operation.rejected",
+        entity_type="operation",
+        entity_id=op.id,
+        data={"reason": body.reason},
+        **ctx.audit_kwargs(),
+    )
+    db.flush()
+    return get_operation(op_id, db, ctx)

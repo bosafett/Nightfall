@@ -387,6 +387,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/operations/{op_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve Operation */
+        post: operations["approve_operation_api_workspaces__workspace_id__operations__op_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/operations/{op_id}/cancel": {
         parameters: {
             query?: never;
@@ -398,6 +415,23 @@ export interface paths {
         put?: never;
         /** Cancel Operation */
         post: operations["cancel_operation_api_workspaces__workspace_id__operations__op_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/operations/{op_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Operation */
+        post: operations["reject_operation_api_workspaces__workspace_id__operations__op_id__reject_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -691,6 +725,24 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
         };
+        /**
+         * ApprovalDecision
+         * @enum {string}
+         */
+        ApprovalDecision: "approved" | "rejected";
+        /** ApprovalOut */
+        ApprovalOut: {
+            /**
+             * Decided At
+             * Format: date-time
+             */
+            decided_at: string;
+            /** Decided By */
+            decided_by: string;
+            decision: components["schemas"]["ApprovalDecision"];
+            /** Reason */
+            reason: string;
+        };
         /** AssessmentItem */
         AssessmentItem: {
             assessment_type: components["schemas"]["AssessmentType"];
@@ -863,7 +915,7 @@ export interface components {
              * Tool
              * @enum {string}
              */
-            tool: "ct" | "dns";
+            tool: "ct" | "dns" | "http";
         };
         /** ComponentStatus */
         ComponentStatus: {
@@ -880,6 +932,14 @@ export interface components {
          * @enum {string}
          */
         Confidence: "low" | "medium" | "high";
+        /** DecisionIn */
+        DecisionIn: {
+            /**
+             * Reason
+             * @default
+             */
+            reason: string;
+        };
         /** EntryIn */
         EntryIn: {
             kind: components["schemas"]["ScopeEntryKind"];
@@ -1167,6 +1227,7 @@ export interface components {
         };
         /** OperationDetail */
         OperationDetail: {
+            approval: components["schemas"]["ApprovalOut"] | null;
             /** Attempts */
             attempts: number;
             /** Denial Reason */
@@ -1203,6 +1264,8 @@ export interface components {
             queued_at: string;
             /** Requested By */
             requested_by: string | null;
+            /** Requested By User Id */
+            requested_by_user_id: string | null;
             /** Result Summary */
             result_summary: {
                 [key: string]: unknown;
@@ -1228,6 +1291,8 @@ export interface components {
              * @constant
              */
             available: true;
+            /** Awaiting Approval */
+            awaiting_approval: number;
             /** Failed In Window */
             failed_in_window: number;
             /** In Window */
@@ -1271,6 +1336,8 @@ export interface components {
             queued_at: string;
             /** Requested By */
             requested_by: string | null;
+            /** Requested By User Id */
+            requested_by_user_id: string | null;
             /** Result Summary */
             result_summary: {
                 [key: string]: unknown;
@@ -1292,7 +1359,7 @@ export interface components {
          * OperationStatus
          * @enum {string}
          */
-        OperationStatus: "queued" | "running" | "succeeded" | "failed" | "denied" | "cancelled";
+        OperationStatus: "awaiting_approval" | "queued" | "running" | "succeeded" | "failed" | "denied" | "rejected" | "cancelled";
         /** OrganizationIn */
         OrganizationIn: {
             /** Name */
@@ -2401,6 +2468,7 @@ export interface operations {
         parameters: {
             query?: {
                 project_id?: string | null;
+                status?: components["schemas"]["OperationStatus"] | null;
                 limit?: number;
             };
             header?: never;
@@ -2463,6 +2531,42 @@ export interface operations {
             };
         };
     };
+    approve_operation_api_workspaces__workspace_id__operations__op_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                op_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     cancel_operation_api_workspaces__workspace_id__operations__op_id__cancel_post: {
         parameters: {
             query?: never;
@@ -2482,6 +2586,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_operation_api_workspaces__workspace_id__operations__op_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                op_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperationDetail"];
                 };
             };
             /** @description Validation Error */

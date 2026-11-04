@@ -38,6 +38,7 @@ export const can = {
   writeRegistry: (r: Role) => rank[r] >= rank.analyst,
   manageMembers: (r: Role) => rank[r] >= rank.admin,
   authorizeScope: (r: Role) => rank[r] >= rank.admin,
+  approveOperations: (r: Role) => rank[r] >= rank.operator,
   assign: (actor: Role, role: Role) => actor === "owner" || rank[role] < rank[actor],
   manage: (actor: Role, target: Role) => actor === "owner" || rank[target] < rank[actor],
 };
@@ -66,5 +67,6 @@ export const scopeKindHint: Record<ScopeEntryKind, string> = {
 };
 
 export const operationStatusLabel: Record<OperationStatus, string> = {
-  queued: "Queued", running: "Running", succeeded: "Done", failed: "Failed", denied: "Denied", cancelled: "Cancelled",
+  awaiting_approval: "Awaiting approval", queued: "Queued", running: "Running", succeeded: "Done", failed: "Failed",
+  denied: "Denied", rejected: "Rejected", cancelled: "Cancelled",
 };

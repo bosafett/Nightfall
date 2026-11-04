@@ -74,6 +74,7 @@ class OperationKpi(Model):
     available: Literal[True] = True
     in_window: int
     pending: int  # queued or running now
+    awaiting_approval: int
     failed_in_window: int
 
 
@@ -157,6 +158,7 @@ def overview(
             func.count().filter(
                 Operation.queued_at >= since, Operation.status == OperationStatus.FAILED
             ),
+            func.count().filter(Operation.status == OperationStatus.AWAITING_APPROVAL),
         ).where(Operation.workspace_id == ws)
     ).one()
 
@@ -188,7 +190,10 @@ def overview(
         critical_findings=Unavailable(phase=4),
         assets=AssetKpi(total=asset_counts[0], new_in_window=asset_counts[1]),
         operations=OperationKpi(
-            in_window=op_counts[0], pending=op_counts[1], failed_in_window=op_counts[2]
+            in_window=op_counts[0],
+            pending=op_counts[1],
+            failed_in_window=op_counts[2],
+            awaiting_approval=op_counts[3],
         ),
         assessments=assessments,
         recent_findings=Unavailable(phase=4),

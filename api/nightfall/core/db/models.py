@@ -220,11 +220,13 @@ class RiskClass(enum.StrEnum):
 
 
 class OperationStatus(enum.StrEnum):
+    AWAITING_APPROVAL = "awaiting_approval"
     QUEUED = "queued"
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     DENIED = "denied"
+    REJECTED = "rejected"
     CANCELLED = "cancelled"
 
 
@@ -387,3 +389,23 @@ class WorkerHeartbeat(Base):
     worker_id: Mapped[str] = mapped_column(primary_key=True)
     version: Mapped[str]
     last_seen_at: Mapped[datetime] = _created()
+
+
+class ApprovalDecision(enum.StrEnum):
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class Approval(Base):
+    __tablename__ = "approvals"
+    # Decisions are insert-only for every role; no RETURNING needed beyond the PK.
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    operation_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("operations.id"))
+    approver_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    decision: Mapped[ApprovalDecision] = mapped_column(
+        _pg_enum(ApprovalDecision, "approval_decision")
+    )
+    reason: Mapped[str] = mapped_column(server_default=text("''"))
+    scope_id_at_decision: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    decided_at: Mapped[datetime] = _created()

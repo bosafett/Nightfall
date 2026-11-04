@@ -3,7 +3,8 @@ import { operationStatusLabel } from "@/lib/labels";
 import { Badge, type Tone } from "@/components/ui/primitives";
 
 const tone: Record<OperationStatus, Tone> = {
-  queued: "gray", running: "blue", succeeded: "green", failed: "crimson", denied: "orange", cancelled: "gray",
+  awaiting_approval: "yellow", queued: "gray", running: "blue", succeeded: "green", failed: "crimson", denied: "orange",
+  rejected: "orange", cancelled: "gray",
 };
 
 export function OperationStatusBadge({ status }: { status: OperationStatus }) {

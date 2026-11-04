@@ -7,8 +7,13 @@ is used, and counts are capped.
 
 from __future__ import annotations
 
+import base64
 import contextlib
+import hashlib
+import ipaddress
 import json
+import ssl
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from importlib.metadata import version
 from typing import Protocol
@@ -17,6 +22,8 @@ import httpx
 
 from nightfall.core.db.models import Confidence, RiskClass
 from nightfall.core.evidence_store import MAX_BLOB_BYTES
+from nightfall.recon.fingerprint import RULESET, fingerprint, page_title
+from nightfall.recon.safe_http import Exchange, Refused, SafeHttp
 from nightfall.scope import normalize
 from nightfall.scope.normalize import NormalizationError
 
@@ -39,6 +46,18 @@ class CollectorResult:
     cnames: list[str] = field(default_factory=list)  # CNAME targets (normalized)
     records: dict[str, list[str]] = field(default_factory=dict)
     rejected: int = 0  # values dropped as malformed
+    technologies: list[dict[str, str | None]] = field(default_factory=list)
+    http: list[dict[str, object]] = field(default_factory=list)  # per-request summaries
+
+
+Network = ipaddress.IPv4Network | ipaddress.IPv6Network
+
+
+@dataclass(frozen=True)
+class RunContext:
+    """Scope facts a collector needs at run time (from the operation's pinned scope)."""
+
+    excluded_networks: tuple[Network, ...] = ()
 
 
 class Collector(Protocol):
@@ -47,7 +66,7 @@ class Collector(Protocol):
     risk_class: RiskClass
     method: str
 
-    def run(self, target: str) -> CollectorResult: ...
+    def run(self, target: str, ctx: RunContext) -> CollectorResult: ...
 
 
 def clean_names(values: list[str]) -> tuple[list[str], int]:
@@ -74,7 +93,7 @@ class CertificateTransparency:
     method = "Certificate transparency log search"
     url = "https://crt.sh/"
 
-    def run(self, target: str) -> CollectorResult:
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
         params = {"q": f"%.{target}", "output": "json"}
         chunks: list[bytes] = []
         size = 0
@@ -118,7 +137,7 @@ class DnsRecords:
     risk_class = RiskClass.PASSIVE
     method = "DNS resolution (A, AAAA, CNAME, MX, NS, TXT)"
 
-    def run(self, target: str) -> CollectorResult:
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
         import dns.exception
         import dns.resolver
 
@@ -166,7 +185,7 @@ class FixtureCertificateTransparency(CertificateTransparency):
     """Canned results. Evidence is labelled tool_name 'fixture-ct' so it can never be
     mistaken for real collection. Never contacts the network."""
 
-    def run(self, target: str) -> CollectorResult:
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
         values = [
             f"www.{target}",
             f"api.{target}",
@@ -192,7 +211,7 @@ class FixtureCertificateTransparency(CertificateTransparency):
 
 
 class FixtureDnsRecords(DnsRecords):
-    def run(self, target: str) -> CollectorResult:
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
         records = {
             "A": ["192.0.2.10"],
             "AAAA": ["2001:db8::10"],
@@ -204,14 +223,148 @@ class FixtureDnsRecords(DnsRecords):
         return _dns_result(records, "fixture-dns", "fixture", "fixture")
 
 
+class HttpFingerprint:
+    """Technology identification: at most three GET requests to the target's web root
+    (HTTPS verified, HTTPS unverified if the certificate fails, then HTTP). LOW risk: it
+    contacts the target, so it needs an approved operation (review decision 8)."""
+
+    key = "http"
+    label = "Technology identification (HTTP)"
+    risk_class = RiskClass.LOW
+    method = "HTTP GET / on ports 443 and 80; headers, TLS and page markers"
+
+    def __init__(self, make_client: Callable[[list[Network]], SafeHttp] | None = None) -> None:
+        self.make_client = make_client or (lambda nets: SafeHttp(excluded_networks=nets))
+
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
+        client = self.make_client(list(ctx.excluded_networks))
+        attempts: list[dict[str, object]] = []
+
+        def attempt(scheme: str, verify: bool) -> tuple[Exchange | None, BaseException | None]:
+            try:
+                ex = client.get(target, scheme, verify)
+            except Refused:
+                raise
+            except (httpx.HTTPError, ssl.SSLError, OSError) as exc:
+                attempts.append(
+                    {
+                        "url": f"{scheme}://{target}/",
+                        "verified_tls": verify,
+                        "error": f"{type(exc).__name__}: {str(exc)[:200]}",
+                    }
+                )
+                return None, exc
+            attempts.append(
+                {"url": f"{scheme}://{target}/", "verified_tls": verify, "status": ex.status}
+            )
+            return ex, None
+
+        exchange, err = attempt("https", True)
+        if exchange is None and err is not None and _is_tls_error(err):
+            # Certificate problem: fingerprint anyway, and record that TLS didn't verify.
+            exchange, _ = attempt("https", False)
+        if exchange is None:
+            exchange, _ = attempt("http", False)
+        if exchange is None:
+            raise RuntimeError("No response on ports 443 or 80.")
+        return http_result(target, exchange, attempts, "nightfall-http", RULESET, "http")
+
+
+def _is_tls_error(exc: BaseException) -> bool:
+    text = f"{type(exc).__name__} {exc}".lower()
+    return "ssl" in text or "certificate" in text or "tls" in text
+
+
+def http_result(
+    target: str, ex: Exchange, attempts: list[dict[str, object]], tool: str, ver: str, source: str
+) -> CollectorResult:
+    techs = [t.as_dict() for t in fingerprint(ex.headers, ex.body)]
+    title = page_title(ex.body)
+    raw = json.dumps(
+        {
+            "target": target,
+            "attempts": attempts,
+            "url": ex.url,
+            "connected_ip": ex.connected_ip,
+            "status": ex.status,
+            "headers": ex.headers,
+            "location": ex.location,
+            "tls": ex.tls,
+            "elapsed_ms": ex.elapsed_ms,
+            "body_sha256": hashlib.sha256(ex.body).hexdigest(),
+            "body_truncated": ex.body_truncated,
+            "body_base64": base64.b64encode(ex.body).decode(),
+            "ruleset": ver,
+        },
+        indent=2,
+    ).encode()
+    summary: dict[str, object] = {
+        "url": ex.url,
+        "status": ex.status,
+        "title": title,
+        "location": ex.location,
+        "tls": ex.tls,
+        "attempts": attempts,
+        "connected_ip": ex.connected_ip,
+    }
+    return CollectorResult(
+        raw=raw,
+        content_type="application/json",
+        tool_name=tool,
+        tool_version=ver,
+        source=source,
+        confidence=Confidence.HIGH,
+        addresses=[ex.connected_ip],
+        technologies=techs,
+        http=[summary],
+    )
+
+
+class FixtureHttpFingerprint(HttpFingerprint):
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
+        body = (
+            b"<html><head><title>Acme portal</title>"
+            b'<meta name="generator" content="WordPress 6.4.2"></head>'
+            b'<body><link href="/wp-content/themes/x.css"></body></html>'
+        )
+        ex = Exchange(
+            url=f"https://{target}/",
+            connected_ip="192.0.2.10",
+            status=200,
+            headers=[
+                ("Server", "nginx/1.25.3"),
+                ("X-Powered-By", "PHP/8.2.12"),
+                ("Content-Type", "text/html"),
+            ],
+            body=body,
+            body_truncated=False,
+            elapsed_ms=12,
+            tls={"version": "TLSv1.3", "subject_cn": target, "issuer_cn": "Fixture CA"},
+            location=None,
+        )
+        return http_result(
+            target,
+            ex,
+            [{"url": ex.url, "verified_tls": True, "status": 200}],
+            "fixture-http",
+            "fixture",
+            "fixture",
+        )
+
+
 def collectors(mode: str) -> dict[str, Collector]:
     if mode == "fixture":
-        return {"ct": FixtureCertificateTransparency(), "dns": FixtureDnsRecords()}
-    return {"ct": CertificateTransparency(), "dns": DnsRecords()}
+        return {
+            "ct": FixtureCertificateTransparency(),
+            "dns": FixtureDnsRecords(),
+            "http": FixtureHttpFingerprint(),
+        }
+    return {"ct": CertificateTransparency(), "dns": DnsRecords(), "http": HttpFingerprint()}
 
 
 # Tool metadata used by the API without instantiating anything.
 TOOLS: dict[str, tuple[str, RiskClass]] = {
     "ct": (CertificateTransparency.label, RiskClass.PASSIVE),
     "dns": (DnsRecords.label, RiskClass.PASSIVE),
+    "http": (HttpFingerprint.label, RiskClass.LOW),
 }

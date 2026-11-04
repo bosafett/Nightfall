@@ -14,6 +14,7 @@ Safety properties:
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import os
 import signal
@@ -33,15 +34,21 @@ from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
     ActorType,
+    Approval,
+    ApprovalDecision,
     Operation,
     OperationStatus,
     Project,
+    RiskClass,
     Scope,
+    ScopeEntryKind,
+    ScopeExclusion,
     WorkerHeartbeat,
 )
 from nightfall.core.db.session import set_workspace_context
 from nightfall.core.evidence_store import EvidenceStore
-from nightfall.recon.collectors import Collector, collectors
+from nightfall.recon.collectors import Collector, RunContext, collectors
+from nightfall.recon.safe_http import Refused
 from nightfall.scope.engine import evaluate
 from nightfall.scope.repository import active_scope, snapshot
 
@@ -65,6 +72,18 @@ UPDATE operations SET status = 'failed', finished_at = now(),
   error = 'Gave up after 3 attempts (worker stopped responding).'
 WHERE status = 'running' AND started_at < now() - interval '10 minutes' AND attempts >= 3
 """)
+
+
+def _excluded_networks(
+    db: Session, scope_id: uuid.UUID
+) -> tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...]:
+    rows = db.execute(
+        select(ScopeExclusion.kind, ScopeExclusion.value).where(
+            ScopeExclusion.scope_id == scope_id,
+            ScopeExclusion.kind.in_([ScopeEntryKind.IP, ScopeEntryKind.CIDR]),
+        )
+    ).all()
+    return tuple(ipaddress.ip_network(v) for _, v in rows)
 
 
 def _get_op(db: Session, op_id: uuid.UUID) -> Operation:
@@ -148,6 +167,17 @@ class Worker:
             else:
                 decision = evaluate(snapshot(db, current), op.target_value, now)
                 decision_ok, reason = decision.allowed, decision.reason
+            if decision_ok and op.risk_class is not RiskClass.PASSIVE:
+                approval = db.scalar(
+                    select(Approval).where(
+                        Approval.operation_id == op.id,
+                        Approval.decision == ApprovalDecision.APPROVED,
+                        Approval.scope_id_at_decision == op.scope_id,
+                    )
+                )
+                if approval is None:
+                    decision_ok, reason = False, "No valid approval for this operation."
+            run_ctx = RunContext(excluded_networks=_excluded_networks(db, op.scope_id))
             tool = self.tools.get(op.tool)
             target, tool_key = op.target_value, op.tool
         if not decision_ok:
@@ -166,8 +196,13 @@ class Worker:
             return
 
         try:
-            result = tool.run(target)
+            result = tool.run(target, run_ctx)
             digest = self.store.put(result.raw)
+        except Refused as exc:  # safety check refused to send anything
+            self._finish(
+                op_id, ws, OperationStatus.DENIED, "operation.denied", denial_reason=str(exc)
+            )
+            return
         except Exception as exc:  # collector/network failure: recorded, not raised
             log.warning("operation %s failed: %s", op_id, exc)
             self._finish(

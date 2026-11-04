@@ -63,7 +63,7 @@ export function KpiRow({ overview }: { overview: Overview }) {
       <KpiCard label="Assets discovered" icon="graph" tone="border-blue/60 text-blue-text" value={overview.assets.total}
         detail={`${overview.assets.new_in_window} new in the ${windowText[overview.window]}`} />
       <KpiCard label="Operations" icon="warroom" tone="border-green/60 text-green" value={overview.operations.in_window}
-        detail={`in the ${windowText[overview.window]} · ${overview.operations.pending} pending${overview.operations.failed_in_window ? ` · ${overview.operations.failed_in_window} failed` : ""}`} />
+        detail={`in the ${windowText[overview.window]} · ${overview.operations.pending} pending${overview.operations.awaiting_approval ? ` · ${overview.operations.awaiting_approval} awaiting approval` : ""}${overview.operations.failed_in_window ? ` · ${overview.operations.failed_in_window} failed` : ""}`} />
     </div>
   );
 }

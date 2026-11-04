@@ -168,7 +168,7 @@ def test_collector_failure_is_recorded(client: TestClient, setup) -> None:
     ws, _, pid = setup
 
     class Broken(FixtureCertificateTransparency):
-        def run(self, target: str):
+        def run(self, target: str, ctx):
             raise TimeoutError("crt.sh did not answer")
 
     op_id = collect(client, ws, pid, "ct", "example.com").json()["id"]

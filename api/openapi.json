@@ -56,6 +56,43 @@
         "title": "AcceptInviteOut",
         "type": "object"
       },
+      "ApprovalDecision": {
+        "enum": [
+          "approved",
+          "rejected"
+        ],
+        "title": "ApprovalDecision",
+        "type": "string"
+      },
+      "ApprovalOut": {
+        "additionalProperties": false,
+        "properties": {
+          "decided_at": {
+            "format": "date-time",
+            "title": "Decided At",
+            "type": "string"
+          },
+          "decided_by": {
+            "title": "Decided By",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/ApprovalDecision"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "decided_by",
+          "reason",
+          "decided_at"
+        ],
+        "title": "ApprovalOut",
+        "type": "object"
+      },
       "AssessmentItem": {
         "additionalProperties": false,
         "properties": {
@@ -436,7 +473,8 @@
           "tool": {
             "enum": [
               "ct",
-              "dns"
+              "dns",
+              "http"
             ],
             "title": "Tool",
             "type": "string"
@@ -480,6 +518,19 @@
         ],
         "title": "Confidence",
         "type": "string"
+      },
+      "DecisionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "title": "DecisionIn",
+        "type": "object"
       },
       "EntryIn": {
         "additionalProperties": false,
@@ -1171,6 +1222,16 @@
       "OperationDetail": {
         "additionalProperties": false,
         "properties": {
+          "approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ApprovalOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "attempts": {
             "title": "Attempts",
             "type": "integer"
@@ -1255,6 +1316,18 @@
             ],
             "title": "Requested By"
           },
+          "requested_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By User Id"
+          },
           "result_summary": {
             "additionalProperties": true,
             "title": "Result Summary",
@@ -1308,6 +1381,7 @@
           "target",
           "status",
           "requested_by",
+          "requested_by_user_id",
           "denial_reason",
           "error",
           "result_summary",
@@ -1315,6 +1389,7 @@
           "queued_at",
           "started_at",
           "finished_at",
+          "approval",
           "evidence"
         ],
         "title": "OperationDetail",
@@ -1328,6 +1403,10 @@
             "default": true,
             "title": "Available",
             "type": "boolean"
+          },
+          "awaiting_approval": {
+            "title": "Awaiting Approval",
+            "type": "integer"
           },
           "failed_in_window": {
             "title": "Failed In Window",
@@ -1345,6 +1424,7 @@
         "required": [
           "in_window",
           "pending",
+          "awaiting_approval",
           "failed_in_window"
         ],
         "title": "OperationKpi",
@@ -1430,6 +1510,18 @@
             ],
             "title": "Requested By"
           },
+          "requested_by_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By User Id"
+          },
           "result_summary": {
             "additionalProperties": true,
             "title": "Result Summary",
@@ -1483,6 +1575,7 @@
           "target",
           "status",
           "requested_by",
+          "requested_by_user_id",
           "denial_reason",
           "error",
           "result_summary",
@@ -1496,11 +1589,13 @@
       },
       "OperationStatus": {
         "enum": [
+          "awaiting_approval",
           "queued",
           "running",
           "succeeded",
           "failed",
           "denied",
+          "rejected",
           "cancelled"
         ],
         "title": "OperationStatus",
@@ -3536,6 +3631,22 @@
           },
           {
             "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OperationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -3632,6 +3743,69 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/operations/{op_id}/approve": {
+      "post": {
+        "operationId": "approve_operation_api_workspaces__workspace_id__operations__op_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "op_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Op Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Operation",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/operations/{op_id}/cancel": {
       "post": {
         "operationId": "cancel_operation_api_workspaces__workspace_id__operations__op_id__cancel_post",
@@ -3680,6 +3854,69 @@
           }
         },
         "summary": "Cancel Operation",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/operations/{op_id}/reject": {
+      "post": {
+        "operationId": "reject_operation_api_workspaces__workspace_id__operations__op_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "op_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Op Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Operation",
         "tags": [
           "recon"
         ]

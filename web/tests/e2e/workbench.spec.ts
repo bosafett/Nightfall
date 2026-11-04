@@ -205,6 +205,26 @@ test.describe("as the owner", () => {
     await expect(g.getByRole("heading", { name: "Invites" })).toHaveCount(0);
     await expect(g.getByText("Ana Lyst")).toBeVisible();
 
+    // The analyst requests a low-risk probe; it waits for someone else to approve.
+    await g.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Target Registry" }).click();
+    await g.getByRole("link", { name: "Acme Corporation" }).click();
+    await g.getByRole("link", { name: "External reconnaissance" }).click();
+    await g.getByLabel("Collector").selectOption("http");
+    await g.getByLabel("Target", { exact: true }).fill("www.acme.test");
+    await g.getByRole("button", { name: "Run passive collection" }).click();
+    await expect(g.getByText(/runs once an operator, admin or owner other than you approves it/)).toBeVisible();
+
+    await page.goto(`${workspaceUrl}/recon`);
+    await page.getByRole("region").or(page.locator("section")).filter({ hasText: "Awaiting approval" }).first()
+      .getByRole("link", { name: "www.acme.test" }).click();
+    await expect(page.getByText("Approval is tied to scope v1")).toBeVisible();
+    await page.getByLabel("Reason (recorded with your decision)").fill("Client approved web fingerprinting");
+    await page.getByRole("button", { name: "Approve", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Approve and queue" }).click();
+    await expect(page.getByText(/Approved by Nick Operator/)).toBeVisible();
+    await expect(page.getByRole("cell", { name: "WordPress", exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("High: stated by server").first()).toBeVisible();
+
     // Reusing the invite fails.
     const again = await browser.newContext();
     const a = await again.newPage();

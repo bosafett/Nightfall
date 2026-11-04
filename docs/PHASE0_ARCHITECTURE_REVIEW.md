@@ -297,9 +297,19 @@ Stops after step 8 for approval (spec §12.5).
 Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
 - **3a (done):** assets, versioned scopes and exclusions with authorization, scope engine, operations queue and
   worker, passive collectors (certificate transparency, DNS), content-addressed evidence, discovery history.
-- **3b (next):** technology identification (low risk, needs the approval flow), Amass passive adapter, and the
-  scope-enforcing egress proxy that any non-passive tool must use. Scope entry kinds in 3a are `host`,
-  `domain_tree`, `ip`, `cidr` (URL prefixes come with web-testing tools).
+- **3b (done):** approval workflow for operations above passive (operator/admin/owner, never the requester,
+  enforced in the API and by a database trigger, tied to the scope version, final once decided); technology
+  identification as a LOW-risk collector through a scope-enforcing HTTP client (resolve once, refuse private,
+  metadata, CGNAT and scope-excluded addresses, connect to the checked IP with the hostname as SNI/Host, GET only,
+  no redirects followed, capped body, honest User-Agent); deterministic, versioned fingerprint rules.
+- **Moved out of Phase 3, with reasons:**
+  - *Amass.* v5 (5.1.3, verified) runs `enum` against a separate long-lived Amass engine service with its own
+    asset database ("The Amass engine did not respond" without one). That is a new deployable, not an adapter;
+    it belongs with the tools container in Phase 4. Certificate transparency + DNS already cover passive
+    subdomain discovery.
+  - *Egress proxy for third-party binaries.* Only needed once an external tool (Nuclei, ZAP) contacts targets.
+    In-process probes already go through the scope-enforcing client. Built with the tools container in Phase 4,
+    before Nuclei or ZAP can run.
 
 ## 11. Decisions requiring human approval
 

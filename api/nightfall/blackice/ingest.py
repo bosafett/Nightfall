@@ -44,6 +44,7 @@ class IngestSummary:
     out_of_scope: int
     rejected: int
     relationships: int
+    technologies: list[dict[str, str | None]]
 
     def as_dict(self) -> dict[str, object]:
         return {
@@ -53,6 +54,7 @@ class IngestSummary:
             "out_of_scope": self.out_of_scope,
             "rejected": self.rejected,
             "relationships": self.relationships,
+            "technologies": self.technologies,
             "ruleset": RULESET_VERSION,
         }
 
@@ -177,6 +179,8 @@ def ingest(
                 "addresses": result.addresses,
                 "cnames": result.cnames,
                 "records": result.records,
+                "technologies": result.technologies,
+                "http": result.http,
             },
             is_simulation=False,
         )
@@ -245,4 +249,5 @@ def ingest(
         out_of_scope=out,
         rejected=result.rejected,
         relationships=rels,
+        technologies=result.technologies,
     )
