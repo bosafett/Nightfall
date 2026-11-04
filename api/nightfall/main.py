@@ -78,8 +78,9 @@ class RequestGuard(BaseHTTPMiddleware):
 ROUTERS = (health_router, auth_router, workspace_router, registry_router)
 
 
-def create_app() -> FastAPI:
-    get_settings()  # fail fast on bad configuration
+def create_app(*, check_settings: bool = True) -> FastAPI:
+    if check_settings:
+        get_settings()  # fail fast on bad configuration
     app = FastAPI(
         title="NIGHTFALL API",
         version="0.1.0",

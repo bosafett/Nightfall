@@ -8,7 +8,9 @@ Required:
 Optional:
   NIGHTFALL_MIGRATION_DATABASE_URL  schema-owner connection (migrations, admin CLI).
   NIGHTFALL_COOKIE_SECURE           "true" (default) / "false".
-  NIGHTFALL_FORWARDED_HOPS          trusted reverse proxies in front of the API (default 0).
+  NIGHTFALL_FORWARDED_HOPS          trusted reverse proxies in front of the API that set
+                                    X-Forwarded-For themselves (default 0). Never count the
+                                    Next.js rewrite proxy: it forwards the client's header as-is.
 """
 
 from __future__ import annotations

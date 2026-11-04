@@ -265,6 +265,7 @@ Integration tests run against real Postgres via compose.
 | zap | egress (via scope proxy) | Phase 4. Internal API with API key. |
 | evidence volume | — | Content-addressed blobs. Back up together with Postgres. |
 
+- **Routing (found in Phase 1):** Caddy must send `/api/*` straight to the API and overwrite `X-Forwarded-For`, with `NIGHTFALL_FORWARDED_HOPS=1`. The Next.js rewrite proxy passes a client-supplied `X-Forwarded-For` through unchanged, so it must never be the hop the API trusts for client IPs.
 - **Cloud hosting is no longer the default.** Vercel can't run Ollama, and Railway has no GPUs. A cloud deployment can come later, but 0.1 doesn't target it.
 - **Environments:**
   - dev: the same compose file, plus a dev overlay

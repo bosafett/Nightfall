@@ -47,7 +47,7 @@ PUBLIC_ROUTES = {
     ("POST", "/api/auth/login"),
     ("POST", "/api/auth/password-reset"),
     ("POST", "/api/auth/accept-invite"),
-    ("GET", "/api/auth/invites/{token}"),
+    ("POST", "/api/auth/invites/lookup"),
 }
 
 
@@ -69,6 +69,10 @@ class MfaConfirmIn(Model):
 class PasswordResetIn(Model):
     token: Token
     new_password: Password
+
+
+class InviteLookupIn(Model):
+    token: Token
 
 
 class InviteInfoOut(Model):
@@ -301,9 +305,10 @@ def password_reset(body: PasswordResetIn, request: Request, db: DB) -> OkOut:
     return OkOut()
 
 
-@router.get("/invites/{token}", response_model=InviteInfoOut)
-def invite_info(token: str, db: DB) -> InviteInfoOut:
-    t = _valid_token(db, token, TokenPurpose.INVITE) if 20 <= len(token) <= 128 else None
+# POST with the token in the body (not the URL), so it never lands in access logs.
+@router.post("/invites/lookup", response_model=InviteInfoOut)
+def invite_info(body: InviteLookupIn, db: DB) -> InviteInfoOut:
+    t = _valid_token(db, body.token, TokenPurpose.INVITE)
     if t is None or t.workspace_id is None or t.email is None or t.role is None:
         raise api_error(404, "invalid_or_expired_token", "This invite is invalid or has expired.")
     set_workspace_context(db, t.workspace_id)
@@ -330,7 +335,11 @@ def accept_invite(
     if user is not None:
         # Existing account: prove ownership with the password. No session is created
         # here, so an account with two-factor still has to sign in normally.
+        acct_key = f"acct:{user.email}"
+        if login_failures_by_account.blocked(acct_key):
+            raise api_error(429, "too_many_attempts", "Too many attempts. Try again in 15 minutes.")
         if user.is_disabled or not security.verify_password(user.password_hash, body.password):
+            login_failures_by_account.hit(acct_key)
             record_detached(
                 "auth.invite_accept_failed",
                 actor_id=user.id,

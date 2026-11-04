@@ -184,7 +184,7 @@ def test_invite_new_user(client: TestClient, factory: Factory, owner_db: Session
     assert len(client.get(f"/api/workspaces/{ws}/invites").json()) == 1
 
     client.cookies.clear()
-    info = client.get(f"/api/auth/invites/{token}").json()
+    info = client.post("/api/auth/invites/lookup", json={"token": token}).json()
     assert info == {
         "workspace_name": "Raccoon Ops",
         "email": "new.person@example.test",
@@ -237,3 +237,21 @@ def test_session_absolute_expiry(client: TestClient, factory: Factory, owner_db:
     owner_db.commit()
     use(client, m)
     assert client.get("/api/auth/me").status_code == 401
+
+
+def test_invite_password_guessing_is_throttled(client: TestClient, factory: Factory) -> None:
+    ws_a, ws_b = factory.workspace("A"), factory.workspace("B")
+    existing = factory.member(ws_a, Role.ANALYST)
+    use(client, factory.sign_in(factory.member(ws_b, Role.ADMIN)))
+    link = client.post(
+        f"/api/workspaces/{ws_b}/invites", json={"email": existing.user.email, "role": "viewer"}
+    ).json()["link"]["url"]
+    token = link.split("#token=")[1]
+    client.cookies.clear()
+    for _ in range(5):
+        r = client.post(
+            "/api/auth/accept-invite", json={"token": token, "password": "guess guess guess"}
+        )
+        assert r.status_code == 401
+    r = client.post("/api/auth/accept-invite", json={"token": token, "password": PASSWORD})
+    assert r.status_code == 429

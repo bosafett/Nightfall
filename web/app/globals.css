@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/* Keep in sync with lib/tokens.ts (checked by tests/unit/tokens.test.ts). */
+@theme {
+  --color-bg: #0A0A0C;
+  --color-surface: #121216;
+  --color-surface-2: #18181D;
+  --color-border: #24242A;
+  --color-border-strong: #33333B;
+  --color-text: #E8E8EC;
+  --color-muted: #9A9AA3;
+  --color-faint: #6B6B75;
+  --color-crimson: #E5192E;
+  --color-crimson-strong: #CC1426;
+  --color-crimson-text: #FF4D5E;
+  --color-orange: #FF7A1A;
+  --color-yellow: #FFC21A;
+  --color-blue: #2F7BFF;
+  --color-blue-text: #5B97FF;
+  --color-green: #22C55E;
+  --color-gray: #8B8B95;
+
+  --font-sans: var(--font-plex), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background: var(--color-bg);
+  }
+  body {
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  /* Numbers, dates and identifiers: aligned digits everywhere. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-crimson-text);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: #cc142666;
+  }
+}

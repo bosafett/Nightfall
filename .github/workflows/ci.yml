@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PGPASSWORD: postgres_ci
+  PSQL: psql -h 127.0.0.1 -U postgres
+
+jobs:
+  api:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres_ci }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    defaults: { run: { working-directory: api } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - run: ../infra/postgres/setup-databases.sh nightfall_test
+      - run: pip install -r requirements.lock && pip install --no-deps -e .
+      - run: ruff check nightfall migrations tests && ruff format --check nightfall migrations tests
+      - run: mypy
+      - run: pytest
+      - run: pip-audit -r requirements.lock
+      - name: OpenAPI schema is up to date
+        run: python -m nightfall.export_openapi > openapi.json && git diff --exit-code openapi.json
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults: { run: { working-directory: web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - name: Generated API types are up to date
+        run: npm run gen:api && git diff --exit-code lib/api/schema.d.ts
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm audit --omit=dev --audit-level=moderate
+      - run: npm run build
+
+  e2e:
+    runs-on: ubuntu-24.04
+    needs: [api, web]
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres_ci }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.13" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "22", cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: infra/postgres/setup-databases.sh nightfall_e2e
+      - working-directory: api
+        run: python -m venv .venv && .venv/bin/pip install -r requirements.lock && .venv/bin/pip install --no-deps -e .
+      - working-directory: web
+        run: npm ci && npx playwright install --with-deps chromium
+      - working-directory: web
+        run: npm run test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: playwright-traces, path: web/test-results, retention-days: 7 }
+
+  secrets:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
