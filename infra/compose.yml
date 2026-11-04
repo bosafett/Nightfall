@@ -1,0 +1,21 @@
+# Local development services. Phase 1 needs only Postgres.
+# Ollama, ZAP and the worker are added in their own phases (see docs/PHASE0_ARCHITECTURE_REVIEW.md §9).
+name: nightfall-dev
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_dev_only
+    ports:
+      - "127.0.0.1:5432:5432"   # loopback only
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql.in:ro
+      - ./postgres/create-db.sh:/docker-entrypoint-initdb.d/10-create-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      retries: 10
+volumes:
+  pgdata:
