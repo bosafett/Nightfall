@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 180" role="img" aria-label="NIGHTFALL">
+  <g fill="none" stroke="#E8E9EB" stroke-width="7"
+     stroke-linejoin="round">
+    <path d="M34 72 25 17 72 43 Q100 31 128 43
+      L175 17 166 72 Q184 112 151 145
+      Q127 166 100 169 Q73 166 49 145
+      Q16 112 34 72Z"/>
+  </g>
+  <path fill="#C43B43"
+    d="M35 69 70 57 91 78 100 94
+       109 78 130 57 165 69
+       151 108 119 119 100 106
+       81 119 49 108Z"/>
+  <g fill="#17191D">
+    <path d="m49 82 33-6 12 20-16 9-24-6Z"/>
+    <path d="m151 82-33-6-12 20 16 9 24-6Z"/>
+  </g>
+  <g fill="#F1F1F1">
+    <path d="m66 88 17-3-5 9Z"/>
+    <path d="m134 88-17-3 5 9Z"/>
+  </g>
+  <path fill="#E8E9EB"
+    d="m91 127 9-8 9 8-9 8Z"/>
+</svg>
