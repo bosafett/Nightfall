@@ -60,8 +60,10 @@ export function KpiRow({ overview }: { overview: Overview }) {
       <KpiCard label="Active projects" icon="target" tone="border-crimson/60 text-crimson-text" value={p.active}
         detail={`${p.started_in_window} started in the ${windowText[overview.window]} · ${p.open} open`} />
       <KpiCard label="Critical findings" icon="findings" tone="" unavailablePhase={overview.critical_findings.phase} />
-      <KpiCard label="Assets discovered" icon="graph" tone="" unavailablePhase={overview.assets.phase} />
-      <KpiCard label="Operations" icon="warroom" tone="" unavailablePhase={overview.operations.phase} />
+      <KpiCard label="Assets discovered" icon="graph" tone="border-blue/60 text-blue-text" value={overview.assets.total}
+        detail={`${overview.assets.new_in_window} new in the ${windowText[overview.window]}`} />
+      <KpiCard label="Operations" icon="warroom" tone="border-green/60 text-green" value={overview.operations.in_window}
+        detail={`in the ${windowText[overview.window]} · ${overview.operations.pending} pending${overview.operations.failed_in_window ? ` · ${overview.operations.failed_in_window} failed` : ""}`} />
     </div>
   );
 }

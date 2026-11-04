@@ -4,8 +4,9 @@ Adversarial intelligence workbench by Digital Raccoon Engineering (DRE).
 
 Use is limited to targets you are explicitly authorized to assess.
 
-**Status:** Phase 2 (Command Center) on top of Phase 1 — sign-in with two-factor, workspaces and roles,
-organizations and projects, audit log, app shell, Command Center with live counts and the intelligence graph. See
+**Status:** Phase 3 (scope and passive reconnaissance) — sign-in with two-factor, workspaces and roles,
+organizations, projects and assets, versioned scopes with authorization, passive collection (certificate
+transparency, DNS) with stored evidence, audit log, Command Center. See
 [`docs/PHASE0_ARCHITECTURE_REVIEW.md`](docs/PHASE0_ARCHITECTURE_REVIEW.md) for the approved architecture and roadmap.
 
 ## Layout
@@ -33,6 +34,7 @@ set -a; . ./.env.example; set +a          # then set NIGHTFALL_SECRET_KEY
 .venv/bin/nightfall-admin create-owner --email you@example.com --name "Your Name" \
   --workspace-name "DRE" --workspace-slug dre
 .venv/bin/uvicorn nightfall.asgi:app --port 8000
+.venv/bin/nightfall-worker                 # separate terminal: runs queued collection jobs
 
 # 3. Web (second terminal)
 cd web && npm ci && npm run dev           # http://localhost:3000
@@ -72,3 +74,15 @@ CI fails if either generated file is stale.
 - `NIGHTFALL_FORWARDED_HOPS` stays `0` unless a proxy that *sets* `X-Forwarded-For` (e.g. Caddy routing `/api/*`
   directly to the API) sits in front. The Next.js rewrite proxy forwards client-supplied values unchanged.
 - Owner, admin and operator roles must use two-factor.
+
+## Scope and collection (Phase 3)
+
+- Each project has versioned scopes: a draft is edited, then authorized by an admin or owner with a written
+  reference. Authorized versions can't change (database triggers); changing scope means a new version.
+- Scope entries: exact host, domain and all subdomains, IP, CIDR. Exclusions always win. Hostnames and IPs are
+  normalized the same way everywhere (case, trailing dot, punycode, strict IP notation).
+- Collection requests are refused unless the target is inside the active, in-window scope; refusals are audited.
+  The worker re-checks scope when it runs a job and refuses it if the scope changed in between.
+- Collectors are passive: certificate-transparency search (contacts crt.sh only) and DNS lookups. Discovered names
+  outside scope stay in the raw evidence and are never registered as assets.
+- Raw collector output is stored once, content-addressed by SHA-256, and verified on every download.

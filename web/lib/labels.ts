@@ -1,4 +1,4 @@
-import type { AssessmentType, ProjectStatus, Role } from "./api/types";
+import type { AssessmentType, AssetKind, AssetOwnership, OperationStatus, ProjectStatus, Role, ScopeEntryKind } from "./api/types";
 
 export const assessmentTypeLabel: Record<AssessmentType, string> = {
   reconnaissance: "Reconnaissance",
@@ -37,8 +37,34 @@ const rank: Record<Role, number> = { owner: 4, admin: 3, operator: 2, analyst: 1
 export const can = {
   writeRegistry: (r: Role) => rank[r] >= rank.analyst,
   manageMembers: (r: Role) => rank[r] >= rank.admin,
+  authorizeScope: (r: Role) => rank[r] >= rank.admin,
   assign: (actor: Role, role: Role) => actor === "owner" || rank[role] < rank[actor],
   manage: (actor: Role, target: Role) => actor === "owner" || rank[target] < rank[actor],
 };
 
 export const mfaRequired = (r: Role) => r === "owner" || r === "admin" || r === "operator";
+
+
+export const assetKindLabel: Record<AssetKind, string> = {
+  domain: "Domain", hostname: "Hostname", ip_address: "IP address", ip_range: "IP range",
+  application: "Application", api: "API", cloud_resource: "Cloud resource", other: "Other",
+};
+
+export const ownershipLabel: Record<AssetOwnership, string> = {
+  organization: "Owned by the organization", third_party: "Third party", unknown: "Unknown",
+};
+
+export const scopeKindLabel: Record<ScopeEntryKind, string> = {
+  host: "Exact host", domain_tree: "Domain and all subdomains", ip: "IP address", cidr: "IP range (CIDR)",
+};
+
+export const scopeKindHint: Record<ScopeEntryKind, string> = {
+  host: "Only this hostname, e.g. portal.example.com",
+  domain_tree: "example.com and every name under it",
+  ip: "One address, e.g. 192.0.2.10",
+  cidr: "A network, e.g. 192.0.2.0/24",
+};
+
+export const operationStatusLabel: Record<OperationStatus, string> = {
+  queued: "Queued", running: "Running", succeeded: "Done", failed: "Failed", denied: "Denied", cancelled: "Cancelled",
+};

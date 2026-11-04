@@ -17,7 +17,10 @@ from nightfall.core.request_info import client_ip
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.routes import router as workspace_router
 from nightfall.overview.routes import router as overview_router
+from nightfall.recon.routes import router as recon_router
+from nightfall.registry.assets import router as assets_router
 from nightfall.registry.routes import router as registry_router
+from nightfall.scope.routes import router as scope_router
 
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -39,18 +42,27 @@ class HealthOut(Model):
 @health_router.get("/health", response_model=HealthOut)
 def health() -> HealthOut:
     db_status: Literal["ok", "down"] = "ok"
+    worker_status: Literal["ok", "down"] = "down"
     try:
         with get_engine().connect() as conn:
             conn.execute(text("SET LOCAL statement_timeout = 2000"))
             conn.execute(text("SELECT 1"))
+            fresh = conn.execute(
+                text(
+                    "SELECT EXISTS (SELECT 1 FROM worker_heartbeats "
+                    "WHERE last_seen_at > now() - interval '30 seconds')"
+                )
+            ).scalar()
+            worker_status = "ok" if fresh else "down"
     except Exception:
         db_status = "down"
     components = [
         ComponentStatus(name="api", status="ok"),
         ComponentStatus(name="database", status=db_status),
+        ComponentStatus(name="worker", status=worker_status),
     ]
     return HealthOut(
-        status="ok" if db_status == "ok" else "degraded",
+        status="ok" if db_status == worker_status == "ok" else "degraded",
         version=get_settings().version,
         components=components,
     )
@@ -76,7 +88,16 @@ class RequestGuard(BaseHTTPMiddleware):
         return response
 
 
-ROUTERS = (health_router, auth_router, workspace_router, registry_router, overview_router)
+ROUTERS = (
+    health_router,
+    auth_router,
+    workspace_router,
+    registry_router,
+    overview_router,
+    assets_router,
+    scope_router,
+    recon_router,
+)
 
 
 def create_app(*, check_settings: bool = True) -> FastAPI:

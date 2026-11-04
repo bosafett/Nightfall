@@ -51,7 +51,7 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
   );
 }
 
-const componentLabel: Record<string, string> = { api: "API", database: "Database" };
+const componentLabel: Record<string, string> = { api: "API", database: "Database", worker: "Worker" };
 
 function SystemStatus({ health }: { health: Health | null }) {
   const components = health?.components ?? [];

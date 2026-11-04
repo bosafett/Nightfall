@@ -1,0 +1,337 @@
+"""Passive collection requests, discovery history and evidence.
+
+A request is accepted only if the target is inside the project's active, in-window scope.
+Out-of-scope requests are refused with the reason and recorded in the audit log; nothing
+is queued. Passive collectors run without further approval (review §8.2).
+"""
+
+from __future__ import annotations
+
+import uuid
+from datetime import datetime, timedelta
+from typing import Annotated, Any, Literal
+
+from fastapi import APIRouter, Query, Response
+from pydantic import StringConstraints
+from sqlalchemy import Select, func, select
+from sqlalchemy.orm import Session
+
+from nightfall.config import get_settings
+from nightfall.core.audit.writer import record, record_detached
+from nightfall.core.clock import utcnow
+from nightfall.core.db.models import (
+    Evidence,
+    Operation,
+    OperationStatus,
+    Organization,
+    Project,
+    RiskClass,
+    Scope,
+    User,
+)
+from nightfall.core.db.session import DB
+from nightfall.core.errors import api_error, not_found
+from nightfall.core.evidence_store import EvidenceStore, IntegrityError
+from nightfall.core.schemas import Model, OkOut
+from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
+from nightfall.core.tenancy.permissions import Permission
+from nightfall.recon.collectors import TOOLS
+from nightfall.registry.assets import EvidenceSummary, evidence_summary
+from nightfall.scope.engine import evaluate
+from nightfall.scope.repository import active_scope, snapshot
+
+router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["recon"])
+
+HOURLY_LIMIT = 120  # collection requests per workspace per hour
+PENDING = (OperationStatus.QUEUED, OperationStatus.RUNNING)
+
+
+class CollectionIn(Model):
+    tool: Literal["ct", "dns"]
+    target: Annotated[str, StringConstraints(max_length=300)]
+
+
+class ToolOut(Model):
+    key: str
+    label: str
+    risk_class: RiskClass
+
+
+class OperationOut(Model):
+    id: uuid.UUID
+    project_id: uuid.UUID
+    project_name: str
+    organization_id: uuid.UUID
+    organization_name: str
+    scope_version: int
+    tool: str
+    tool_label: str
+    risk_class: RiskClass
+    target: str
+    status: OperationStatus
+    requested_by: str | None
+    denial_reason: str | None
+    error: str | None
+    result_summary: dict[str, Any]
+    attempts: int
+    queued_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class OperationDetail(OperationOut):
+    evidence: list[EvidenceSummary]
+
+
+class EvidenceDetail(EvidenceSummary):
+    project_id: uuid.UUID
+    asset_id: uuid.UUID | None
+    content_type: str
+    input_params: dict[str, Any]
+    summary: dict[str, Any]
+    is_simulation: bool
+
+
+def _query() -> Select[Operation, str, uuid.UUID, str, int, str]:
+    return (
+        select(
+            Operation,
+            Project.name,
+            Organization.id,
+            Organization.name,
+            Scope.version,
+            User.display_name,
+        )
+        .join(Project, Project.id == Operation.project_id)
+        .join(Organization, Organization.id == Project.organization_id)
+        .join(Scope, Scope.id == Operation.scope_id)
+        .outerjoin(User, User.id == Operation.requested_by_user_id)
+    )
+
+
+def _out(row: Any) -> OperationOut:
+    op, pname, oid, oname, version, requester = row
+    return OperationOut(
+        id=op.id,
+        project_id=op.project_id,
+        project_name=pname,
+        organization_id=oid,
+        organization_name=oname,
+        scope_version=version,
+        tool=op.tool,
+        tool_label=TOOLS.get(op.tool, (op.tool, op.risk_class))[0],
+        risk_class=op.risk_class,
+        target=op.target_value,
+        status=op.status,
+        requested_by=requester,
+        denial_reason=op.denial_reason,
+        error=op.error,
+        result_summary=op.result_summary,
+        attempts=op.attempts,
+        queued_at=op.queued_at,
+        started_at=op.started_at,
+        finished_at=op.finished_at,
+    )
+
+
+def _get_op(db: Session, ctx: WorkspaceContext, op_id: uuid.UUID) -> Any:
+    row = db.execute(
+        _query().where(Operation.id == op_id, Operation.workspace_id == ctx.workspace_id)
+    ).first()
+    if row is None:
+        raise not_found("Operation not found.")
+    return row
+
+
+@router.get("/recon/tools", response_model=list[ToolOut])
+def list_tools(ctx: WorkspaceContext = ws_permission(Permission.READ)) -> list[ToolOut]:
+    return [ToolOut(key=k, label=label, risk_class=risk) for k, (label, risk) in TOOLS.items()]
+
+
+@router.post("/projects/{project_id}/collections", response_model=OperationOut, status_code=202)
+def request_collection(
+    project_id: uuid.UUID,
+    body: CollectionIn,
+    response: Response,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE),
+) -> OperationOut:
+    project = db.scalar(
+        select(Project).where(Project.id == project_id, Project.workspace_id == ctx.workspace_id)
+    )
+    if project is None:
+        raise not_found("Project not found.")
+    label, risk = TOOLS[body.tool]
+    if risk is not RiskClass.PASSIVE:  # only passive tools exist in this phase
+        raise api_error(403, "approval_required", "This tool needs an approved operation.")
+
+    scope = active_scope(db, project_id)
+    decision = evaluate(snapshot(db, scope) if scope else None, body.target, utcnow())
+    if not decision.allowed or scope is None:
+        record_detached(
+            "operation.denied",
+            data={
+                "project_id": str(project_id),
+                "tool": body.tool,
+                "target": body.target[:300],
+                "reason": decision.reason,
+            },
+            **ctx.audit_kwargs(),
+        )
+        raise api_error(422, "out_of_scope", decision.reason)
+    if body.tool == "ct" and decision.target.count(".") < 1:
+        raise api_error(422, "invalid_value", "Search certificate logs by domain.")
+
+    pending = db.execute(
+        _query().where(
+            Operation.project_id == project_id,
+            Operation.tool == body.tool,
+            Operation.target_value == decision.target,
+            Operation.status.in_(PENDING),
+        )
+    ).first()
+    if pending is not None:
+        response.status_code = 200  # already queued: return it rather than duplicate
+        return _out(pending)
+
+    since = utcnow() - timedelta(hours=1)
+    recent = (
+        db.scalar(
+            select(func.count())
+            .select_from(Operation)
+            .where(Operation.workspace_id == ctx.workspace_id, Operation.created_at >= since)
+        )
+        or 0
+    )
+    if recent >= HOURLY_LIMIT:
+        raise api_error(
+            429, "rate_limited", f"Collection is limited to {HOURLY_LIMIT} requests per hour."
+        )
+
+    op = Operation(
+        workspace_id=ctx.workspace_id,
+        project_id=project_id,
+        scope_id=scope.id,
+        tool=body.tool,
+        risk_class=risk,
+        target_value=decision.target,
+        params={"method": label},
+        requested_by_user_id=ctx.user_id,
+    )
+    db.add(op)
+    db.flush()
+    record(
+        db,
+        "operation.requested",
+        entity_type="operation",
+        entity_id=op.id,
+        data={
+            "tool": body.tool,
+            "target": decision.target,
+            "risk_class": risk.value,
+            "scope_version": scope.version,
+        },
+        **ctx.audit_kwargs(),
+    )
+    return _out(_get_op(db, ctx, op.id))
+
+
+@router.get("/operations", response_model=list[OperationOut])
+def list_operations(
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.READ),
+    project_id: Annotated[uuid.UUID | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 100,
+) -> list[OperationOut]:
+    q = _query().where(Operation.workspace_id == ctx.workspace_id)
+    if project_id is not None:
+        q = q.where(Operation.project_id == project_id)
+    return [_out(r) for r in db.execute(q.order_by(Operation.queued_at.desc()).limit(limit))]
+
+
+@router.get("/operations/{op_id}", response_model=OperationDetail)
+def get_operation(
+    op_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> OperationDetail:
+    row = _get_op(db, ctx, op_id)
+    ev = db.scalars(
+        select(Evidence).where(Evidence.operation_id == op_id).order_by(Evidence.collected_at)
+    ).all()
+    return OperationDetail(**_out(row).model_dump(), evidence=[evidence_summary(e) for e in ev])
+
+
+@router.post("/operations/{op_id}/cancel", response_model=OkOut)
+def cancel_operation(
+    op_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE)
+) -> OkOut:
+    op = db.scalar(
+        select(Operation)
+        .where(Operation.id == op_id, Operation.workspace_id == ctx.workspace_id)
+        .with_for_update()
+    )
+    if op is None:
+        raise not_found("Operation not found.")
+    if op.status is not OperationStatus.QUEUED:
+        raise api_error(409, "not_queued", "Only queued operations can be cancelled.")
+    op.status = OperationStatus.CANCELLED
+    op.finished_at = utcnow()
+    record(
+        db, "operation.cancelled", entity_type="operation", entity_id=op.id, **ctx.audit_kwargs()
+    )
+    return OkOut()
+
+
+def _evidence(db: Session, ctx: WorkspaceContext, evidence_id: uuid.UUID) -> Evidence:
+    e = db.scalar(
+        select(Evidence).where(
+            Evidence.id == evidence_id, Evidence.workspace_id == ctx.workspace_id
+        )
+    )
+    if e is None:
+        raise not_found("Evidence not found.")
+    return e
+
+
+@router.get("/evidence/{evidence_id}", response_model=EvidenceDetail)
+def get_evidence(
+    evidence_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> EvidenceDetail:
+    e = _evidence(db, ctx, evidence_id)
+    return EvidenceDetail(
+        **evidence_summary(e).model_dump(),
+        project_id=e.project_id,
+        asset_id=e.asset_id,
+        content_type=e.content_type,
+        input_params=e.input_params,
+        summary=e.summary,
+        is_simulation=e.is_simulation,
+    )
+
+
+@router.get("/evidence/{evidence_id}/content")
+def get_evidence_content(
+    evidence_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> Response:
+    """Raw stored content, verified against its SHA-256. Always served as a download so
+    attacker-controlled content can't render in the app's origin."""
+    e = _evidence(db, ctx, evidence_id)
+    try:
+        data = EvidenceStore(get_settings().evidence_dir).get(e.content_sha256)
+    except IntegrityError as exc:
+        record_detached(
+            "evidence.integrity_failed",
+            entity_type="evidence",
+            entity_id=e.id,
+            **ctx.audit_kwargs(),
+        )
+        raise api_error(500, "integrity_failed", str(exc)) from exc
+    ext = "json" if e.content_type == "application/json" else "bin"
+    return Response(
+        content=data,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="evidence-{e.id}.{ext}"',
+            "X-Evidence-SHA256": e.content_sha256.hex(),
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+        },
+    )

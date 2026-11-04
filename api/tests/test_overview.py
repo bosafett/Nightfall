@@ -40,10 +40,15 @@ def test_empty_workspace_reports_zeros_and_unavailable_modules(
     body = client.get(f"/api/workspaces/{ws}/overview").json()
     assert body["window"] == "24h"
     assert body["projects"] == {"available": True, "active": 0, "open": 0, "started_in_window": 0}
+    assert body["assets"] == {"available": True, "total": 0, "new_in_window": 0}
+    assert body["operations"] == {
+        "available": True,
+        "in_window": 0,
+        "pending": 0,
+        "failed_in_window": 0,
+    }
     for key, phase in [
         ("critical_findings", 4),
-        ("assets", 3),
-        ("operations", 3),
         ("recent_findings", 4),
         ("agent_activity", 5),
         ("risk", 4),

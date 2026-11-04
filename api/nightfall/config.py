@@ -8,6 +8,10 @@ Required:
 Optional:
   NIGHTFALL_MIGRATION_DATABASE_URL  schema-owner connection (migrations, admin CLI).
   NIGHTFALL_COOKIE_SECURE           "true" (default) / "false".
+  NIGHTFALL_EVIDENCE_DIR            content-addressed evidence store (default ./var/evidence).
+  NIGHTFALL_WORKER_DATABASE_URL     worker connection (role nightfall_worker).
+  NIGHTFALL_COLLECTOR_MODE          "live" (default) or "fixture" (tests only: canned results,
+                                    labelled as fixture evidence; never contacts the network).
   NIGHTFALL_FORWARDED_HOPS          trusted reverse proxies in front of the API that set
                                     X-Forwarded-For themselves (default 0). Never count the
                                     Next.js rewrite proxy: it forwards the client's header as-is.
@@ -20,6 +24,8 @@ import binascii
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
+from typing import Literal
 
 
 class ConfigError(RuntimeError):
@@ -34,6 +40,9 @@ class Settings:
     public_origin: str
     cookie_secure: bool
     forwarded_hops: int
+    evidence_dir: Path
+    worker_database_url: str | None
+    collector_mode: Literal["live", "fixture"]
     session_idle_seconds: int = 12 * 3600
     session_absolute_seconds: int = 7 * 86400
     version: str = "0.1.0"
@@ -68,6 +77,11 @@ def load_settings() -> Settings:
     if hops < 0:
         raise ConfigError("NIGHTFALL_FORWARDED_HOPS must be >= 0")
 
+    mode = os.environ.get("NIGHTFALL_COLLECTOR_MODE", "live").strip() or "live"
+    if mode not in ("live", "fixture"):
+        raise ConfigError("NIGHTFALL_COLLECTOR_MODE must be 'live' or 'fixture'")
+    worker_url = os.environ.get("NIGHTFALL_WORKER_DATABASE_URL", "").strip() or None
+
     return Settings(
         database_url=_sqlalchemy_url(_require("NIGHTFALL_DATABASE_URL")),
         migration_database_url=_sqlalchemy_url(migration_url) if migration_url else None,
@@ -75,6 +89,9 @@ def load_settings() -> Settings:
         public_origin=origin,
         cookie_secure=os.environ.get("NIGHTFALL_COOKIE_SECURE", "true").lower() != "false",
         forwarded_hops=hops,
+        evidence_dir=Path(os.environ.get("NIGHTFALL_EVIDENCE_DIR", "var/evidence")).resolve(),
+        worker_database_url=_sqlalchemy_url(worker_url) if worker_url else None,
+        collector_mode="fixture" if mode == "fixture" else "live",
     )
 
 

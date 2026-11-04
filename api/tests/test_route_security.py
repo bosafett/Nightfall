@@ -4,6 +4,7 @@ explicitly listed as public. New routes fail this test until they do."""
 from typing import Any
 
 from fastapi.routing import APIRoute
+from sqlalchemy import text
 
 from nightfall.core.identity.routes import PUBLIC_ROUTES
 from nightfall.main import HEALTH_ROUTES, ROUTERS, create_app
@@ -42,7 +43,16 @@ def test_public_routes_exist() -> None:
     assert paths >= (PUBLIC_ROUTES | HEALTH_ROUTES)
 
 
-def test_health(client: Any) -> None:
+def test_health(client: Any, owner_db: Any) -> None:
+    body = client.get("/api/health").json()
+    assert body["status"] == "degraded"  # no worker heartbeat yet
+    assert {c["name"]: c["status"] for c in body["components"]} == {
+        "api": "ok",
+        "database": "ok",
+        "worker": "down",
+    }
+    owner_db.execute(text("INSERT INTO worker_heartbeats (worker_id, version) VALUES ('w1', 't')"))
+    owner_db.commit()
     body = client.get("/api/health").json()
     assert body["status"] == "ok"
-    assert {c["name"]: c["status"] for c in body["components"]} == {"api": "ok", "database": "ok"}
+    assert {c["name"]: c["status"] for c in body["components"]}["worker"] == "ok"

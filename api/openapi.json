@@ -124,6 +124,331 @@
         "title": "AssessmentType",
         "type": "string"
       },
+      "AssetDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceSummary"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AssetKind"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "ownership": {
+            "$ref": "#/components/schemas/AssetOwnership"
+          },
+          "relationships": {
+            "items": {
+              "$ref": "#/components/schemas/RelationshipOut"
+            },
+            "title": "Relationships",
+            "type": "array"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "organization_name",
+          "kind",
+          "value",
+          "ownership",
+          "source",
+          "notes",
+          "first_seen_at",
+          "last_seen_at",
+          "relationships",
+          "evidence"
+        ],
+        "title": "AssetDetail",
+        "type": "object"
+      },
+      "AssetIn": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/AssetKind"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Notes",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "ownership": {
+            "$ref": "#/components/schemas/AssetOwnership",
+            "default": "unknown"
+          },
+          "value": {
+            "maxLength": 500,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "organization_id",
+          "kind",
+          "value"
+        ],
+        "title": "AssetIn",
+        "type": "object"
+      },
+      "AssetKind": {
+        "enum": [
+          "domain",
+          "hostname",
+          "ip_address",
+          "ip_range",
+          "application",
+          "api",
+          "cloud_resource",
+          "other"
+        ],
+        "title": "AssetKind",
+        "type": "string"
+      },
+      "AssetKpi": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "const": true,
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "new_in_window": {
+            "title": "New In Window",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "new_in_window"
+        ],
+        "title": "AssetKpi",
+        "type": "object"
+      },
+      "AssetOut": {
+        "additionalProperties": false,
+        "properties": {
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/AssetKind"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "notes": {
+            "title": "Notes",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "ownership": {
+            "$ref": "#/components/schemas/AssetOwnership"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "organization_id",
+          "organization_name",
+          "kind",
+          "value",
+          "ownership",
+          "source",
+          "notes",
+          "first_seen_at",
+          "last_seen_at"
+        ],
+        "title": "AssetOut",
+        "type": "object"
+      },
+      "AssetOwnership": {
+        "enum": [
+          "organization",
+          "third_party",
+          "unknown"
+        ],
+        "title": "AssetOwnership",
+        "type": "string"
+      },
+      "AssetPatch": {
+        "additionalProperties": false,
+        "properties": {
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 10000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "ownership": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetOwnership"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "AssetPatch",
+        "type": "object"
+      },
+      "CheckIn": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "maxLength": 300,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "CheckIn",
+        "type": "object"
+      },
+      "CheckOut": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "normalized": {
+            "title": "Normalized",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "scope_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Version"
+          }
+        },
+        "required": [
+          "allowed",
+          "reason",
+          "normalized",
+          "scope_version"
+        ],
+        "title": "CheckOut",
+        "type": "object"
+      },
+      "CollectionIn": {
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "maxLength": 300,
+            "title": "Target",
+            "type": "string"
+          },
+          "tool": {
+            "enum": [
+              "ct",
+              "dns"
+            ],
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "target"
+        ],
+        "title": "CollectionIn",
+        "type": "object"
+      },
       "ComponentStatus": {
         "additionalProperties": false,
         "properties": {
@@ -145,6 +470,246 @@
           "status"
         ],
         "title": "ComponentStatus",
+        "type": "object"
+      },
+      "Confidence": {
+        "enum": [
+          "low",
+          "medium",
+          "high"
+        ],
+        "title": "Confidence",
+        "type": "string"
+      },
+      "EntryIn": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ScopeEntryKind"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 300,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value"
+        ],
+        "title": "EntryIn",
+        "type": "object"
+      },
+      "EntryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ScopeEntryKind"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "value",
+          "note"
+        ],
+        "title": "EntryOut",
+        "type": "object"
+      },
+      "EvidenceDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Id"
+          },
+          "collected_at": {
+            "format": "date-time",
+            "title": "Collected At",
+            "type": "string"
+          },
+          "collection_method": {
+            "title": "Collection Method",
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "content_type": {
+            "title": "Content Type",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_params": {
+            "additionalProperties": true,
+            "title": "Input Params",
+            "type": "object"
+          },
+          "is_simulation": {
+            "title": "Is Simulation",
+            "type": "boolean"
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation Id"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "summary": {
+            "additionalProperties": true,
+            "title": "Summary",
+            "type": "object"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          },
+          "tool_version": {
+            "title": "Tool Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "operation_id",
+          "source",
+          "collection_method",
+          "tool_name",
+          "tool_version",
+          "confidence",
+          "collected_at",
+          "size_bytes",
+          "sha256",
+          "project_id",
+          "asset_id",
+          "content_type",
+          "input_params",
+          "summary",
+          "is_simulation"
+        ],
+        "title": "EvidenceDetail",
+        "type": "object"
+      },
+      "EvidenceSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "collected_at": {
+            "format": "date-time",
+            "title": "Collected At",
+            "type": "string"
+          },
+          "collection_method": {
+            "title": "Collection Method",
+            "type": "string"
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation Id"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          },
+          "tool_version": {
+            "title": "Tool Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "operation_id",
+          "source",
+          "collection_method",
+          "tool_name",
+          "tool_version",
+          "confidence",
+          "collected_at",
+          "size_bytes",
+          "sha256"
+        ],
+        "title": "EvidenceSummary",
         "type": "object"
       },
       "Graph": {
@@ -603,6 +1168,344 @@
         "title": "OkOut",
         "type": "object"
       },
+      "OperationDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "denial_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denial Reason"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceSummary"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "result_summary": {
+            "additionalProperties": true,
+            "title": "Result Summary",
+            "type": "object"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "scope_version": {
+            "title": "Scope Version",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OperationStatus"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          },
+          "tool_label": {
+            "title": "Tool Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "organization_id",
+          "organization_name",
+          "scope_version",
+          "tool",
+          "tool_label",
+          "risk_class",
+          "target",
+          "status",
+          "requested_by",
+          "denial_reason",
+          "error",
+          "result_summary",
+          "attempts",
+          "queued_at",
+          "started_at",
+          "finished_at",
+          "evidence"
+        ],
+        "title": "OperationDetail",
+        "type": "object"
+      },
+      "OperationKpi": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "const": true,
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "failed_in_window": {
+            "title": "Failed In Window",
+            "type": "integer"
+          },
+          "in_window": {
+            "title": "In Window",
+            "type": "integer"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "in_window",
+          "pending",
+          "failed_in_window"
+        ],
+        "title": "OperationKpi",
+        "type": "object"
+      },
+      "OperationOut": {
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "denial_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denial Reason"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "organization_id": {
+            "format": "uuid",
+            "title": "Organization Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "result_summary": {
+            "additionalProperties": true,
+            "title": "Result Summary",
+            "type": "object"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "scope_version": {
+            "title": "Scope Version",
+            "type": "integer"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OperationStatus"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          },
+          "tool_label": {
+            "title": "Tool Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "organization_id",
+          "organization_name",
+          "scope_version",
+          "tool",
+          "tool_label",
+          "risk_class",
+          "target",
+          "status",
+          "requested_by",
+          "denial_reason",
+          "error",
+          "result_summary",
+          "attempts",
+          "queued_at",
+          "started_at",
+          "finished_at"
+        ],
+        "title": "OperationOut",
+        "type": "object"
+      },
+      "OperationStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed",
+          "denied",
+          "cancelled"
+        ],
+        "title": "OperationStatus",
+        "type": "string"
+      },
       "OrganizationIn": {
         "additionalProperties": false,
         "properties": {
@@ -713,7 +1616,7 @@
             "type": "array"
           },
           "assets": {
-            "$ref": "#/components/schemas/Unavailable"
+            "$ref": "#/components/schemas/AssetKpi"
           },
           "critical_findings": {
             "$ref": "#/components/schemas/Unavailable"
@@ -727,7 +1630,7 @@
             "$ref": "#/components/schemas/Graph"
           },
           "operations": {
-            "$ref": "#/components/schemas/Unavailable"
+            "$ref": "#/components/schemas/OperationKpi"
           },
           "projects": {
             "$ref": "#/components/schemas/ProjectKpi"
@@ -975,6 +1878,94 @@
         "title": "ProjectStatus",
         "type": "string"
       },
+      "RelationshipOut": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "evidence_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Id"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "other_asset_id": {
+            "format": "uuid",
+            "title": "Other Asset Id",
+            "type": "string"
+          },
+          "other_value": {
+            "title": "Other Value",
+            "type": "string"
+          },
+          "rel_type": {
+            "$ref": "#/components/schemas/RelationshipType"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/RelationshipStatus"
+          }
+        },
+        "required": [
+          "direction",
+          "rel_type",
+          "status",
+          "confidence",
+          "other_asset_id",
+          "other_value",
+          "rule_id",
+          "evidence_id",
+          "last_seen_at"
+        ],
+        "title": "RelationshipOut",
+        "type": "object"
+      },
+      "RelationshipStatus": {
+        "enum": [
+          "observed",
+          "hypothesis"
+        ],
+        "title": "RelationshipStatus",
+        "type": "string"
+      },
+      "RelationshipType": {
+        "enum": [
+          "subdomain_of",
+          "resolves_to",
+          "cname_to"
+        ],
+        "title": "RelationshipType",
+        "type": "string"
+      },
+      "RiskClass": {
+        "enum": [
+          "passive",
+          "low",
+          "moderate",
+          "high"
+        ],
+        "title": "RiskClass",
+        "type": "string"
+      },
       "Role": {
         "enum": [
           "owner",
@@ -984,6 +1975,194 @@
           "viewer"
         ],
         "title": "Role",
+        "type": "string"
+      },
+      "ScopeEntryKind": {
+        "enum": [
+          "host",
+          "domain_tree",
+          "ip",
+          "cidr"
+        ],
+        "title": "ScopeEntryKind",
+        "type": "string"
+      },
+      "ScopeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_reference": {
+            "title": "Authorization Reference",
+            "type": "string"
+          },
+          "authorized_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorized At"
+          },
+          "authorized_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorized By"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "exclusions": {
+            "items": {
+              "$ref": "#/components/schemas/EntryOut"
+            },
+            "title": "Exclusions",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ScopeStatus"
+          },
+          "superseded_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded At"
+          },
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/EntryOut"
+            },
+            "title": "Targets",
+            "type": "array"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "version",
+          "status",
+          "authorization_reference",
+          "valid_from",
+          "valid_until",
+          "created_by",
+          "authorized_by",
+          "authorized_at",
+          "superseded_at",
+          "created_at",
+          "targets",
+          "exclusions"
+        ],
+        "title": "ScopeOut",
+        "type": "object"
+      },
+      "ScopePatch": {
+        "additionalProperties": false,
+        "properties": {
+          "authorization_reference": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Reference"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid Until"
+          }
+        },
+        "title": "ScopePatch",
+        "type": "object"
+      },
+      "ScopeStatus": {
+        "enum": [
+          "draft",
+          "active",
+          "superseded"
+        ],
+        "title": "ScopeStatus",
         "type": "string"
       },
       "SessionInfo": {
@@ -998,6 +2177,29 @@
           "mfa_verified"
         ],
         "title": "SessionInfo",
+        "type": "object"
+      },
+      "ToolOut": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "risk_class"
+        ],
+        "title": "ToolOut",
         "type": "object"
       },
       "Unavailable": {
@@ -1586,6 +2788,356 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/assets": {
+      "get": {
+        "operationId": "list_assets_api_workspaces__workspace_id__assets_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "organization_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Organization Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AssetKind"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssetOut"
+                  },
+                  "title": "Response List Assets Api Workspaces  Workspace Id  Assets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Assets",
+        "tags": [
+          "assets"
+        ]
+      },
+      "post": {
+        "operationId": "create_asset_api_workspaces__workspace_id__assets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Asset",
+        "tags": [
+          "assets"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/assets/{asset_id}": {
+      "get": {
+        "operationId": "get_asset_api_workspaces__workspace_id__assets__asset_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Asset",
+        "tags": [
+          "assets"
+        ]
+      },
+      "patch": {
+        "operationId": "update_asset_api_workspaces__workspace_id__assets__asset_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "asset_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Asset Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssetPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Asset",
+        "tags": [
+          "assets"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/evidence/{evidence_id}": {
+      "get": {
+        "operationId": "get_evidence_api_workspaces__workspace_id__evidence__evidence_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evidence",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/evidence/{evidence_id}/content": {
+      "get": {
+        "description": "Raw stored content, verified against its SHA-256. Always served as a download so\nattacker-controlled content can't render in the app's origin.",
+        "operationId": "get_evidence_content_api_workspaces__workspace_id__evidence__evidence_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "evidence_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Evidence Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Evidence Content",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/invites": {
       "get": {
         "operationId": "list_invites_api_workspaces__workspace_id__invites_get",
@@ -1948,6 +3500,188 @@
         "summary": "Issue Password Reset",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/operations": {
+      "get": {
+        "operationId": "list_operations_api_workspaces__workspace_id__operations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OperationOut"
+                  },
+                  "title": "Response List Operations Api Workspaces  Workspace Id  Operations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Operations",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/operations/{op_id}": {
+      "get": {
+        "operationId": "get_operation_api_workspaces__workspace_id__operations__op_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "op_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Op Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Operation",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/operations/{op_id}/cancel": {
+      "post": {
+        "operationId": "cancel_operation_api_workspaces__workspace_id__operations__op_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "op_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Op Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Operation",
+        "tags": [
+          "recon"
         ]
       }
     },
@@ -2441,6 +4175,708 @@
         "summary": "Update Project",
         "tags": [
           "registry"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/collections": {
+      "post": {
+        "operationId": "request_collection_api_workspaces__workspace_id__projects__project_id__collections_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Request Collection",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/scope-check": {
+      "post": {
+        "description": "Preview whether a value is inside the project's active scope. Changes nothing.",
+        "operationId": "check_api_workspaces__workspace_id__projects__project_id__scope_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/scopes": {
+      "get": {
+        "operationId": "list_scopes_api_workspaces__workspace_id__projects__project_id__scopes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ScopeOut"
+                  },
+                  "title": "Response List Scopes Api Workspaces  Workspace Id  Projects  Project Id  Scopes Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Scopes",
+        "tags": [
+          "scope"
+        ]
+      },
+      "post": {
+        "description": "New draft version, pre-filled from the active version if there is one.",
+        "operationId": "start_draft_api_workspaces__workspace_id__projects__project_id__scopes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Draft",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/recon/tools": {
+      "get": {
+        "operationId": "list_tools_api_workspaces__workspace_id__recon_tools_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ToolOut"
+                  },
+                  "title": "Response List Tools Api Workspaces  Workspace Id  Recon Tools Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Tools",
+        "tags": [
+          "recon"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}": {
+      "delete": {
+        "operationId": "discard_draft_api_workspaces__workspace_id__scopes__scope_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OkOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Discard Draft",
+        "tags": [
+          "scope"
+        ]
+      },
+      "patch": {
+        "operationId": "update_draft_api_workspaces__workspace_id__scopes__scope_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScopePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Draft",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/authorize": {
+      "post": {
+        "operationId": "authorize_api_workspaces__workspace_id__scopes__scope_id__authorize_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Authorize",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/exclusions": {
+      "post": {
+        "operationId": "add_exclusion_api_workspaces__workspace_id__scopes__scope_id__exclusions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Exclusion",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/exclusions/{entry_id}": {
+      "delete": {
+        "operationId": "remove_exclusion_api_workspaces__workspace_id__scopes__scope_id__exclusions__entry_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Exclusion",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/targets": {
+      "post": {
+        "operationId": "add_target_api_workspaces__workspace_id__scopes__scope_id__targets_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Target",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/targets/{entry_id}": {
+      "delete": {
+        "operationId": "remove_target_api_workspaces__workspace_id__scopes__scope_id__targets__entry_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScopeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Target",
+        "tags": [
+          "scope"
         ]
       }
     }

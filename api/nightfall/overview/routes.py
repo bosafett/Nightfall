@@ -18,6 +18,9 @@ from sqlalchemy import func, select
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
     AssessmentType,
+    Asset,
+    Operation,
+    OperationStatus,
     Organization,
     Project,
     ProjectStatus,
@@ -61,6 +64,19 @@ class ProjectKpi(Model):
     started_in_window: int
 
 
+class AssetKpi(Model):
+    available: Literal[True] = True
+    total: int
+    new_in_window: int
+
+
+class OperationKpi(Model):
+    available: Literal[True] = True
+    in_window: int
+    pending: int  # queued or running now
+    failed_in_window: int
+
+
 class AssessmentItem(Model):
     id: uuid.UUID
     organization_id: uuid.UUID
@@ -100,8 +116,8 @@ class OverviewOut(Model):
     generated_at: datetime
     projects: ProjectKpi
     critical_findings: Unavailable
-    assets: Unavailable
-    operations: Unavailable
+    assets: AssetKpi
+    operations: OperationKpi
     assessments: list[AssessmentItem]
     recent_findings: Unavailable
     agent_activity: Unavailable
@@ -125,6 +141,23 @@ def overview(
             func.count().filter(Project.status.in_(OPEN_STATUSES)),
             func.count().filter(Project.started_at >= since),
         ).where(Project.workspace_id == ws)
+    ).one()
+
+    asset_counts = db.execute(
+        select(func.count(), func.count().filter(Asset.created_at >= since)).where(
+            Asset.workspace_id == ws
+        )
+    ).one()
+    op_counts = db.execute(
+        select(
+            func.count().filter(Operation.queued_at >= since),
+            func.count().filter(
+                Operation.status.in_([OperationStatus.QUEUED, OperationStatus.RUNNING])
+            ),
+            func.count().filter(
+                Operation.queued_at >= since, Operation.status == OperationStatus.FAILED
+            ),
+        ).where(Operation.workspace_id == ws)
     ).one()
 
     rows = db.execute(
@@ -153,8 +186,10 @@ def overview(
         generated_at=now,
         projects=ProjectKpi(active=counts[0], open=counts[1], started_in_window=counts[2]),
         critical_findings=Unavailable(phase=4),
-        assets=Unavailable(phase=3),
-        operations=Unavailable(phase=3),
+        assets=AssetKpi(total=asset_counts[0], new_in_window=asset_counts[1]),
+        operations=OperationKpi(
+            in_window=op_counts[0], pending=op_counts[1], failed_in_window=op_counts[2]
+        ),
         assessments=assessments,
         recent_findings=Unavailable(phase=4),
         agent_activity=Unavailable(phase=5),

@@ -177,3 +177,213 @@ class AuditEvent(Base):
     ip: Mapped[str | None]
     user_agent: Mapped[str | None]
     occurred_at: Mapped[datetime] = _created()
+
+
+# --- Phase 3: assets, scopes, operations, evidence --------------------------------
+
+
+class AssetKind(enum.StrEnum):
+    DOMAIN = "domain"
+    HOSTNAME = "hostname"
+    IP_ADDRESS = "ip_address"
+    IP_RANGE = "ip_range"
+    APPLICATION = "application"
+    API = "api"
+    CLOUD_RESOURCE = "cloud_resource"
+    OTHER = "other"
+
+
+class AssetOwnership(enum.StrEnum):
+    ORGANIZATION = "organization"
+    THIRD_PARTY = "third_party"
+    UNKNOWN = "unknown"
+
+
+class ScopeStatus(enum.StrEnum):
+    DRAFT = "draft"
+    ACTIVE = "active"
+    SUPERSEDED = "superseded"
+
+
+class ScopeEntryKind(enum.StrEnum):
+    HOST = "host"  # exactly this hostname
+    DOMAIN_TREE = "domain_tree"  # this domain and every subdomain
+    IP = "ip"
+    CIDR = "cidr"
+
+
+class RiskClass(enum.StrEnum):
+    PASSIVE = "passive"
+    LOW = "low"
+    MODERATE = "moderate"
+    HIGH = "high"
+
+
+class OperationStatus(enum.StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    DENIED = "denied"
+    CANCELLED = "cancelled"
+
+
+class EvidenceKind(enum.StrEnum):
+    OBSERVATION = "observation"
+    TOOL_OUTPUT = "tool_output"
+    DOCUMENT = "document"
+    SCREENSHOT = "screenshot"
+    AGENT_NOTE = "agent_note"
+
+
+class Confidence(enum.StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+
+
+class RelationshipType(enum.StrEnum):
+    SUBDOMAIN_OF = "subdomain_of"
+    RESOLVES_TO = "resolves_to"
+    CNAME_TO = "cname_to"
+
+
+class RelationshipStatus(enum.StrEnum):
+    OBSERVED = "observed"
+    HYPOTHESIS = "hypothesis"
+
+
+class Asset(Base):
+    __tablename__ = "assets"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    organization_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id"))
+    kind: Mapped[AssetKind] = mapped_column(_pg_enum(AssetKind, "asset_kind"))
+    value: Mapped[str]
+    ownership: Mapped[AssetOwnership] = mapped_column(
+        _pg_enum(AssetOwnership, "asset_ownership"), server_default=text("'unknown'")
+    )
+    source: Mapped[str]
+    notes: Mapped[str] = mapped_column(server_default=text("''"))
+    first_seen_at: Mapped[datetime] = _created()
+    last_seen_at: Mapped[datetime] = _created()
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class Scope(Base):
+    __tablename__ = "scopes"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    version: Mapped[int]
+    status: Mapped[ScopeStatus] = mapped_column(
+        _pg_enum(ScopeStatus, "scope_status"), server_default=text("'draft'")
+    )
+    authorization_reference: Mapped[str] = mapped_column(server_default=text("''"))
+    valid_from: Mapped[datetime | None]
+    valid_until: Mapped[datetime | None]
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    authorized_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    authorized_at: Mapped[datetime | None]
+    superseded_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class ScopeTarget(Base):
+    __tablename__ = "scope_targets"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID]
+    scope_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    kind: Mapped[ScopeEntryKind] = mapped_column(_pg_enum(ScopeEntryKind, "scope_entry_kind"))
+    value: Mapped[str]
+    note: Mapped[str] = mapped_column(server_default=text("''"))
+    created_at: Mapped[datetime] = _created()
+
+
+class ScopeExclusion(Base):
+    __tablename__ = "scope_exclusions"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID]
+    scope_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    kind: Mapped[ScopeEntryKind] = mapped_column(_pg_enum(ScopeEntryKind, "scope_entry_kind"))
+    value: Mapped[str]
+    reason: Mapped[str] = mapped_column(server_default=text("''"))
+    created_at: Mapped[datetime] = _created()
+
+
+class Operation(Base):
+    __tablename__ = "operations"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    scope_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    tool: Mapped[str]
+    risk_class: Mapped[RiskClass] = mapped_column(_pg_enum(RiskClass, "risk_class"))
+    target_value: Mapped[str]
+    params: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    status: Mapped[OperationStatus] = mapped_column(
+        _pg_enum(OperationStatus, "operation_status"), server_default=text("'queued'")
+    )
+    requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    denial_reason: Mapped[str | None]
+    error: Mapped[str | None]
+    result_summary: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, server_default=text("'{}'::jsonb")
+    )
+    attempts: Mapped[int] = mapped_column(server_default=text("0"))
+    queued_at: Mapped[datetime] = _created()
+    started_at: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class Evidence(Base):
+    __tablename__ = "evidence"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assets.id"))
+    operation_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("operations.id"))
+    kind: Mapped[EvidenceKind] = mapped_column(_pg_enum(EvidenceKind, "evidence_kind"))
+    source: Mapped[str]
+    collection_method: Mapped[str]
+    collected_at: Mapped[datetime]
+    confidence: Mapped[Confidence] = mapped_column(_pg_enum(Confidence, "confidence_level"))
+    tool_name: Mapped[str]
+    tool_version: Mapped[str]
+    input_params: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    content_sha256: Mapped[bytes] = mapped_column(LargeBinary)
+    content_type: Mapped[str]
+    size_bytes: Mapped[int]
+    summary: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    is_simulation: Mapped[bool] = mapped_column(server_default=text("false"))
+    created_at: Mapped[datetime] = _created()
+
+
+class AssetRelationship(Base):
+    __tablename__ = "asset_relationships"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    from_asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assets.id"))
+    to_asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assets.id"))
+    rel_type: Mapped[RelationshipType] = mapped_column(
+        _pg_enum(RelationshipType, "relationship_type")
+    )
+    status: Mapped[RelationshipStatus] = mapped_column(
+        _pg_enum(RelationshipStatus, "relationship_status"), server_default=text("'observed'")
+    )
+    confidence: Mapped[Confidence] = mapped_column(_pg_enum(Confidence, "confidence_level"))
+    evidence_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("evidence.id"))
+    rule_id: Mapped[str]
+    first_seen_at: Mapped[datetime] = _created()
+    last_seen_at: Mapped[datetime] = _created()
+
+
+class WorkerHeartbeat(Base):
+    __tablename__ = "worker_heartbeats"
+    worker_id: Mapped[str] = mapped_column(primary_key=True)
+    version: Mapped[str]
+    last_seen_at: Mapped[datetime] = _created()

@@ -17,11 +17,12 @@ dependencies = [
   "argon2-cffi~=25.1",
   "pyotp~=2.10",
   "cryptography~=50.0",
+  "httpx~=0.28.1",      # collectors
+  "dnspython~=2.9",     # collectors
 ]
 
 [project.optional-dependencies]
 dev = [
-  "httpx~=0.28.1",      # FastAPI TestClient
   "pytest~=9.2",
   "ruff~=0.17.3",
   "mypy~=2.4",
@@ -30,6 +31,7 @@ dev = [
 
 [project.scripts]
 nightfall-admin = "nightfall.cli:main"
+nightfall-worker = "nightfall.recon.worker:main"
 
 [tool.setuptools.packages.find]
 include = ["nightfall*"]

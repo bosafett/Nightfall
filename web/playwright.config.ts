@@ -14,6 +14,8 @@ export const E2E = {
   python: PY,
   ownerEmail: "owner@nightfall.test",
   ownerPassword: "e2e owner password, long enough",
+  workerDb: process.env.E2E_WORKER_DATABASE_URL ?? "postgresql://nightfall_worker:worker_dev_only@127.0.0.1:5432/nightfall_e2e",
+  evidenceDir: process.env.E2E_EVIDENCE_DIR ?? "/tmp/nightfall-e2e-evidence",
 };
 
 const apiEnv = {
@@ -23,6 +25,14 @@ const apiEnv = {
   NIGHTFALL_PUBLIC_ORIGIN: E2E.web,
   // Next.js rewrites pass client X-Forwarded-For through untouched; never trust it here.
   NIGHTFALL_FORWARDED_HOPS: "0",
+  NIGHTFALL_EVIDENCE_DIR: E2E.evidenceDir,
+};
+
+/** The worker runs in fixture mode: canned, clearly labelled results, no network access. */
+export const workerEnv = {
+  ...apiEnv,
+  NIGHTFALL_WORKER_DATABASE_URL: E2E.workerDb,
+  NIGHTFALL_COLLECTOR_MODE: "fixture",
 };
 
 export default defineConfig({

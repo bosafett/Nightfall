@@ -1,0 +1,247 @@
+"""Background worker: claims queued operations and runs passive collectors.
+
+    nightfall-worker            (NIGHTFALL_WORKER_DATABASE_URL, role nightfall_worker)
+
+Safety properties:
+  * Scope is re-checked at execution time against the *current* active scope. If the
+    scope was replaced after the request, the job is denied, not run on stale authority.
+  * Only collectors registered for the operation's tool run; the worker never executes
+    anything derived from user or model input.
+  * Collector output is stored as evidence before anything is derived from it.
+  * Jobs left "running" by a crashed worker are retried (max 3 attempts), and re-runs
+    never duplicate evidence, assets or relationships.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import signal
+import socket
+import time
+import uuid
+from collections.abc import Callable
+from dataclasses import dataclass
+
+from sqlalchemy import create_engine, select, text
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import Session, sessionmaker
+
+from nightfall.blackice.ingest import ingest
+from nightfall.config import get_settings
+from nightfall.core.audit.writer import record
+from nightfall.core.clock import utcnow
+from nightfall.core.db.models import (
+    ActorType,
+    Operation,
+    OperationStatus,
+    Project,
+    Scope,
+    WorkerHeartbeat,
+)
+from nightfall.core.db.session import set_workspace_context
+from nightfall.core.evidence_store import EvidenceStore
+from nightfall.recon.collectors import Collector, collectors
+from nightfall.scope.engine import evaluate
+from nightfall.scope.repository import active_scope, snapshot
+
+log = logging.getLogger("nightfall.worker")
+
+
+# Constants are inlined (not formatted) so these stay static SQL.
+CLAIM = text("""
+UPDATE operations SET status = 'running', started_at = now(), attempts = attempts + 1
+WHERE id = (
+  SELECT id FROM operations
+  WHERE (status = 'queued')
+     OR (status = 'running' AND started_at < now() - interval '10 minutes' AND attempts < 3)
+  ORDER BY queued_at
+  FOR UPDATE SKIP LOCKED
+  LIMIT 1)
+RETURNING id, workspace_id
+""")
+EXPIRE = text("""
+UPDATE operations SET status = 'failed', finished_at = now(),
+  error = 'Gave up after 3 attempts (worker stopped responding).'
+WHERE status = 'running' AND started_at < now() - interval '10 minutes' AND attempts >= 3
+""")
+
+
+def _get_op(db: Session, op_id: uuid.UUID) -> Operation:
+    op = db.get(Operation, op_id)
+    if op is None:
+        raise RuntimeError(f"operation {op_id} not visible to the worker")
+    return op
+
+
+@dataclass
+class Worker:
+    sessions: sessionmaker[Session]
+    store: EvidenceStore
+    tools: dict[str, Collector]
+    worker_id: str = f"{socket.gethostname()}:{os.getpid()}"
+    clock: Callable[[], object] = utcnow
+
+    def heartbeat(self) -> None:
+        with self.sessions() as db:
+            db.execute(
+                insert(WorkerHeartbeat)
+                .values(
+                    worker_id=self.worker_id, version=get_settings().version, last_seen_at=utcnow()
+                )
+                .on_conflict_do_update(
+                    index_elements=["worker_id"], set_={"last_seen_at": utcnow()}
+                )
+            )
+            db.commit()
+
+    def run_once(self) -> bool:
+        """Processes at most one operation. Returns False when the queue is empty."""
+        with self.sessions() as db:
+            db.execute(EXPIRE)
+            claimed = db.execute(CLAIM).first()
+            db.commit()
+        if claimed is None:
+            return False
+        self.process(claimed.id, claimed.workspace_id)
+        return True
+
+    def _finish(
+        self,
+        op_id: uuid.UUID,
+        ws: uuid.UUID,
+        status: OperationStatus,
+        action: str,
+        **fields: object,
+    ) -> None:
+        with self.sessions() as db:
+            set_workspace_context(db, ws)
+            op = _get_op(db, op_id)
+            op.status = status
+            op.finished_at = utcnow()
+            for k, v in fields.items():
+                setattr(op, k, v)
+            record(
+                db,
+                action,
+                actor_type=ActorType.SYSTEM,
+                workspace_id=ws,
+                entity_type="operation",
+                entity_id=op_id,
+                data={
+                    "tool": op.tool,
+                    "target": op.target_value,
+                    **{k: v for k, v in fields.items() if k in ("denial_reason", "error")},
+                },
+            )
+            db.commit()
+
+    def process(self, op_id: uuid.UUID, ws: uuid.UUID) -> None:
+        now = utcnow()
+        with self.sessions() as db:
+            set_workspace_context(db, ws)
+            op = _get_op(db, op_id)
+            current = active_scope(db, op.project_id)
+            if current is None or current.id != op.scope_id:
+                reason = "The scope changed after this was requested. Request it again."
+                decision_ok = False
+            else:
+                decision = evaluate(snapshot(db, current), op.target_value, now)
+                decision_ok, reason = decision.allowed, decision.reason
+            tool = self.tools.get(op.tool)
+            target, tool_key = op.target_value, op.tool
+        if not decision_ok:
+            self._finish(
+                op_id, ws, OperationStatus.DENIED, "operation.denied", denial_reason=reason
+            )
+            return
+        if tool is None:
+            self._finish(
+                op_id,
+                ws,
+                OperationStatus.FAILED,
+                "operation.failed",
+                error=f"Unknown tool {tool_key!r}.",
+            )
+            return
+
+        try:
+            result = tool.run(target)
+            digest = self.store.put(result.raw)
+        except Exception as exc:  # collector/network failure: recorded, not raised
+            log.warning("operation %s failed: %s", op_id, exc)
+            self._finish(
+                op_id,
+                ws,
+                OperationStatus.FAILED,
+                "operation.failed",
+                error=f"{type(exc).__name__}: {str(exc)[:300]}",
+            )
+            return
+
+        with self.sessions() as db:
+            set_workspace_context(db, ws)
+            op = _get_op(db, op_id)
+            org_id = db.scalar(select(Project.organization_id).where(Project.id == op.project_id))
+            scope = db.get(Scope, op.scope_id)
+            if org_id is None or scope is None:
+                raise RuntimeError(f"operation {op_id}: project or scope missing")
+            summary = ingest(db, op, org_id, snapshot(db, scope), result, digest, utcnow())
+            op.status = OperationStatus.SUCCEEDED
+            op.finished_at = utcnow()
+            op.result_summary = summary.as_dict()
+            record(
+                db,
+                "operation.completed",
+                actor_type=ActorType.SYSTEM,
+                workspace_id=ws,
+                entity_type="operation",
+                entity_id=op_id,
+                data=summary.as_dict(),
+            )
+            db.commit()
+
+
+def build_worker() -> Worker:
+    s = get_settings()
+    if not s.worker_database_url:
+        raise SystemExit("NIGHTFALL_WORKER_DATABASE_URL is not set")
+    engine = create_engine(s.worker_database_url, pool_pre_ping=True, pool_size=2)
+    if s.collector_mode == "fixture":
+        log.warning("COLLECTOR MODE IS 'fixture': canned results only, for tests.")
+    return Worker(
+        sessionmaker(bind=engine, expire_on_commit=False),
+        EvidenceStore(s.evidence_dir),
+        collectors(s.collector_mode),
+    )
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    worker = build_worker()
+    stopping = False
+
+    def stop(*_: object) -> None:
+        nonlocal stopping
+        stopping = True
+
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+    log.info("worker %s started", worker.worker_id)
+    last_beat = 0.0
+    while not stopping:
+        if time.monotonic() - last_beat > 10:
+            worker.heartbeat()
+            last_beat = time.monotonic()
+        try:
+            busy = worker.run_once()
+        except Exception:
+            log.exception("worker loop error")
+            busy = False
+        if not busy:
+            time.sleep(1.0)
+    log.info("worker %s stopped", worker.worker_id)
+
+
+if __name__ == "__main__":
+    main()

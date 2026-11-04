@@ -292,6 +292,15 @@ Goal (spec acceptance): authenticate, create an organization and a project, data
 
 Stops after step 8 for approval (spec §12.5).
 
+## 10a. Phase 3 delivery note (added during Phase 3)
+
+Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
+- **3a (done):** assets, versioned scopes and exclusions with authorization, scope engine, operations queue and
+  worker, passive collectors (certificate transparency, DNS), content-addressed evidence, discovery history.
+- **3b (next):** technology identification (low risk, needs the approval flow), Amass passive adapter, and the
+  scope-enforcing egress proxy that any non-passive tool must use. Scope entry kinds in 3a are `host`,
+  `domain_tree`, `ip`, `cidr` (URL prefixes come with web-testing tools).
+
 ## 11. Decisions requiring human approval
 
 **All approved as proposed (2026-11-04).**

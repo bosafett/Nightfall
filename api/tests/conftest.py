@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import os
+import tempfile
 import uuid
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -22,7 +23,12 @@ OWNER_URL = os.environ.get(
     "NIGHTFALL_TEST_MIGRATION_DATABASE_URL",
     "postgresql://nightfall_owner:owner_dev_only@127.0.0.1:5432/nightfall_test",
 )
+WORKER_URL = os.environ.get(
+    "NIGHTFALL_TEST_WORKER_DATABASE_URL",
+    "postgresql://nightfall_worker:worker_dev_only@127.0.0.1:5432/nightfall_test",
+)
 ORIGIN = "http://nightfall.test"
+EVIDENCE_DIR = tempfile.mkdtemp(prefix="nightfall-evidence-")
 
 os.environ.update(
     NIGHTFALL_DATABASE_URL=APP_URL,
@@ -30,6 +36,9 @@ os.environ.update(
     NIGHTFALL_SECRET_KEY=base64.b64encode(b"\x01" * 32).decode(),
     NIGHTFALL_PUBLIC_ORIGIN=ORIGIN,
     NIGHTFALL_COOKIE_SECURE="false",
+    NIGHTFALL_EVIDENCE_DIR=EVIDENCE_DIR,
+    NIGHTFALL_WORKER_DATABASE_URL=WORKER_URL,
+    NIGHTFALL_COLLECTOR_MODE="fixture",
 )
 
 import pyotp  # noqa: E402
@@ -50,7 +59,8 @@ from nightfall.main import create_app  # noqa: E402
 
 PASSWORD = "correct horse battery staple"
 TABLES = (
-    "audit_events, projects, organizations, auth_tokens, "
+    "asset_relationships, evidence, operations, scope_exclusions, scope_targets, scopes, "
+    "assets, worker_heartbeats, audit_events, projects, organizations, auth_tokens, "
     "workspace_members, workspaces, sessions, users"
 )
 

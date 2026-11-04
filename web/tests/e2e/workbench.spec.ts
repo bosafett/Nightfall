@@ -108,9 +108,67 @@ test.describe("as the owner", () => {
     await expect(alertIn(page)).toContainText("already exists");
   });
 
+  test("authorize a scope, refuse out-of-scope targets, run passive collection", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/targets`);
+    await page.getByRole("link", { name: "Acme Corporation" }).click();
+    await page.getByRole("link", { name: "External reconnaissance" }).click();
+    await expect(page.getByText("No authorized scope")).toBeVisible();
+
+    await page.getByRole("button", { name: "Draft a scope" }).click();
+    const draft = page.getByRole("region", { name: "Draft scope" });
+    await draft.getByLabel("Target type").selectOption("domain_tree");
+    await draft.getByLabel("Target value").fill("Acme.TEST.");
+    await draft.getByRole("button", { name: "Add" }).first().click();
+    await expect(draft.getByText("acme.test", { exact: true })).toBeVisible();
+    await draft.getByLabel("Exclusion type").selectOption("host");
+    await draft.getByLabel("Exclusion value").fill("mail.acme.test");
+    await draft.getByLabel("Reason (optional)").fill("Client mail server: out of bounds");
+    await draft.getByRole("button", { name: "Add" }).nth(1).click();
+    await expect(draft.getByText("mail.acme.test")).toBeVisible();
+    await draft.getByLabel("Authorization reference").fill("SOW-2026-042");
+    await draft.getByRole("button", { name: "Save details" }).click();
+    await draft.getByRole("button", { name: "Authorize v1" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Authorize scope" }).click();
+    await expect(page.getByText("Authorized · v1")).toBeVisible();
+
+    // Server-side refusal of out-of-scope and excluded targets.
+    for (const target of ["evil.test", "mail.acme.test"]) {
+      await page.getByLabel("Target", { exact: true }).fill(target);
+      await page.getByRole("button", { name: "Run passive collection" }).click();
+      await expect(alertIn(page)).toContainText(target === "evil.test" ? "Not in the authorized scope" : "Excluded by scope");
+    }
+
+    await page.getByLabel("Collector").selectOption("ct");
+    await page.getByLabel("Target", { exact: true }).fill("acme.test");
+    await page.getByRole("button", { name: "Run passive collection" }).click();
+    await expect(page.getByText("Queued Certificate transparency")).toBeVisible();
+    await expect(page.getByRole("row", { name: /acme\.test.*Done/ })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/4 new · 0 seen · 2 outside scope/)).toBeVisible();
+
+    await page.getByRole("link", { name: "Acme Corporation" }).click();
+    await expect(page.getByRole("link", { name: "www.acme.test" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "api.acme.test" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "mail.acme.test" })).toHaveCount(0);
+
+    await page.getByRole("link", { name: "www.acme.test" }).click();
+    await expect(page.getByRole("cell", { name: "Subdomain of" })).toBeVisible();
+    await expect(page.getByText("Test fixture").first()).toBeVisible();
+    const href = await page.getByRole("link", { name: "Download" }).first().getAttribute("href");
+    const download = await page.request.get(href!);
+    expect(download.status()).toBe(200);
+    expect(download.headers()["content-disposition"]).toContain("attachment");
+
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reconnaissance" }).click();
+    await expect(page.getByRole("heading", { name: "Discovery history" })).toBeVisible();
+    await page.getByRole("link", { name: "acme.test", exact: true }).click();
+    await expect(page.getByText("names outside scope or excluded")).toBeVisible();
+  });
+
   test("command center reflects the registry and graph nodes open records", async ({ page }) => {
     await page.goto(workspaceUrl);
     await expect(page.getByTestId("kpi-Active projects")).toContainText("1");
+    await expect(page.getByTestId("kpi-Assets discovered")).toContainText("4");
+    await expect(page.getByTestId("kpi-Operations")).toContainText("1");
     await expect(page.getByRole("link", { name: "Acme Corporation — External reconnaissance" })).toBeVisible();
     await page.getByRole("navigation", { name: "Time window" }).getByRole("link", { name: "1h" }).click();
     await expect(page).toHaveURL(/window=1h/);
