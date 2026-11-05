@@ -1,0 +1,46 @@
+{
+  "description": "Server header states nginx 1.18.0 (high confidence) and a framework guessed from markup (medium): only the stated version counts.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [
+      {
+        "name": "nginx",
+        "version": "1.18.0",
+        "confidence": "high",
+        "evidence": "Server: nginx/1.18.0"
+      },
+      {
+        "name": "React",
+        "version": "18",
+        "confidence": "medium",
+        "evidence": "markup"
+      }
+    ],
+    "http": [
+      {
+        "attempts": [
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": true,
+            "status": 200
+          }
+        ],
+        "tls": {
+          "not_after": "2027-06-01T00:00:00+00:00"
+        }
+      }
+    ],
+    "checks": []
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": [
+    {
+      "check_id": "http.version-disclosure.nginx",
+      "rule_id": "R1-version-disclosure",
+      "title": "nginx version disclosed in HTTP headers",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The response header states the version: Server: nginx/1.18.0"
+    }
+  ]
+}

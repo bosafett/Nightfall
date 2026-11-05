@@ -1,0 +1,31 @@
+{
+  "description": "Valid HTTPS, long-lived certificate, no version disclosed: no findings.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [
+      {
+        "name": "nginx",
+        "version": null,
+        "confidence": "high",
+        "evidence": "Server: nginx"
+      }
+    ],
+    "http": [
+      {
+        "attempts": [
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": true,
+            "status": 200
+          }
+        ],
+        "tls": {
+          "not_after": "2027-06-01T00:00:00+00:00"
+        }
+      }
+    ],
+    "checks": []
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": []
+}

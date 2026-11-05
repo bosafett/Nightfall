@@ -1,0 +1,33 @@
+{
+  "description": "Certificate expired a day before the clock.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [
+      {
+        "attempts": [
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": true,
+            "status": 200
+          }
+        ],
+        "tls": {
+          "not_after": "2026-10-31T00:00:00+00:00"
+        }
+      }
+    ],
+    "checks": []
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": [
+    {
+      "check_id": "tls.certificate-expired",
+      "rule_id": "R4-certificate-expired",
+      "title": "TLS certificate has expired",
+      "severity": "high",
+      "confidence": "high",
+      "description": "The certificate expired on 2026-10-31T00:00:00+00:00."
+    }
+  ]
+}

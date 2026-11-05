@@ -51,3 +51,5 @@ export type AgentTaskStatus = S["AgentTaskStatus"];
 export type GuardianReview = S["GuardianReview"];
 export type WarRoom = S["WarRoomOut"];
 export type WarRoomSummary = S["WarRoomSummary"];
+export type Sources = S["SourcesOut"];
+export type Replay = S["ReplayOut"];

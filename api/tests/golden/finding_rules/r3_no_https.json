@@ -1,0 +1,39 @@
+{
+  "description": "Port 80 answered; 443 didn't.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [
+      {
+        "attempts": [
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": true,
+            "error": "ConnectError"
+          },
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": false,
+            "error": "ConnectError"
+          },
+          {
+            "url": "http://www.lab.test/",
+            "status": 200
+          }
+        ]
+      }
+    ],
+    "checks": []
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": [
+    {
+      "check_id": "http.no-https",
+      "rule_id": "R3-no-https",
+      "title": "Site served without HTTPS",
+      "severity": "medium",
+      "confidence": "high",
+      "description": "Port 80 answered; HTTPS on port 443 did not."
+    }
+  ]
+}

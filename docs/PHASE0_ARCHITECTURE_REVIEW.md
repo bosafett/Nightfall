@@ -512,6 +512,27 @@ Module: `api/nightfall/blackice/`. Deterministic rules are authoritative. AI may
 - **Replay:** re-runs a ruleset (current or historical) over the evidence as of a snapshot and produces a diff. It never mutates the snapshot. Rules are versioned code, with golden-file tests per rule and for replay.
 - **Freshness (A5):** per-source "last successful collection" is derived from the latest successful collector operation, with no extra table. The UI shows "updated N ago", "stale", or "unavailable". Sources that need credentials are optional and show "not configured".
 
+### 14.1 BLACK ICE delivery status (2026-11-05)
+
+- **Built in Phases 3–4:** normalization shared with scope, relationship mapping with `rule_id`, finding rules
+  R1–R6 (`findings/2026.11-2`), dedup per asset + check, snapshots on every report.
+- **Freshness (A5):** built. `GET /sources`, derived from `operations` with no extra table. Per source the
+  state is `fresh`, `stale` (no success in 7 days), `failing` (the latest finished run failed, with its error),
+  `never_run` or `unavailable` (e.g. Nuclei on serverless hosting). Lab runs are excluded. The panel is on the
+  Reconnaissance page.
+- **Replay:** built. `GET /reports/{id}/replay` is read-only. It re-runs the **current** rules over the
+  observations stored on every evidence record collected up to the snapshot, with the clock set to the
+  snapshot's time. Results are compared against the snapshot's rule-made findings by asset + check id (older
+  snapshots by asset + rule + title) and grouped as unchanged, changed, new and no longer found. Snapshots now
+  record `check_id`. *Limit:* only the current ruleset can be replayed, because older rule versions aren't kept
+  in code. The page shows both ruleset versions.
+- **Golden files:** built. `tests/golden/finding_rules/` has one case per rule plus clean and DNS-only cases.
+  Any output change fails until the files are regenerated on purpose (`NIGHTFALL_UPDATE_GOLDEN=1`) and
+  reviewed.
+- **"≥2 independent sources → high" / "medium" confidence:** not built, by design. Every current source is
+  authoritative (live DNS answers, CT logs, tool detections with raw evidence), so rule-made records are high.
+  The rule becomes meaningful when third-party datasets are added, and should come with them.
+
 ## 15. Mockup review (command center)
 
 **Keep:**

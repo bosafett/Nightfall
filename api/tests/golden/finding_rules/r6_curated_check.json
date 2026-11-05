@@ -1,0 +1,33 @@
+{
+  "description": "A curated check matched twice (one finding); an unknown template id is ignored.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [],
+    "checks": [
+      {
+        "template_id": "nf-git-head-exposed",
+        "matched_at": "https://www.lab.test/.git/HEAD"
+      },
+      {
+        "template_id": "nf-git-head-exposed",
+        "matched_at": "https://www.lab.test/.git/HEAD"
+      },
+      {
+        "template_id": "made-up-template",
+        "matched_at": "x"
+      }
+    ]
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": [
+    {
+      "check_id": "web.git-metadata-exposed",
+      "rule_id": "R6-curated-check:nf-git-head-exposed",
+      "title": "Git repository metadata is publicly readable",
+      "severity": "medium",
+      "confidence": "high",
+      "description": "/.git/HEAD is served and names a branch. The check read that one file only. Matched at https://www.lab.test/.git/HEAD."
+    }
+  ]
+}

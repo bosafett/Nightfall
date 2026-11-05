@@ -49,7 +49,10 @@ export default async function ReportPage({ params }: { params: Promise<{ ws: str
     <div className="mx-auto max-w-4xl">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <Link href={`/w/${ws}/reports?project=${r.project_id}`} className="text-sm text-muted hover:text-text">← Reports</Link>
-        <PrintButton />
+        <span className="flex items-center gap-3">
+          <Link href={`/w/${ws}/reports/${r.id}/replay`} className="text-sm text-crimson-text hover:underline">Check against current rules</Link>
+          <PrintButton />
+        </span>
       </div>
       {!r.integrity_ok && <Alert>Integrity check failed: this snapshot no longer matches its SHA-256. Don&apos;t rely on it.</Alert>}
       <header className="border-b border-border pb-4">

@@ -3639,6 +3639,139 @@
         "title": "RelationshipType",
         "type": "string"
       },
+      "ReplayChange": {
+        "additionalProperties": false,
+        "properties": {
+          "now": {
+            "$ref": "#/components/schemas/ReplayItem"
+          },
+          "then": {
+            "$ref": "#/components/schemas/ReplayItem"
+          }
+        },
+        "required": [
+          "then",
+          "now"
+        ],
+        "title": "ReplayChange",
+        "type": "object"
+      },
+      "ReplayItem": {
+        "additionalProperties": false,
+        "properties": {
+          "asset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset"
+          },
+          "check_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Id"
+          },
+          "rule_id": {
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "asset",
+          "check_id",
+          "rule_id",
+          "title",
+          "severity"
+        ],
+        "title": "ReplayItem",
+        "type": "object"
+      },
+      "ReplayOut": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date-time",
+            "title": "As Of",
+            "type": "string"
+          },
+          "changed": {
+            "items": {
+              "$ref": "#/components/schemas/ReplayChange"
+            },
+            "title": "Changed",
+            "type": "array"
+          },
+          "current_ruleset": {
+            "title": "Current Ruleset",
+            "type": "string"
+          },
+          "evidence_considered": {
+            "title": "Evidence Considered",
+            "type": "integer"
+          },
+          "gone": {
+            "items": {
+              "$ref": "#/components/schemas/ReplayItem"
+            },
+            "title": "Gone",
+            "type": "array"
+          },
+          "new": {
+            "items": {
+              "$ref": "#/components/schemas/ReplayItem"
+            },
+            "title": "New",
+            "type": "array"
+          },
+          "report_id": {
+            "format": "uuid",
+            "title": "Report Id",
+            "type": "string"
+          },
+          "snapshot_ruleset": {
+            "title": "Snapshot Ruleset",
+            "type": "string"
+          },
+          "unchanged": {
+            "items": {
+              "$ref": "#/components/schemas/ReplayItem"
+            },
+            "title": "Unchanged",
+            "type": "array"
+          }
+        },
+        "required": [
+          "report_id",
+          "as_of",
+          "snapshot_ruleset",
+          "current_ruleset",
+          "evidence_considered",
+          "unchanged",
+          "changed",
+          "new",
+          "gone"
+        ],
+        "title": "ReplayOut",
+        "type": "object"
+      },
       "ReportOut": {
         "additionalProperties": false,
         "properties": {
@@ -4179,6 +4312,101 @@
         ],
         "title": "Sort",
         "type": "string"
+      },
+      "SourceOut": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_failure_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Failure At"
+          },
+          "last_success_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Success At"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "state": {
+            "enum": [
+              "fresh",
+              "stale",
+              "failing",
+              "never_run",
+              "unavailable"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "risk_class",
+          "state",
+          "last_success_at",
+          "last_failure_at",
+          "last_error"
+        ],
+        "title": "SourceOut",
+        "type": "object"
+      },
+      "SourcesOut": {
+        "additionalProperties": false,
+        "properties": {
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceOut"
+            },
+            "title": "Sources",
+            "type": "array"
+          },
+          "stale_after_days": {
+            "title": "Stale After Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "stale_after_days",
+          "sources"
+        ],
+        "title": "SourcesOut",
+        "type": "object"
       },
       "StatusIn": {
         "additionalProperties": false,
@@ -8646,6 +8874,60 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/reports/{report_id}/replay": {
+      "get": {
+        "description": "Read-only: re-runs the current finding rules over the evidence as of this report.",
+        "operationId": "replay_report_api_workspaces__workspace_id__reports__report_id__replay_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReplayOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replay Report",
+        "tags": [
+          "black-ice"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/scopes/{scope_id}": {
       "delete": {
         "operationId": "discard_draft_api_workspaces__workspace_id__scopes__scope_id__delete",
@@ -9062,6 +9344,49 @@
         "summary": "Remove Target",
         "tags": [
           "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sources": {
+      "get": {
+        "operationId": "sources_api_workspaces__workspace_id__sources_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourcesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sources",
+        "tags": [
+          "black-ice"
         ]
       }
     },

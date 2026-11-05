@@ -303,6 +303,17 @@ test.describe("as the owner", () => {
     await expect(page.getByText(/attack paths are hypotheses, not demonstrated compromises/)).toBeVisible();
     await expect(page.getByText("Integrity check failed")).toHaveCount(0);
 
+    // BLACK ICE replay: today's rules over the report's evidence, read-only.
+    await page.getByRole("link", { name: "Check against current rules" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Replay against current rules" })).toBeVisible();
+    await expect(page.getByText("Today's rules reach the same rule-based findings as the report.")).toBeVisible();
+    await page.goBack();
+    await expect(page.getByText("Integrity check failed")).toHaveCount(0);
+
+    // BLACK ICE freshness: certificate search has run, so it's up to date.
+    await page.goto(`${workspaceUrl}/recon`);
+    await expect(page.getByTestId("source-ct")).toContainText("Up to date");
+
     await page.goto(workspaceUrl);
     await expect(page.getByTestId("kpi-Critical findings")).toContainText("1");
     await expect(page.getByRole("link", { name: "Admin panel may accept default credentials" })).toBeVisible();

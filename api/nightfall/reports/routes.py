@@ -198,6 +198,7 @@ def build_content(db: Session, project: Project, now: datetime) -> dict[str, Any
             "decided_by": name(f.validated_by_user_id),
             "decision_note": f.status_note,
             "rule_id": f.rule_id,
+            "check_id": f.check_id,
             "evidence": sorted(ev_by_finding.get(f.id, []), key=lambda e: e["collected_at"] or ""),
         }
         for f in findings

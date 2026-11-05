@@ -935,6 +935,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/reports/{report_id}/replay": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Replay Report
+         * @description Read-only: re-runs the current finding rules over the evidence as of this report.
+         */
+        get: operations["replay_report_api_workspaces__workspace_id__reports__report_id__replay_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/scopes/{scope_id}": {
         parameters: {
             query?: never;
@@ -1033,6 +1053,23 @@ export interface paths {
         post?: never;
         /** Remove Target */
         delete: operations["remove_target_api_workspaces__workspace_id__scopes__scope_id__targets__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sources */
+        get: operations["sources_api_workspaces__workspace_id__sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2542,6 +2579,51 @@ export interface components {
          * @enum {string}
          */
         RelationshipType: "subdomain_of" | "resolves_to" | "cname_to";
+        /** ReplayChange */
+        ReplayChange: {
+            now: components["schemas"]["ReplayItem"];
+            then: components["schemas"]["ReplayItem"];
+        };
+        /** ReplayItem */
+        ReplayItem: {
+            /** Asset */
+            asset: string | null;
+            /** Check Id */
+            check_id: string | null;
+            /** Rule Id */
+            rule_id: string;
+            /** Severity */
+            severity: string;
+            /** Title */
+            title: string;
+        };
+        /** ReplayOut */
+        ReplayOut: {
+            /**
+             * As Of
+             * Format: date-time
+             */
+            as_of: string;
+            /** Changed */
+            changed: components["schemas"]["ReplayChange"][];
+            /** Current Ruleset */
+            current_ruleset: string;
+            /** Evidence Considered */
+            evidence_considered: number;
+            /** Gone */
+            gone: components["schemas"]["ReplayItem"][];
+            /** New */
+            new: components["schemas"]["ReplayItem"][];
+            /**
+             * Report Id
+             * Format: uuid
+             */
+            report_id: string;
+            /** Snapshot Ruleset */
+            snapshot_ruleset: string;
+            /** Unchanged */
+            unchanged: components["schemas"]["ReplayItem"][];
+        };
         /** ReportOut */
         ReportOut: {
             /** Content */
@@ -2769,6 +2851,32 @@ export interface components {
          * @enum {string}
          */
         Sort: "severity" | "discovered" | "last_seen";
+        /** SourceOut */
+        SourceOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Last Error */
+            last_error: string | null;
+            /** Last Failure At */
+            last_failure_at: string | null;
+            /** Last Success At */
+            last_success_at: string | null;
+            risk_class: components["schemas"]["RiskClass"];
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "fresh" | "stale" | "failing" | "never_run" | "unavailable";
+        };
+        /** SourcesOut */
+        SourcesOut: {
+            /** Sources */
+            sources: components["schemas"]["SourceOut"][];
+            /** Stale After Days */
+            stale_after_days: number;
+        };
         /** StatusIn */
         StatusIn: {
             /**
@@ -5216,6 +5324,38 @@ export interface operations {
             };
         };
     };
+    replay_report_api_workspaces__workspace_id__reports__report_id__replay_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReplayOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     discard_draft_api_workspaces__workspace_id__scopes__scope_id__delete: {
         parameters: {
             query?: never;
@@ -5441,6 +5581,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScopeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sources_api_workspaces__workspace_id__sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourcesOut"];
                 };
             };
             /** @description Validation Error */

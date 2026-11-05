@@ -1,0 +1,33 @@
+{
+  "description": "Certificate expires in 10 days.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [
+      {
+        "attempts": [
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": true,
+            "status": 200
+          }
+        ],
+        "tls": {
+          "not_after": "2026-11-11T12:00:00+00:00"
+        }
+      }
+    ],
+    "checks": []
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": [
+    {
+      "check_id": "tls.certificate-expiring",
+      "rule_id": "R5-certificate-expiring",
+      "title": "TLS certificate expires within 30 days",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The certificate expires on 2026-11-11T12:00:00+00:00."
+    }
+  ]
+}

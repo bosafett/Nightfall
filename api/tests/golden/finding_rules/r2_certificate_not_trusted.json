@@ -1,0 +1,38 @@
+{
+  "description": "HTTPS failed with validation, then answered without it.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [
+      {
+        "attempts": [
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": true,
+            "error": "SSLCertVerificationError"
+          },
+          {
+            "url": "https://www.lab.test/",
+            "verified_tls": false,
+            "status": 200
+          }
+        ],
+        "tls": {
+          "not_after": "2027-06-01T00:00:00+00:00"
+        }
+      }
+    ],
+    "checks": []
+  },
+  "ruleset": "findings/2026.11-2",
+  "expected": [
+    {
+      "check_id": "tls.certificate-not-trusted",
+      "rule_id": "R2-certificate-not-trusted",
+      "title": "TLS certificate failed validation",
+      "severity": "medium",
+      "confidence": "high",
+      "description": "The HTTPS service answered, but its certificate did not validate against the system trust store for this hostname."
+    }
+  ]
+}

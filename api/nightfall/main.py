@@ -14,6 +14,7 @@ from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
 from nightfall.agents.routes import router as agents_router
+from nightfall.blackice.routes import router as blackice_router
 from nightfall.config import get_settings
 from nightfall.core.db.session import get_engine
 from nightfall.core.identity.routes import router as auth_router
@@ -162,6 +163,7 @@ ROUTERS = (
     paths_router,
     reports_router,
     agents_router,
+    blackice_router,
     warroom_router,
     internal_router,
 )
