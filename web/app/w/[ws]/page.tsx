@@ -4,7 +4,7 @@ import { apiGet } from "@/lib/api/server";
 import type { Overview, OverviewWindow } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { IntelligenceGraph } from "@/components/command/IntelligenceGraph";
-import { ActiveAssessments, ComingPanel, KpiRow, WINDOWS, WindowPicker } from "@/components/command/Panels";
+import { ActiveAssessments, ComingPanel, KpiRow, RecentFindings, RiskOverview, WINDOWS, WindowPicker } from "@/components/command/Panels";
 import { LinkButton, PageHeader, Panel } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Command Center" };
@@ -52,9 +52,9 @@ export default async function CommandCenter({ params, searchParams }: {
         </div>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <ComingPanel title="Recent findings" phase={overview.recent_findings.phase} body="Severity, affected asset and validation status, each traceable to evidence." />
+          <RecentFindings ws={ws} overview={overview} now={now} />
           <ComingPanel title="Agent activity" phase={overview.agent_activity.phase} body="What each agent is working on and which operations wait for approval." />
-          <ComingPanel title="Risk overview" phase={overview.risk.phase} body="Severity breakdown of open findings. No blended risk score." />
+          <RiskOverview ws={ws} overview={overview} />
         </div>
         <p className="font-mono text-xs text-muted tabular">Updated {formatDateTime(overview.generated_at)}</p>
       </div>

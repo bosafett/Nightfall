@@ -311,6 +311,17 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
     In-process probes already go through the scope-enforcing client. Built with the tools container in Phase 4,
     before Nuclei or ZAP can run.
 
+## 10b. Phase 4 delivery note (added during Phase 4)
+
+- **4a (done):** findings (per-workspace refs NF-0001…), evidence links with provenance (rule or person),
+  BLACK ICE finding rules R1–R5 (version disclosure, untrusted certificate, no HTTPS, certificate expired /
+  expiring), human status decisions with required notes (DB-enforced attribution), attack paths that can only be
+  validated when every finding in them is validated, project attack graph (filters, collapse, evidence per edge),
+  Command Center findings panels without a blended score, and reports frozen as insert-only, SHA-256-hashed
+  snapshots that list hypotheses, unverified findings and test-fixture evidence under Limitations. PDF via the
+  browser's print dialog; server-side PDF later.
+- **4b (next):** tools container (Nuclei, ZAP, Amass engine) with the scope-enforcing egress proxy.
+
 ## 11. Decisions requiring human approval
 
 **All approved as proposed (2026-11-04).**

@@ -228,6 +228,41 @@ export interface paths {
         patch: operations["update_asset_api_workspaces__workspace_id__assets__asset_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/attack-paths/{path_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Path */
+        get: operations["get_path_api_workspaces__workspace_id__attack_paths__path_id__get"];
+        /** Replace Path */
+        put: operations["replace_path_api_workspaces__workspace_id__attack_paths__path_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/attack-paths/{path_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Review Path */
+        post: operations["review_path_api_workspaces__workspace_id__attack_paths__path_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/evidence/{evidence_id}": {
         parameters: {
             query?: never;
@@ -260,6 +295,93 @@ export interface paths {
         get: operations["get_evidence_content_api_workspaces__workspace_id__evidence__evidence_id__content_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/findings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Findings */
+        get: operations["list_findings_api_workspaces__workspace_id__findings_get"];
+        put?: never;
+        /** Create Finding */
+        post: operations["create_finding_api_workspaces__workspace_id__findings_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/findings/{finding_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Finding */
+        get: operations["get_finding_api_workspaces__workspace_id__findings__finding_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Update Finding */
+        patch: operations["update_finding_api_workspaces__workspace_id__findings__finding_id__patch"];
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/findings/{finding_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Evidence */
+        post: operations["link_evidence_api_workspaces__workspace_id__findings__finding_id__evidence_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/findings/{finding_id}/evidence/{evidence_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlink Evidence */
+        delete: operations["unlink_evidence_api_workspaces__workspace_id__findings__finding_id__evidence__evidence_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/findings/{finding_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Set Status */
+        post: operations["set_status_api_workspaces__workspace_id__findings__finding_id__status_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -527,6 +649,24 @@ export interface paths {
         patch: operations["update_project_api_workspaces__workspace_id__projects__project_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/attack-paths": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Paths */
+        get: operations["list_paths_api_workspaces__workspace_id__projects__project_id__attack_paths_get"];
+        put?: never;
+        /** Create Path */
+        post: operations["create_path_api_workspaces__workspace_id__projects__project_id__attack_paths_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects/{project_id}/collections": {
         parameters: {
             query?: never;
@@ -538,6 +678,63 @@ export interface paths {
         put?: never;
         /** Request Collection */
         post: operations["request_collection_api_workspaces__workspace_id__projects__project_id__collections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/evidence": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Project Evidence */
+        get: operations["project_evidence_api_workspaces__workspace_id__projects__project_id__evidence_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Graph
+         * @description Assets of the project's organization, the project's findings, recorded asset
+         *     relationships, finding→asset links and attack-path steps. Every edge says whether it is
+         *     observed (with its evidence and rule) or a hypothesis.
+         */
+        get: operations["project_graph_api_workspaces__workspace_id__projects__project_id__graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/reports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Reports */
+        get: operations["list_reports_api_workspaces__workspace_id__projects__project_id__reports_get"];
+        put?: never;
+        /** Create Report */
+        post: operations["create_report_api_workspaces__workspace_id__projects__project_id__reports_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -594,6 +791,23 @@ export interface paths {
         };
         /** List Tools */
         get: operations["list_tools_api_workspaces__workspace_id__recon_tools_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/reports/{report_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Report */
+        get: operations["get_report_api_workspaces__workspace_id__reports__report_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -891,6 +1105,11 @@ export interface components {
             notes?: string | null;
             ownership?: components["schemas"]["AssetOwnership"] | null;
         };
+        /**
+         * AttackPathStatus
+         * @enum {string}
+         */
+        AttackPathStatus: "hypothesis" | "validated" | "rejected";
         /** CheckIn */
         CheckIn: {
             /** Value */
@@ -1039,6 +1258,241 @@ export interface components {
             /** Tool Version */
             tool_version: string;
         };
+        /** FindingDetail */
+        FindingDetail: {
+            /** Asset Id */
+            asset_id: string | null;
+            /** Asset Value */
+            asset_value: string | null;
+            /** Attack Paths */
+            attack_paths: components["schemas"]["PathRef"][];
+            /** Check Id */
+            check_id: string | null;
+            confidence: components["schemas"]["Confidence"];
+            /** Created By */
+            created_by: string | null;
+            /** Description */
+            description: string;
+            /** Discovery Source */
+            discovery_source: string;
+            /** Evidence */
+            evidence: components["schemas"]["LinkedEvidence"][];
+            /** Evidence Count */
+            evidence_count: number;
+            /**
+             * First Observed At
+             * Format: date-time
+             */
+            first_observed_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Impact */
+            impact: string;
+            /**
+             * Last Observed At
+             * Format: date-time
+             */
+            last_observed_at: string;
+            /** Number */
+            number: number;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Organization Name */
+            organization_name: string;
+            origin: components["schemas"]["FindingOrigin"];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /** Ref */
+            ref: string;
+            /** Remediation */
+            remediation: string;
+            /** Rule Id */
+            rule_id: string | null;
+            severity: components["schemas"]["Severity"];
+            /** Status Note */
+            status_note: string;
+            /** Title */
+            title: string;
+            /** Validated At */
+            validated_at: string | null;
+            /** Validated By */
+            validated_by: string | null;
+            validation_status: components["schemas"]["ValidationStatus"];
+        };
+        /** FindingIn */
+        FindingIn: {
+            /** Asset Id */
+            asset_id?: string | null;
+            confidence: components["schemas"]["Confidence"];
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Discovery Source
+             * @default Manual entry
+             */
+            discovery_source: string;
+            /**
+             * Impact
+             * @default
+             */
+            impact: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /**
+             * Remediation
+             * @default
+             */
+            remediation: string;
+            severity: components["schemas"]["Severity"];
+            /** Title */
+            title: string;
+            /** @default unverified */
+            validation_status: components["schemas"]["ValidationStatus"];
+        };
+        /** FindingKpi */
+        FindingKpi: {
+            /**
+             * Available
+             * @default true
+             * @constant
+             */
+            available: true;
+            /** New In Window */
+            new_in_window: number;
+            /** Open Critical */
+            open_critical: number;
+        };
+        /**
+         * FindingOrigin
+         * @enum {string}
+         */
+        FindingOrigin: "human" | "deterministic_check" | "agent";
+        /** FindingOut */
+        FindingOut: {
+            /** Asset Id */
+            asset_id: string | null;
+            /** Asset Value */
+            asset_value: string | null;
+            confidence: components["schemas"]["Confidence"];
+            /** Evidence Count */
+            evidence_count: number;
+            /**
+             * First Observed At
+             * Format: date-time
+             */
+            first_observed_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Observed At
+             * Format: date-time
+             */
+            last_observed_at: string;
+            /** Number */
+            number: number;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /** Organization Name */
+            organization_name: string;
+            origin: components["schemas"]["FindingOrigin"];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /** Ref */
+            ref: string;
+            severity: components["schemas"]["Severity"];
+            /** Title */
+            title: string;
+            validation_status: components["schemas"]["ValidationStatus"];
+        };
+        /** FindingPatch */
+        FindingPatch: {
+            confidence?: components["schemas"]["Confidence"] | null;
+            /** Description */
+            description?: string | null;
+            /** Impact */
+            impact?: string | null;
+            /** Remediation */
+            remediation?: string | null;
+            severity?: components["schemas"]["Severity"] | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** GEdge */
+        GEdge: {
+            /** Evidence Id */
+            evidence_id?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "subdomain_of" | "resolves_to" | "cname_to" | "affects" | "path_step";
+            /** Path Id */
+            path_id?: string | null;
+            /** Path Title */
+            path_title?: string | null;
+            /** Rule Id */
+            rule_id?: string | null;
+            /** Source */
+            source: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "observed" | "hypothesis" | "validated" | "rejected";
+            /** Target */
+            target: string;
+        };
+        /** GNode */
+        GNode: {
+            /** Asset Kind */
+            asset_kind?: string | null;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "asset" | "finding";
+            /** Label */
+            label: string;
+            /**
+             * Record Id
+             * Format: uuid
+             */
+            record_id: string;
+            severity?: components["schemas"]["Severity"] | null;
+            status?: components["schemas"]["ValidationStatus"] | null;
+        };
         /** Graph */
         Graph: {
             /** Edges */
@@ -1150,6 +1604,19 @@ export interface components {
             id: string;
             role: components["schemas"]["Role"];
         };
+        /** LinkIn */
+        LinkIn: {
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
         /** LinkOut */
         LinkOut: {
             /**
@@ -1159,6 +1626,38 @@ export interface components {
             expires_at: string;
             /** Url */
             url: string;
+        };
+        /** LinkedEvidence */
+        LinkedEvidence: {
+            /**
+             * Collected At
+             * Format: date-time
+             */
+            collected_at: string;
+            /** Collection Method */
+            collection_method: string;
+            confidence: components["schemas"]["Confidence"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Linked By */
+            linked_by: string;
+            /** Note */
+            note: string;
+            /** Operation Id */
+            operation_id: string | null;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+            /** Source */
+            source: string;
+            /** Tool Name */
+            tool_name: string;
+            /** Tool Version */
+            tool_version: string;
         };
         /** LoginIn */
         LoginIn: {
@@ -1407,7 +1906,7 @@ export interface components {
             /** Assessments */
             assessments: components["schemas"]["AssessmentItem"][];
             assets: components["schemas"]["AssetKpi"];
-            critical_findings: components["schemas"]["Unavailable"];
+            critical_findings: components["schemas"]["FindingKpi"];
             /**
              * Generated At
              * Format: date-time
@@ -1416,8 +1915,8 @@ export interface components {
             graph: components["schemas"]["Graph"];
             operations: components["schemas"]["OperationKpi"];
             projects: components["schemas"]["ProjectKpi"];
-            recent_findings: components["schemas"]["Unavailable"];
-            risk: components["schemas"]["Unavailable"];
+            recent_findings: components["schemas"]["RecentFindings"];
+            risk: components["schemas"]["Risk"];
             window: components["schemas"]["Window"];
         };
         /** PasswordResetIn */
@@ -1426,6 +1925,75 @@ export interface components {
             new_password: string;
             /** Token */
             token: string;
+        };
+        /** PathIn */
+        PathIn: {
+            /** @default low */
+            confidence: components["schemas"]["Confidence"];
+            /**
+             * Narrative
+             * @default
+             */
+            narrative: string;
+            /** Steps */
+            steps: components["schemas"]["StepIn"][];
+            /** Title */
+            title: string;
+        };
+        /** PathOut */
+        PathOut: {
+            confidence: components["schemas"]["Confidence"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Narrative */
+            narrative: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Review Note */
+            review_note: string;
+            /** Reviewed At */
+            reviewed_at: string | null;
+            /** Reviewed By */
+            reviewed_by: string | null;
+            status: components["schemas"]["AttackPathStatus"];
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            /** Title */
+            title: string;
+        };
+        /** PathRef */
+        PathRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /** ProjectGraph */
+        ProjectGraph: {
+            /** Edges */
+            edges: components["schemas"]["GEdge"][];
+            /** Nodes */
+            nodes: components["schemas"]["GNode"][];
+            /** Truncated */
+            truncated: boolean;
         };
         /** ProjectIn */
         ProjectIn: {
@@ -1505,6 +2073,38 @@ export interface components {
          * @enum {string}
          */
         ProjectStatus: "planning" | "active" | "paused" | "completed" | "archived";
+        /** RecentFinding */
+        RecentFinding: {
+            /** Asset Value */
+            asset_value: string | null;
+            /**
+             * First Observed At
+             * Format: date-time
+             */
+            first_observed_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ref */
+            ref: string;
+            severity: components["schemas"]["Severity"];
+            /** Title */
+            title: string;
+            validation_status: components["schemas"]["ValidationStatus"];
+        };
+        /** RecentFindings */
+        RecentFindings: {
+            /**
+             * Available
+             * @default true
+             * @constant
+             */
+            available: true;
+            /** Items */
+            items: components["schemas"]["RecentFinding"][];
+        };
         /** RelationshipOut */
         RelationshipOut: {
             confidence: components["schemas"]["Confidence"];
@@ -1539,6 +2139,93 @@ export interface components {
          * @enum {string}
          */
         RelationshipType: "subdomain_of" | "resolves_to" | "cname_to";
+        /** ReportOut */
+        ReportOut: {
+            /** Content */
+            content: {
+                [key: string]: unknown;
+            };
+            /** Findings Open */
+            findings_open: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Integrity Ok */
+            integrity_ok: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Sha256 */
+            sha256: string;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Taken By */
+            taken_by: string;
+        };
+        /** ReportSummary */
+        ReportSummary: {
+            /** Findings Open */
+            findings_open: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Sha256 */
+            sha256: string;
+            /**
+             * Taken At
+             * Format: date-time
+             */
+            taken_at: string;
+            /** Taken By */
+            taken_by: string;
+        };
+        /** ReviewIn */
+        ReviewIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            status: components["schemas"]["AttackPathStatus"];
+        };
+        /**
+         * Risk
+         * @description Severity breakdown of open findings. Deliberately no blended score.
+         */
+        Risk: {
+            /**
+             * Available
+             * @default true
+             * @constant
+             */
+            available: true;
+            /** Hypotheses */
+            hypotheses: number;
+            /** Open By Severity */
+            open_by_severity: {
+                [key: string]: number;
+            };
+            /** Open Total */
+            open_total: number;
+            /** Unverified */
+            unverified: number;
+            /** Validated */
+            validated: number;
+        };
         /**
          * RiskClass
          * @enum {string}
@@ -1612,6 +2299,53 @@ export interface components {
             /** Mfa Verified */
             mfa_verified: boolean;
         };
+        /**
+         * Severity
+         * @enum {string}
+         */
+        Severity: "critical" | "high" | "medium" | "low" | "info";
+        /**
+         * Sort
+         * @enum {string}
+         */
+        Sort: "severity" | "discovered" | "last_seen";
+        /** StatusIn */
+        StatusIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            status: components["schemas"]["ValidationStatus"];
+        };
+        /** StepIn */
+        StepIn: {
+            /** Asset Id */
+            asset_id?: string | null;
+            /** Description */
+            description: string;
+            /** Finding Id */
+            finding_id?: string | null;
+        };
+        /** StepOut */
+        StepOut: {
+            /** Asset Id */
+            asset_id: string | null;
+            /** Asset Value */
+            asset_value: string | null;
+            /** Description */
+            description: string;
+            /** Finding Id */
+            finding_id: string | null;
+            /** Finding Ref */
+            finding_ref: string | null;
+            finding_severity: components["schemas"]["Severity"] | null;
+            finding_status: components["schemas"]["ValidationStatus"] | null;
+            /** Finding Title */
+            finding_title: string | null;
+            /** Ordinal */
+            ordinal: number;
+        };
         /** ToolOut */
         ToolOut: {
             /** Key */
@@ -1658,6 +2392,11 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * ValidationStatus
+         * @enum {string}
+         */
+        ValidationStatus: "hypothesis" | "unverified" | "validated" | "false_positive" | "remediated";
         /**
          * Window
          * @enum {string}
@@ -2171,6 +2910,110 @@ export interface operations {
             };
         };
     };
+    get_path_api_workspaces__workspace_id__attack_paths__path_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    replace_path_api_workspaces__workspace_id__attack_paths__path_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PathIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_path_api_workspaces__workspace_id__attack_paths__path_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                path_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_evidence_api_workspaces__workspace_id__evidence__evidence_id__get: {
         parameters: {
             query?: never;
@@ -2222,6 +3065,253 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_findings_api_workspaces__workspace_id__findings_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                organization_id?: string | null;
+                asset_id?: string | null;
+                severity?: components["schemas"]["Severity"][] | null;
+                status?: components["schemas"]["ValidationStatus"][] | null;
+                sort?: components["schemas"]["Sort"];
+                descending?: boolean;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_finding_api_workspaces__workspace_id__findings_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_finding_api_workspaces__workspace_id__findings__finding_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_finding_api_workspaces__workspace_id__findings__finding_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FindingPatch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_evidence_api_workspaces__workspace_id__findings__finding_id__evidence_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_evidence_api_workspaces__workspace_id__findings__finding_id__evidence__evidence_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+                evidence_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OkOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_status_api_workspaces__workspace_id__findings__finding_id__status_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                finding_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FindingDetail"];
                 };
             };
             /** @description Validation Error */
@@ -2938,6 +4028,74 @@ export interface operations {
             };
         };
     };
+    list_paths_api_workspaces__workspace_id__projects__project_id__attack_paths_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PathOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_path_api_workspaces__workspace_id__projects__project_id__attack_paths_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PathIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     request_collection_api_workspaces__workspace_id__projects__project_id__collections_post: {
         parameters: {
             query?: never;
@@ -2961,6 +4119,134 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OperationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_evidence_api_workspaces__workspace_id__projects__project_id__evidence_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvidenceSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_graph_api_workspaces__workspace_id__projects__project_id__graph_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProjectGraph"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_reports_api_workspaces__workspace_id__projects__project_id__reports_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSummary"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_report_api_workspaces__workspace_id__projects__project_id__reports_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportSummary"];
                 };
             };
             /** @description Validation Error */
@@ -3092,6 +4378,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ToolOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_report_api_workspaces__workspace_id__reports__report_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                report_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReportOut"];
                 };
             };
             /** @description Validation Error */

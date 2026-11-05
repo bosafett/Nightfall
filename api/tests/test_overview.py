@@ -48,13 +48,10 @@ def test_empty_workspace_reports_zeros_and_unavailable_modules(
         "failed_in_window": 0,
         "awaiting_approval": 0,
     }
-    for key, phase in [
-        ("critical_findings", 4),
-        ("recent_findings", 4),
-        ("agent_activity", 5),
-        ("risk", 4),
-    ]:
-        assert body[key] == {"available": False, "phase": phase}
+    assert body["critical_findings"] == {"available": True, "open_critical": 0, "new_in_window": 0}
+    assert body["recent_findings"] == {"available": True, "items": []}
+    assert body["risk"]["open_total"] == 0 and body["risk"]["hypotheses"] == 0
+    assert body["agent_activity"] == {"available": False, "phase": 5}
     assert body["assessments"] == []
     assert body["graph"] == {"nodes": [], "edges": [], "truncated": False}
 

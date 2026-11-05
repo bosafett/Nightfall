@@ -39,6 +39,7 @@ RULE_CNAME = "dns-cname-answer/v1"
 @dataclass
 class IngestSummary:
     evidence_id: uuid.UUID
+    target_asset_id: uuid.UUID
     assets_new: int
     assets_seen: int
     out_of_scope: int
@@ -244,6 +245,7 @@ def ingest(
 
     return IngestSummary(
         evidence_id=evidence_id,
+        target_asset_id=target_id,
         assets_new=new,
         assets_seen=seen,
         out_of_scope=out,
@@ -251,3 +253,81 @@ def ingest(
         relationships=rels,
         technologies=result.technologies,
     )
+
+
+def apply_finding_rules(
+    db: Session,
+    op: Operation,
+    target_asset_id: uuid.UUID,
+    evidence_id: uuid.UUID,
+    result: CollectorResult,
+    now: datetime,
+) -> list[dict[str, object]]:
+    """Creates or refreshes rule-based findings for this evidence. Re-observation updates the
+    existing finding (last seen + evidence link); a finding marked remediated is reopened as
+    unverified. A finding marked false positive keeps that status."""
+    from nightfall.blackice.finding_rules import RULESET, from_http
+    from nightfall.core.db.models import (
+        Finding,
+        FindingEvidence,
+        FindingOrigin,
+        ValidationStatus,
+    )
+
+    changes: list[dict[str, object]] = []
+    for d in from_http(result.http, result.technologies, now):
+        existing = db.scalar(
+            select(Finding)
+            .where(
+                Finding.project_id == op.project_id,
+                Finding.asset_id == target_asset_id,
+                Finding.check_id == d.check_id,
+            )
+            .with_for_update()
+        )
+        if existing is None:
+            f = Finding(
+                workspace_id=op.workspace_id,
+                project_id=op.project_id,
+                asset_id=target_asset_id,
+                title=d.title,
+                description=d.description,
+                severity=d.severity,
+                confidence=d.confidence,
+                validation_status=ValidationStatus.UNVERIFIED,
+                origin=FindingOrigin.DETERMINISTIC_CHECK,
+                check_id=d.check_id,
+                rule_id=f"{d.rule_id}@{RULESET}",
+                discovery_source=f"{result.tool_name} via operation {op.id}",
+                impact=d.impact,
+                remediation=d.remediation,
+                first_observed_at=now,
+                last_observed_at=now,
+            )
+            db.add(f)
+            db.flush()
+            changes.append({"finding_id": str(f.id), "check_id": d.check_id, "change": "new"})
+        else:
+            f = existing
+            f.last_observed_at = now
+            change = "seen_again"
+            if f.validation_status is ValidationStatus.REMEDIATED:
+                f.validation_status = ValidationStatus.UNVERIFIED
+                f.validated_by_user_id = None
+                f.validated_at = None
+                f.status_note = (
+                    f"Observed again on {now.date().isoformat()} after being marked remediated."
+                )
+                change = "reopened"
+            changes.append({"finding_id": str(f.id), "check_id": d.check_id, "change": change})
+        db.execute(
+            insert(FindingEvidence)
+            .values(
+                workspace_id=op.workspace_id,
+                finding_id=f.id,
+                evidence_id=evidence_id,
+                linked_by=f"rule:{d.rule_id}",
+            )
+            .on_conflict_do_nothing(index_elements=["finding_id", "evidence_id"])
+        )
+    return changes

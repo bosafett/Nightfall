@@ -17,18 +17,25 @@ from sqlalchemy import func, select
 
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
+    OPEN_STATUSES as OPEN_FINDING_STATUSES,
+)
+from nightfall.core.db.models import (
     AssessmentType,
     Asset,
+    Finding,
     Operation,
     OperationStatus,
     Organization,
     Project,
     ProjectStatus,
+    Severity,
+    ValidationStatus,
 )
 from nightfall.core.db.session import DB
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
+from nightfall.findings.routes import ref
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["overview"])
 
@@ -78,6 +85,38 @@ class OperationKpi(Model):
     failed_in_window: int
 
 
+class FindingKpi(Model):
+    available: Literal[True] = True
+    open_critical: int  # critical, not false positive or remediated
+    new_in_window: int  # critical findings first observed in the window
+
+
+class RecentFinding(Model):
+    id: uuid.UUID
+    ref: str
+    title: str
+    severity: Severity
+    validation_status: ValidationStatus
+    asset_value: str | None
+    first_observed_at: datetime
+
+
+class RecentFindings(Model):
+    available: Literal[True] = True
+    items: list[RecentFinding]
+
+
+class Risk(Model):
+    """Severity breakdown of open findings. Deliberately no blended score."""
+
+    available: Literal[True] = True
+    open_by_severity: dict[str, int]
+    open_total: int
+    validated: int
+    unverified: int
+    hypotheses: int
+
+
 class AssessmentItem(Model):
     id: uuid.UUID
     organization_id: uuid.UUID
@@ -116,13 +155,13 @@ class OverviewOut(Model):
     window: Window
     generated_at: datetime
     projects: ProjectKpi
-    critical_findings: Unavailable
+    critical_findings: FindingKpi
     assets: AssetKpi
     operations: OperationKpi
     assessments: list[AssessmentItem]
-    recent_findings: Unavailable
+    recent_findings: RecentFindings
     agent_activity: Unavailable
-    risk: Unavailable
+    risk: Risk
     graph: Graph
 
 
@@ -162,6 +201,31 @@ def overview(
         ).where(Operation.workspace_id == ws)
     ).one()
 
+    crit = db.execute(
+        select(
+            func.count().filter(Finding.validation_status.in_(OPEN_FINDING_STATUSES)),
+            func.count().filter(Finding.first_observed_at >= since),
+        ).where(Finding.workspace_id == ws, Finding.severity == Severity.CRITICAL)
+    ).one()
+    recent = [
+        RecentFinding(
+            id=f.id,
+            ref=ref(f.number),
+            title=f.title,
+            severity=f.severity,
+            validation_status=f.validation_status,
+            asset_value=v,
+            first_observed_at=f.first_observed_at,
+        )
+        for f, v in db.execute(
+            select(Finding, Asset.value)
+            .outerjoin(Asset, Asset.id == Finding.asset_id)
+            .where(Finding.workspace_id == ws)
+            .order_by(Finding.first_observed_at.desc())
+            .limit(6)
+        )
+    ]
+
     rows = db.execute(
         select(Project, Organization.name)
         .join(Organization, Organization.id == Project.organization_id)
@@ -187,7 +251,7 @@ def overview(
         window=window,
         generated_at=now,
         projects=ProjectKpi(active=counts[0], open=counts[1], started_in_window=counts[2]),
-        critical_findings=Unavailable(phase=4),
+        critical_findings=FindingKpi(open_critical=crit[0], new_in_window=crit[1]),
         assets=AssetKpi(total=asset_counts[0], new_in_window=asset_counts[1]),
         operations=OperationKpi(
             in_window=op_counts[0],
@@ -196,9 +260,9 @@ def overview(
             awaiting_approval=op_counts[3],
         ),
         assessments=assessments,
-        recent_findings=Unavailable(phase=4),
+        recent_findings=RecentFindings(items=recent),
         agent_activity=Unavailable(phase=5),
-        risk=Unavailable(phase=4),
+        risk=_risk(db, ws),
         graph=_graph(db, ws),
     )
 
@@ -246,3 +310,24 @@ def _graph(db: DB, ws: uuid.UUID) -> Graph:
         )
     truncated = len(orgs) > GRAPH_NODE_LIMIT or len(nodes) < len(orgs) + len(projects)
     return Graph(nodes=nodes, edges=edges, truncated=truncated)
+
+
+def _risk(db: DB, ws: uuid.UUID) -> Risk:
+    rows = db.execute(
+        select(Finding.severity, Finding.validation_status, func.count())
+        .where(Finding.workspace_id == ws)
+        .group_by(Finding.severity, Finding.validation_status)
+    ).all()
+    by_sev = {s.value: 0 for s in Severity}
+    status_totals: dict[ValidationStatus, int] = {}
+    for sev, status, n in rows:
+        status_totals[status] = status_totals.get(status, 0) + n
+        if status in OPEN_FINDING_STATUSES:
+            by_sev[sev.value] += n
+    return Risk(
+        open_by_severity=by_sev,
+        open_total=sum(by_sev.values()),
+        validated=status_totals.get(ValidationStatus.VALIDATED, 0),
+        unverified=status_totals.get(ValidationStatus.UNVERIFIED, 0),
+        hypotheses=status_totals.get(ValidationStatus.HYPOTHESIS, 0),
+    )

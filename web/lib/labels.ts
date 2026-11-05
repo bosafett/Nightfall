@@ -1,4 +1,4 @@
-import type { AssessmentType, AssetKind, AssetOwnership, OperationStatus, ProjectStatus, Role, ScopeEntryKind } from "./api/types";
+import type { AssessmentType, AssetKind, AssetOwnership, OperationStatus, ProjectStatus, Role, ScopeEntryKind, Severity, ValidationStatus } from "./api/types";
 
 export const assessmentTypeLabel: Record<AssessmentType, string> = {
   reconnaissance: "Reconnaissance",
@@ -39,6 +39,7 @@ export const can = {
   manageMembers: (r: Role) => rank[r] >= rank.admin,
   authorizeScope: (r: Role) => rank[r] >= rank.admin,
   approveOperations: (r: Role) => rank[r] >= rank.operator,
+  editFindings: (r: Role) => rank[r] >= rank.analyst,
   assign: (actor: Role, role: Role) => actor === "owner" || rank[role] < rank[actor],
   manage: (actor: Role, target: Role) => actor === "owner" || rank[target] < rank[actor],
 };
@@ -69,4 +70,22 @@ export const scopeKindHint: Record<ScopeEntryKind, string> = {
 export const operationStatusLabel: Record<OperationStatus, string> = {
   awaiting_approval: "Awaiting approval", queued: "Queued", running: "Running", succeeded: "Done", failed: "Failed",
   denied: "Denied", rejected: "Rejected", cancelled: "Cancelled",
+};
+
+export const SEVERITIES: Severity[] = ["critical", "high", "medium", "low", "info"];
+export const severityLabel: Record<Severity, string> = {
+  critical: "Critical", high: "High", medium: "Medium", low: "Low", info: "Info",
+};
+
+export const STATUSES: ValidationStatus[] = ["hypothesis", "unverified", "validated", "false_positive", "remediated"];
+export const statusLabel: Record<ValidationStatus, string> = {
+  hypothesis: "Hypothesis", unverified: "Unverified", validated: "Validated",
+  false_positive: "False positive", remediated: "Remediated",
+};
+export const statusHelp: Record<ValidationStatus, string> = {
+  hypothesis: "Plausible, not shown by evidence",
+  unverified: "Evidence shows the condition; not yet reviewed",
+  validated: "A person confirmed it against the evidence",
+  false_positive: "A person ruled it out",
+  remediated: "A person confirmed it was fixed",
 };

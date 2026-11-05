@@ -5,6 +5,8 @@ import { assessmentTypeLabel } from "@/lib/labels";
 import { Icon } from "@/components/ui/Icon";
 import { Panel, cx } from "@/components/ui/primitives";
 import { ProjectStatusBadge } from "@/components/registry/StatusBadge";
+import { SeverityBadge, StatusBadge } from "@/components/findings/Badges";
+import { SEVERITIES } from "@/lib/labels";
 
 export const WINDOWS: OverviewWindow[] = ["1h", "24h", "7d", "30d"];
 const windowText: Record<OverviewWindow, string> = { "1h": "last hour", "24h": "last 24 hours", "7d": "last 7 days", "30d": "last 30 days" };
@@ -59,7 +61,8 @@ export function KpiRow({ overview }: { overview: Overview }) {
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <KpiCard label="Active projects" icon="target" tone="border-crimson/60 text-crimson-text" value={p.active}
         detail={`${p.started_in_window} started in the ${windowText[overview.window]} · ${p.open} open`} />
-      <KpiCard label="Critical findings" icon="findings" tone="" unavailablePhase={overview.critical_findings.phase} />
+      <KpiCard label="Critical findings" icon="findings" tone="border-crimson/60 text-crimson-text" value={overview.critical_findings.open_critical}
+        detail={`open · ${overview.critical_findings.new_in_window} new in the ${windowText[overview.window]}`} />
       <KpiCard label="Assets discovered" icon="graph" tone="border-blue/60 text-blue-text" value={overview.assets.total}
         detail={`${overview.assets.new_in_window} new in the ${windowText[overview.window]}`} />
       <KpiCard label="Operations" icon="warroom" tone="border-green/60 text-green" value={overview.operations.in_window}
@@ -107,6 +110,62 @@ export function ComingPanel({ title, phase, body }: { title: string; phase: numb
         <p className="font-medium text-muted">Arrives in phase {phase}</p>
         <p className="mx-auto mt-1 max-w-xs text-sm text-muted">{body}</p>
       </div>
+    </Panel>
+  );
+}
+
+export function RecentFindings({ ws, overview, now }: { ws: string; overview: Overview; now: Date }) {
+  const items = overview.recent_findings.items;
+  return (
+    <Panel title="Recent findings" actions={<Link href={`/w/${ws}/findings`} className="text-sm text-crimson-text hover:underline">All findings</Link>}>
+      {items.length === 0 ? <p className="py-6 text-center text-sm text-muted">No findings yet.</p> : (
+        <ul className="-my-2 divide-y divide-border">
+          {items.map((f) => (
+            <li key={f.id} className="flex items-center gap-3 py-2.5">
+              <SeverityBadge severity={f.severity} />
+              <div className="min-w-0 flex-1">
+                <Link href={`/w/${ws}/findings/${f.id}`} className="block truncate text-sm hover:text-crimson-text">{f.title}</Link>
+                <span className="block truncate font-mono text-xs text-muted">{f.ref}{f.asset_value && ` · ${f.asset_value}`} · {formatRelative(f.first_observed_at, now)}</span>
+              </div>
+              <StatusBadge status={f.validation_status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </Panel>
+  );
+}
+
+const barColor: Record<string, string> = { critical: "bg-crimson", high: "bg-orange", medium: "bg-yellow", low: "bg-blue", info: "bg-gray" };
+
+/** Severity breakdown of open findings. Deliberately no blended "risk score". */
+export function RiskOverview({ ws, overview }: { ws: string; overview: Overview }) {
+  const r = overview.risk;
+  const max = Math.max(1, ...Object.values(r.open_by_severity));
+  return (
+    <Panel title="Risk overview">
+      {r.open_total === 0 ? <p className="py-6 text-center text-sm text-muted">No open findings.</p> : (
+        <>
+          <ul className="space-y-2" aria-label="Open findings by severity">
+            {SEVERITIES.map((s) => {
+              const n = r.open_by_severity[s] ?? 0;
+              return (
+                <li key={s}>
+                  <Link href={`/w/${ws}/findings?severity=${s}`} className="grid grid-cols-[6.5rem_1fr_2.5rem] items-center gap-3 text-sm hover:text-crimson-text">
+                    <SeverityBadge severity={s} />
+                    <span className="h-2 rounded bg-surface-2"><span className={cx("block h-2 rounded", barColor[s])} style={{ width: `${(n / max) * 100}%` }} /></span>
+                    <span className="text-right font-mono tabular">{n}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-4 text-xs text-muted">
+            <span className="font-mono tabular text-text">{r.open_total}</span> open: <span className="font-mono tabular">{r.validated}</span> validated,{" "}
+            <span className="font-mono tabular">{r.unverified}</span> unverified, <span className="font-mono tabular">{r.hypotheses}</span> hypotheses.
+          </p>
+        </>
+      )}
     </Panel>
   );
 }

@@ -4,9 +4,10 @@ Adversarial intelligence workbench by Digital Raccoon Engineering (DRE).
 
 Use is limited to targets you are explicitly authorized to assess.
 
-**Status:** Phase 3 (scope and passive reconnaissance) — sign-in with two-factor, workspaces and roles,
+**Status:** Phase 4a (findings, attack graph, reports) — sign-in with two-factor, workspaces and roles,
 organizations, projects and assets, versioned scopes with authorization, passive collection (certificate
-transparency, DNS), approved technology identification, stored evidence, audit log, Command Center. See
+transparency, DNS), approved technology identification, stored evidence, findings with human validation, attack paths
+and graph, hashed report snapshots, audit log, Command Center. See
 [`docs/PHASE0_ARCHITECTURE_REVIEW.md`](docs/PHASE0_ARCHITECTURE_REVIEW.md) for the approved architecture and roadmap.
 
 ## Layout
@@ -89,4 +90,7 @@ CI fails if either generated file is stale.
   didn't request it; the approval is tied to the scope version. Probes resolve the host once, refuse private,
   metadata and scope-excluded addresses, connect to the checked address, never follow redirects, and send at most
   three GET requests.
+- Findings from rule checks start unverified. Only a person can mark one validated, false positive or remediated,
+  with a note (enforced by the database). Attack paths stay hypotheses until every finding in them is validated.
+- Reports are frozen snapshots with a SHA-256; later changes never alter an existing report, and tampering shows.
 - Raw collector output is stored once, content-addressed by SHA-256, and verified on every download.

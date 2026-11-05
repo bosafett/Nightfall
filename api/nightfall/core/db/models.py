@@ -409,3 +409,130 @@ class Approval(Base):
     reason: Mapped[str] = mapped_column(server_default=text("''"))
     scope_id_at_decision: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
     decided_at: Mapped[datetime] = _created()
+
+
+# --- Phase 4a: findings, attack paths, snapshots -------------------------------------
+
+
+class Severity(enum.StrEnum):
+    CRITICAL = "critical"
+    HIGH = "high"
+    MEDIUM = "medium"
+    LOW = "low"
+    INFO = "info"
+
+
+class ValidationStatus(enum.StrEnum):
+    HYPOTHESIS = "hypothesis"
+    UNVERIFIED = "unverified"
+    VALIDATED = "validated"
+    FALSE_POSITIVE = "false_positive"
+    REMEDIATED = "remediated"
+
+
+OPEN_STATUSES = (
+    ValidationStatus.HYPOTHESIS,
+    ValidationStatus.UNVERIFIED,
+    ValidationStatus.VALIDATED,
+)
+HUMAN_STATUSES = (
+    ValidationStatus.VALIDATED,
+    ValidationStatus.FALSE_POSITIVE,
+    ValidationStatus.REMEDIATED,
+)
+
+
+class FindingOrigin(enum.StrEnum):
+    HUMAN = "human"
+    DETERMINISTIC_CHECK = "deterministic_check"
+    AGENT = "agent"
+
+
+class AttackPathStatus(enum.StrEnum):
+    HYPOTHESIS = "hypothesis"
+    VALIDATED = "validated"
+    REJECTED = "rejected"
+
+
+class Finding(Base):
+    __tablename__ = "findings"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    number: Mapped[int] = mapped_column(server_default=text("0"))  # set by trigger
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assets.id"))
+    title: Mapped[str]
+    description: Mapped[str] = mapped_column(server_default=text("''"))
+    severity: Mapped[Severity] = mapped_column(_pg_enum(Severity, "severity"))
+    confidence: Mapped[Confidence] = mapped_column(_pg_enum(Confidence, "confidence_level"))
+    validation_status: Mapped[ValidationStatus] = mapped_column(
+        _pg_enum(ValidationStatus, "validation_status")
+    )
+    origin: Mapped[FindingOrigin] = mapped_column(_pg_enum(FindingOrigin, "finding_origin"))
+    check_id: Mapped[str | None]
+    rule_id: Mapped[str | None]
+    discovery_source: Mapped[str] = mapped_column(server_default=text("''"))
+    impact: Mapped[str] = mapped_column(server_default=text("''"))
+    remediation: Mapped[str] = mapped_column(server_default=text("''"))
+    first_observed_at: Mapped[datetime] = _created()
+    last_observed_at: Mapped[datetime] = _created()
+    validated_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    validated_at: Mapped[datetime | None]
+    status_note: Mapped[str] = mapped_column(server_default=text("''"))
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class FindingEvidence(Base):
+    __tablename__ = "finding_evidence"
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    finding_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("findings.id"), primary_key=True)
+    evidence_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("evidence.id"), primary_key=True)
+    note: Mapped[str] = mapped_column(server_default=text("''"))
+    linked_by: Mapped[str]
+    created_at: Mapped[datetime] = _created()
+
+
+class AttackPath(Base):
+    __tablename__ = "attack_paths"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    title: Mapped[str]
+    narrative: Mapped[str] = mapped_column(server_default=text("''"))
+    status: Mapped[AttackPathStatus] = mapped_column(
+        _pg_enum(AttackPathStatus, "attack_path_status"), server_default=text("'hypothesis'")
+    )
+    confidence: Mapped[Confidence] = mapped_column(
+        _pg_enum(Confidence, "confidence_level"), server_default=text("'low'")
+    )
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    reviewed_at: Mapped[datetime | None]
+    review_note: Mapped[str] = mapped_column(server_default=text("''"))
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()
+
+
+class AttackPathStep(Base):
+    __tablename__ = "attack_path_steps"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    attack_path_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("attack_paths.id"))
+    ordinal: Mapped[int]
+    asset_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("assets.id"))
+    finding_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("findings.id"))
+    description: Mapped[str]
+
+
+class AssessmentSnapshot(Base):
+    __tablename__ = "assessment_snapshots"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    taken_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    taken_at: Mapped[datetime] = _created()
+    ruleset_version: Mapped[str]
+    content: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    content_sha256: Mapped[bytes] = mapped_column(LargeBinary)

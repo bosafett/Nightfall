@@ -47,3 +47,12 @@
     background: #cc142666;
   }
 }
+
+/* Reports print on white paper: readable without the dark theme. */
+@media print {
+  html, body { background: #fff !important; color: #111 !important; }
+  aside, header.sticky { display: none !important; }
+  main { padding: 0 !important; }
+  .text-muted { color: #444 !important; }
+  .border-border { border-color: #bbb !important; }
+}

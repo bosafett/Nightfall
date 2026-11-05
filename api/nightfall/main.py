@@ -17,10 +17,13 @@ from nightfall.core.identity.throttle import mutations_by_ip
 from nightfall.core.request_info import client_ip
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.routes import router as workspace_router
+from nightfall.findings.paths import router as paths_router
+from nightfall.findings.routes import router as findings_router
 from nightfall.overview.routes import router as overview_router
 from nightfall.recon.routes import router as recon_router
 from nightfall.registry.assets import router as assets_router
 from nightfall.registry.routes import router as registry_router
+from nightfall.reports.routes import router as reports_router
 from nightfall.scope.routes import router as scope_router
 
 log = logging.getLogger("nightfall.api")
@@ -105,6 +108,9 @@ ROUTERS = (
     assets_router,
     scope_router,
     recon_router,
+    findings_router,
+    paths_router,
+    reports_router,
 )
 
 

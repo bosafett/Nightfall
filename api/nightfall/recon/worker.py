@@ -28,7 +28,7 @@ from sqlalchemy import create_engine, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
-from nightfall.blackice.ingest import ingest
+from nightfall.blackice.ingest import apply_finding_rules, ingest
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
@@ -221,10 +221,14 @@ class Worker:
             scope = db.get(Scope, op.scope_id)
             if org_id is None or scope is None:
                 raise RuntimeError(f"operation {op_id}: project or scope missing")
-            summary = ingest(db, op, org_id, snapshot(db, scope), result, digest, utcnow())
+            now = utcnow()
+            summary = ingest(db, op, org_id, snapshot(db, scope), result, digest, now)
+            findings = apply_finding_rules(
+                db, op, summary.target_asset_id, summary.evidence_id, result, now
+            )
             op.status = OperationStatus.SUCCEEDED
             op.finished_at = utcnow()
-            op.result_summary = summary.as_dict()
+            op.result_summary = {**summary.as_dict(), "findings": findings}
             record(
                 db,
                 "operation.completed",
@@ -232,7 +236,7 @@ class Worker:
                 workspace_id=ws,
                 entity_type="operation",
                 entity_id=op_id,
-                data=summary.as_dict(),
+                data=op.result_summary,
             )
             db.commit()
 

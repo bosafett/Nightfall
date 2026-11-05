@@ -50,7 +50,7 @@ test("owner signs in, is required to enrol two-factor, then reaches the workspac
   await expect(page.getByRole("heading", { name: "Command Center" })).toBeVisible();
   // Empty workspace: real zeros for what exists, honest "not tracked yet" for the rest.
   await expect(page.getByTestId("kpi-Active projects")).toContainText("0");
-  await expect(page.getByTestId("kpi-Critical findings")).toContainText("Tracked from phase 4");
+  await expect(page.getByTestId("kpi-Critical findings")).toContainText("0");
   await expect(page.getByText("No relationships yet")).toBeVisible();
   await expect(page.getByText("No open assessments")).toBeVisible();
   workspaceUrl = new URL(page.url()).pathname;
@@ -232,6 +232,64 @@ test.describe("as the owner", () => {
     await expect(alertIn(a)).toContainText("invalid or has expired");
     await again.close();
     await guest.close();
+  });
+
+  test("findings from rule checks, human validation, attack path and a frozen report", async ({ page }) => {
+    // The approved technology identification produced rule-made findings.
+    await page.goto(`${workspaceUrl}/findings`);
+    await expect(page.getByRole("link", { name: "nginx version disclosed in HTTP headers" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "PHP version disclosed in HTTP headers" })).toBeVisible();
+    await expect(page.locator("main").getByText("Unverified").first()).toBeVisible();
+
+    await page.getByRole("link", { name: "nginx version disclosed in HTTP headers" }).click();
+    await expect(page.getByText(/Linked by: rule R1-version-disclosure/)).toBeVisible();
+    await page.getByRole("radio", { name: /^Validated/ }).check();
+    await page.getByLabel("Why (required, kept with the decision)").fill("Header confirmed in raw evidence");
+    await page.getByRole("button", { name: "Record decision" }).click();
+    await expect(page.getByText(/Marked validated by Nick Operator/)).toBeVisible();
+
+    // A person records a hypothesis: shown as such, never as confirmed.
+    await page.goto(`${workspaceUrl}/findings`);
+    await page.getByRole("button", { name: "Record a finding" }).click();
+    await page.getByLabel("Title").fill("Admin panel may accept default credentials");
+    await page.getByRole("combobox", { name: "Severity" }).selectOption("critical");
+    await page.getByRole("combobox", { name: "Status" }).selectOption("hypothesis");
+    await page.getByRole("button", { name: "Record finding" }).click();
+    await expect(page.getByText("Hypothesis: plausible, but not shown by evidence.")).toBeVisible();
+
+    // Attack path built on a validated finding plus a hypothesis stays a hypothesis.
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Attack Graph" }).click();
+    await expect(page.getByTestId("attack-graph")).toBeVisible();
+    await page.getByRole("button", { name: "Propose an attack path" }).click();
+    await page.getByLabel("Path title").fill("Fingerprint to admin takeover");
+    const pick = async (label: string, text: string) => {
+      const select = page.getByLabel(label);
+      const value = await select.locator("option", { hasText: text }).getAttribute("value");
+      await select.selectOption(value!);
+    };
+    await pick("Step 1: finding or asset", "nginx version disclosed");
+    await page.getByLabel("Step 1: what happens").fill("Version tells the attacker which exploits apply");
+    await pick("Step 2: finding or asset", "Admin panel may accept default credentials");
+    await page.getByLabel("Step 2: what happens").fill("Log in with vendor defaults");
+    await page.getByRole("button", { name: "Save as hypothesis" }).click();
+    await expect(page.getByText("Hypothesis — not demonstrated")).toBeVisible();
+    await page.getByLabel("Review note").fill("Looks right");
+    await page.getByRole("button", { name: "Mark validated" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Mark validated" }).click();
+    await expect(alertIn(page)).toContainText("Every finding in the path must be validated first");
+    await expect(page.getByText("Hypothesis — not demonstrated")).toBeVisible();
+
+    // Report: frozen, hashed, honest about hypotheses and fixture data.
+    await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reports" }).click();
+    await page.getByRole("button", { name: "Generate report" }).click();
+    await expect(page.getByRole("heading", { name: /Executive summary/ })).toBeVisible();
+    await expect(page.getByText(/TEST-FIXTURE evidence/)).toBeVisible();
+    await expect(page.getByText(/attack paths are hypotheses, not demonstrated compromises/)).toBeVisible();
+    await expect(page.getByText("Integrity check failed")).toHaveCount(0);
+
+    await page.goto(workspaceUrl);
+    await expect(page.getByTestId("kpi-Critical findings")).toContainText("1");
+    await expect(page.getByRole("link", { name: "Admin panel may accept default credentials" })).toBeVisible();
   });
 
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
