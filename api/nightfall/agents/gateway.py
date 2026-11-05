@@ -24,9 +24,10 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -34,6 +35,7 @@ from sqlalchemy.orm import Session
 from nightfall.agents.registry import (
     AGENTS,
     DIRECTOR_DELEGATES,
+    HOURLY_LIMIT,
     PROMPT_VERSION,
     AdversaryOutput,
     AnalystOutput,
@@ -325,8 +327,24 @@ def _shown_cited(raw_ids: list[str], shown: set[uuid.UUID]) -> list[uuid.UUID]:
     return cited
 
 
+def _runs_last_hour(db: Session, task: AgentTask) -> int:
+    return (
+        db.scalar(
+            select(func.count())
+            .select_from(AgentTask)
+            .where(
+                AgentTask.workspace_id == task.workspace_id,
+                AgentTask.agent != "guardian",
+                AgentTask.created_at >= utcnow() - timedelta(hours=1),
+            )
+        )
+        or 0
+    )
+
+
 def apply_director(db: Session, task: AgentTask, out: DirectorOutput) -> Applied:
     applied = Applied()
+    budget = HOURLY_LIMIT - _runs_last_hour(db, task)
     for i, sub in enumerate(out.subtasks):
         item = {"agent": str(sub.agent)[:20], "objective": _clip(sub.objective, 300)}
         if i >= MAX_SUBTASKS:
@@ -359,6 +377,10 @@ def apply_director(db: Session, task: AgentTask, out: DirectorOutput) -> Applied
         if open_run is not None:
             applied.accepted.append({**item, "task_id": str(open_run), "note": "already queued"})
             continue
+        if budget <= 0:
+            _refuse(db, task, applied, item, f"Hourly agent limit ({HOURLY_LIMIT}) reached.")
+            continue
+        budget -= 1
         child = AgentTask(
             workspace_id=task.workspace_id,
             project_id=task.project_id,

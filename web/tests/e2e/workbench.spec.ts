@@ -381,10 +381,14 @@ test.describe("as the owner", () => {
     }
     await page.goto(workspaceUrl);
     await expect(page.getByRole("link", { name: "All agents" })).toBeVisible();
+    await expect(page.getByRole("progressbar", { name: "Agent tasks finished" }).first()).toBeVisible();
   });
 
   test("war room: waiting decisions, AI proposals to review and the decision log", async ({ page }) => {
-    await page.goto(`${workspaceUrl}/war-room`);
+    // The header bell counts only what you can decide; your own request waits for someone else.
+    await page.goto(workspaceUrl);
+    await page.getByRole("link", { name: /waiting for someone else's decision|waiting for your decision/ }).click();
+    await expect(page).toHaveURL(/\/war-room$/);
     await expect(page.getByRole("heading", { level: 1, name: "War Room" })).toBeVisible();
     // Scout's low-risk proposal waits for someone other than the person who started Scout.
     const op = page.getByTestId("awaiting-op").filter({ hasText: "www.acme.test" });

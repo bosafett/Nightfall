@@ -135,3 +135,35 @@ def test_war_room_is_tenant_isolated(
         d["action"] == "scope.authorized" for d in mine["decisions"]
     )
     assert client.get(f"/api/workspaces/{env['ws']}/war-room").status_code in (403, 404)
+
+
+def test_bell_counts_only_what_you_can_decide(client: TestClient, env) -> None:
+    request_http(client, env, "operator")
+
+    def bell(who: str) -> dict[str, int]:
+        use(client, env[who])
+        return client.get(f"/api/workspaces/{env['ws']}/war-room/summary").json()
+
+    assert bell("operator") == {"awaiting_you": 0, "awaiting_total": 1}  # own request
+    assert bell("analyst") == {"awaiting_you": 0, "awaiting_total": 1}  # role can't approve
+    assert bell("owner") == {"awaiting_you": 1, "awaiting_total": 1}
+
+
+def test_assessment_completion_counts_agent_tasks(
+    client: TestClient, env, ai_on, owner_db: Session
+) -> None:
+    from sqlalchemy import text
+
+    owner_db.execute(text("UPDATE projects SET status = 'active' WHERE id = :p"), {"p": env["pid"]})
+    owner_db.commit()
+
+    def item() -> dict[str, Any]:
+        use(client, env["viewer"])
+        rows = client.get(f"/api/workspaces/{env['ws']}/overview").json()["assessments"]
+        return next(r for r in rows if r["id"] == str(env["pid"]))
+
+    assert (item()["agent_tasks_total"], item()["agent_tasks_done"]) == (0, 0)
+    run_agent(client, env, "analyst", "hunter")
+    assert (item()["agent_tasks_total"], item()["agent_tasks_done"]) == (1, 0)
+    drain(worker_with(FakeProvider({HunterOutput: HunterOutput(candidates=[], notes="")})))
+    assert (item()["agent_tasks_total"], item()["agent_tasks_done"]) == (1, 1)

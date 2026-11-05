@@ -1,11 +1,12 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { apiGet, healthOrNull } from "@/lib/api/server";
-import type { Health, Me } from "@/lib/api/types";
+import type { Health, Me, WarRoomSummary } from "@/lib/api/types";
 import { mfaRequired } from "@/lib/labels";
 import { MobileNav } from "@/components/shell/MobileNav";
 import { SidebarContent } from "@/components/shell/SidebarContent";
 import { UserMenu } from "@/components/shell/UserMenu";
+import { ApprovalsBell } from "@/components/shell/ApprovalsBell";
 import pkg from "@/package.json";
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ ws: string }> }) {
@@ -14,6 +15,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   const membership = me.workspaces.find((w) => w.id === ws);
   if (!membership) notFound();
   if (mfaRequired(membership.role) && !me.session.mfa_verified) redirect("/account/security");
+  const bell = await apiGet<WarRoomSummary>(`/workspaces/${ws}/war-room/summary`).catch(() => null);
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
@@ -30,7 +32,8 @@ export default async function WorkspaceLayout({ children, params }: { children: 
           <p className="hidden flex-1 truncate text-lg tracking-wide text-muted md:block">
             Understand. Investigate. Validate. Defend.
           </p>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-3">
+            <ApprovalsBell ws={ws} summary={bell} />
             <UserMenu name={me.user.display_name} email={me.user.email} role={membership.role} workspace={membership.name} />
           </div>
         </header>

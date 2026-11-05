@@ -409,6 +409,12 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
     counts and the Guardian verdict.
   - *Decision log:* from `audit_events`, limited to an allowlist of decision actions and data fields. IPs and user
     agents are never shown.
+- **Shell items from the Phase 1 plan, now built:**
+  - *Header approvals bell:* the count is only operations you may decide on. It links to the War Room.
+  - *Assessment completion on the Command Center:* finished agent tasks out of all agent tasks for that
+    assessment (§15 mockup review), hidden when an assessment has none.
+- **Security pass on Phases 5a–6a:** `docs/reviews/2026-11-05-phase5-6-security-pass.md`. One fix: the hourly
+  agent limit now also bounds tasks the Director creates.
 - **6b (blocked by hosting): isolated lab and simulations.** §16.5 requires a lab worker on a network with no
   internet route and no production credentials. Vercel has no such network, so moderate-risk and lab operations stay
   refused. This needs a self-hosted worker (the `infra/tools` sandbox image is the starting point), plus the independent

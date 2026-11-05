@@ -18,7 +18,7 @@ from datetime import datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import aliased
 
 from nightfall.agents.registry import AGENTS
@@ -347,3 +347,37 @@ def war_room(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> 
         review_counts=counts,
         decisions=decisions,
     )
+
+
+class WarRoomSummary(Model):
+    awaiting_you: int  # operations you may approve (not yours, and your role allows it)
+    awaiting_total: int
+
+
+@router.get("/war-room/summary", response_model=WarRoomSummary)
+def war_room_summary(
+    db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> WarRoomSummary:
+    """For the header's approvals bell: cheap counts, same rules as the War Room."""
+    waiting = (
+        Operation.workspace_id == ctx.workspace_id,
+        Operation.status == OperationStatus.AWAITING_APPROVAL,
+    )
+    total = db.scalar(select(func.count()).select_from(Operation).where(*waiting)) or 0
+    yours = 0
+    if Permission.OPERATIONS_APPROVE in ROLE_PERMISSIONS[ctx.member.role]:
+        yours = (
+            db.scalar(
+                select(func.count())
+                .select_from(Operation)
+                .where(
+                    *waiting,
+                    or_(
+                        Operation.requested_by_user_id.is_(None),
+                        Operation.requested_by_user_id != ctx.user_id,
+                    ),
+                )
+            )
+            or 0
+        )
+    return WarRoomSummary(awaiting_you=yours, awaiting_total=total)

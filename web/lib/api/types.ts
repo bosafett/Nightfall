@@ -50,3 +50,4 @@ export type AgentTaskDetail = S["TaskDetail"];
 export type AgentTaskStatus = S["AgentTaskStatus"];
 export type GuardianReview = S["GuardianReview"];
 export type WarRoom = S["WarRoomOut"];
+export type WarRoomSummary = S["WarRoomSummary"];

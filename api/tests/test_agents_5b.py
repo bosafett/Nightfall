@@ -479,3 +479,46 @@ def test_fixture_model_drives_every_agent(
         assert task_detail(client, env, ids[2])["result"]["accepted"]
     finally:
         get_settings.cache_clear()
+
+
+def test_director_cannot_fan_out_past_the_hourly_limit(
+    client: TestClient, env, ai_on, owner_db: Session
+) -> None:
+    from nightfall.agents.registry import HOURLY_LIMIT
+
+    task = start(client, env, "director", objective="Everything").json()
+    # Fill the hour up to one below the limit with finished runs.
+    owner_db.execute(
+        text(
+            "INSERT INTO agent_tasks (workspace_id, project_id, agent, objective, status) "
+            "SELECT :w, :p, 'scout', 'filler', 'succeeded' FROM generate_series(1, :n)"
+        ),
+        {"w": env["ws"], "p": env["pid"], "n": HOURLY_LIMIT - 2},
+    )
+    owner_db.commit()
+    plan = DirectorOutput(
+        subtasks=[
+            Subtask(agent="hunter", objective="a"),
+            Subtask(agent="analyst", objective="b"),
+        ],
+        notes="",
+    )
+    owner_db.execute(
+        text("UPDATE agent_tasks SET status = 'running' WHERE id = :i"), {"i": task["id"]}
+    )
+    owner_db.commit()
+    from nightfall.agents import runner
+
+    w = worker_with(FakeProvider({DirectorOutput: plan}))
+    runner._process(w.sessions, w.store, w.provider_factory, uuid.UUID(task["id"]), env["ws"])
+    result = task_detail(client, env, task["id"])["result"]
+    # Director + 28 fillers = 29: one subtask fits, the second is refused.
+    assert [a["agent"] for a in result["accepted"]] == ["hunter"]
+    assert result["refused"] == [
+        {
+            "agent": "analyst",
+            "objective": "b",
+            "reason": f"Hourly agent limit ({HOURLY_LIMIT}) reached.",
+        }
+    ]
+    assert start(client, env, "scout").status_code == 429

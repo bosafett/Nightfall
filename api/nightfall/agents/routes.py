@@ -13,7 +13,7 @@ from pydantic import StringConstraints
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 
-from nightfall.agents.registry import AGENTS
+from nightfall.agents.registry import AGENTS, HOURLY_LIMIT
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
@@ -26,7 +26,6 @@ from nightfall.core.tenancy.permissions import Permission
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["agents"])
 
-HOURLY_LIMIT = 30  # agent runs per workspace per hour
 OPEN = (AgentTaskStatus.QUEUED, AgentTaskStatus.RUNNING)
 
 
@@ -234,6 +233,7 @@ def start_run(
             .select_from(AgentTask)
             .where(
                 AgentTask.workspace_id == ctx.workspace_id,
+                AgentTask.agent != "guardian",  # same rule as the gateway (registry)
                 AgentTask.created_at >= utcnow() - timedelta(hours=1),
             )
         )

@@ -128,6 +128,10 @@ class AssessmentItem(Model):
     status: ProjectStatus
     started_at: datetime | None
     last_activity_at: datetime
+    # Completion = finished agent tasks / all agent tasks (review §15). None of either when
+    # the assessment has no agent tasks, so no percentage is shown.
+    agent_tasks_total: int
+    agent_tasks_done: int
 
 
 class GraphNode(Model):
@@ -253,6 +257,19 @@ def overview(
         .order_by(Project.updated_at.desc())
         .limit(ASSESSMENT_LIMIT)
     ).all()
+    project_ids = [p.id for p, _ in rows]
+    task_counts = {
+        pid: (total, done)
+        for pid, total, done in db.execute(
+            select(
+                AgentTask.project_id,
+                func.count(),
+                func.count().filter(AgentTask.status == AgentTaskStatus.SUCCEEDED),
+            )
+            .where(AgentTask.project_id.in_(project_ids))
+            .group_by(AgentTask.project_id)
+        ).all()
+    }
     assessments = [
         AssessmentItem(
             id=p.id,
@@ -263,6 +280,8 @@ def overview(
             status=p.status,
             started_at=p.started_at,
             last_activity_at=p.updated_at,
+            agent_tasks_total=task_counts.get(p.id, (0, 0))[0],
+            agent_tasks_done=task_counts.get(p.id, (0, 0))[1],
         )
         for p, org_name in rows
     ]

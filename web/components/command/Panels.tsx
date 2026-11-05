@@ -95,6 +95,15 @@ export function ActiveAssessments({ ws, items, now }: { ws: string; items: Asses
               <p className="mt-1 font-mono text-xs text-muted tabular">
                 {a.started_at ? `Started ${formatRelative(a.started_at, now)}` : "Not started"} · Last activity {formatRelative(a.last_activity_at, now)}
               </p>
+              {a.agent_tasks_total > 0 && (
+                <div className="mt-2 flex items-center gap-2" title="Finished agent tasks out of all agent tasks for this assessment">
+                  <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2" role="progressbar" aria-label="Agent tasks finished"
+                    aria-valuemin={0} aria-valuemax={a.agent_tasks_total} aria-valuenow={a.agent_tasks_done}>
+                    <div className="h-full bg-green" style={{ width: `${Math.round((100 * a.agent_tasks_done) / a.agent_tasks_total)}%` }} />
+                  </div>
+                  <span className="font-mono text-xs text-muted tabular">{a.agent_tasks_done}/{a.agent_tasks_total} agent tasks</span>
+                </div>
+              )}
             </li>
           ))}
         </ul>
