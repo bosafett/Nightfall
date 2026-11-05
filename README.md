@@ -134,13 +134,21 @@ Limits: the free database expires after 30 days, the service sleeps when idle, a
 the tool sandbox needs `NET_ADMIN`. CI job `render-image` builds the image and starts it against a non-superuser
 database user.
 
-## AI agents (Phase 5a)
+## AI agents (Phase 5)
 
 Off by default (`NIGHTFALL_AI_PROVIDER=none`). To turn them on, set `NIGHTFALL_AI_PROVIDER=anthropic` and
 `ANTHROPIC_API_KEY`; the model is `NIGHTFALL_AI_MODEL` (default `claude-opus-5-5`). Project data in the agents'
 prompts is then sent to Anthropic.
 
-- Scout proposes collections; Hunter proposes findings; Guardian reviews each Hunter finding against its evidence.
+- The agents:
+  - Director splits an objective into tasks for the other agents.
+  - Scout proposes collections.
+  - Investigator explains an asset and proposes relationships.
+  - Hunter proposes findings.
+  - Guardian reviews each Hunter finding against its evidence.
+  - Adversary proposes attack paths from recorded findings.
+  - Analyst writes a labelled summary beside counts taken from the records.
+- Agents are started from a project page. `/w/{ws}/agents` shows each agent's usage and recent tasks.
 - Agents never run anything. The Tool Gateway (`api/nightfall/agents/gateway.py`) checks every proposal against
   the allowlist, scope and risk class. Low-risk collections still need someone other than the requester to approve
   them, and agent findings are always hypotheses until a person decides.
@@ -148,3 +156,5 @@ prompts is then sent to Anthropic.
 - Every task records its model, prompt version, tokens and latency.
 - Tests and e2e use `NIGHTFALL_AI_PROVIDER=fixture`: deterministic, labelled answers, allowed only with fixture
   collectors.
+- Benchmark: `cd api && .venv/bin/python -m nightfall.agents.bench --provider anthropic` (costs money; see
+  `docs/benchmarks/README.md`).

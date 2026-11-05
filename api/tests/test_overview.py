@@ -51,7 +51,14 @@ def test_empty_workspace_reports_zeros_and_unavailable_modules(
     assert body["critical_findings"] == {"available": True, "open_critical": 0, "new_in_window": 0}
     assert body["recent_findings"] == {"available": True, "items": []}
     assert body["risk"]["open_total"] == 0 and body["risk"]["hypotheses"] == 0
-    assert body["agent_activity"] == {"available": False, "phase": 5}
+    assert body["agent_activity"] == {
+        "available": True,
+        "ai_enabled": False,
+        "open": 0,
+        "finished_in_window": 0,
+        "agent_proposals_awaiting_approval": 0,
+        "recent": [],
+    }
     assert body["assessments"] == []
     assert body["graph"] == {"nodes": [], "edges": [], "truncated": False}
 

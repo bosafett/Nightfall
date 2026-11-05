@@ -85,6 +85,7 @@ class PathOut(Model):
     reviewed_by: str | None
     reviewed_at: datetime | None
     review_note: str
+    proposed_by_task_id: uuid.UUID | None
     created_at: datetime
     steps: list[StepOut]
 
@@ -123,6 +124,7 @@ def _path_out(db: Session, p: AttackPath) -> PathOut:
         reviewed_by=names.get(p.reviewed_by_user_id) if p.reviewed_by_user_id else None,
         reviewed_at=p.reviewed_at,
         review_note=p.review_note,
+        proposed_by_task_id=p.proposed_by_task_id,
         created_at=p.created_at,
         steps=[
             StepOut(

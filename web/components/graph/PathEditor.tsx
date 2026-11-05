@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { AiBadge } from "@/components/agents/AgentBadges";
 import { useState } from "react";
 import { api } from "@/lib/api/client";
 import type { Asset, AttackPath, Finding } from "@/lib/api/types";
@@ -67,9 +69,12 @@ export function PathCard({ ws, path, canReview, selected }: { ws: string; path: 
     <article className={`rounded-md border p-4 ${selected ? "border-crimson" : "border-border"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-medium">{path.title}</h3>
+        <span className="flex flex-wrap items-center gap-2">
+        {path.proposed_by_task_id && <Link href={`/w/${ws}/agents/${path.proposed_by_task_id}`} title="Proposed by the Adversary agent"><AiBadge /></Link>}
         <Badge tone={path.status === "validated" ? "green" : path.status === "rejected" ? "gray" : "yellow"}>
           {path.status === "validated" ? "Validated" : path.status === "rejected" ? "Rejected" : "Hypothesis — not demonstrated"}
         </Badge>
+        </span>
       </div>
       {path.narrative && <p className="mt-1 text-sm text-muted">{path.narrative}</p>}
       <ol className="mt-3 space-y-1.5 text-sm">

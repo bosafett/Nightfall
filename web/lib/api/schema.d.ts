@@ -209,6 +209,23 @@ export interface paths {
         patch: operations["update_workspace_api_workspaces__workspace_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/agent-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workspace Tasks */
+        get: operations["list_workspace_tasks_api_workspaces__workspace_id__agent_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/agent-tasks/{task_id}": {
         parameters: {
             query?: never;
@@ -1062,6 +1079,45 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
         };
+        /** AgentActivity */
+        AgentActivity: {
+            /** Agent Proposals Awaiting Approval */
+            agent_proposals_awaiting_approval: number;
+            /** Ai Enabled */
+            ai_enabled: boolean;
+            /**
+             * Available
+             * @default true
+             * @constant
+             */
+            available: true;
+            /** Finished In Window */
+            finished_in_window: number;
+            /** Open */
+            open: number;
+            /** Recent */
+            recent: components["schemas"]["AgentActivityItem"][];
+        };
+        /** AgentActivityItem */
+        AgentActivityItem: {
+            /** Agent */
+            agent: string;
+            /** Agent Label */
+            agent_label: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Objective */
+            objective: string;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            status: components["schemas"]["AgentTaskStatus"];
+        };
         /** AgentOut */
         AgentOut: {
             /** Key */
@@ -1074,13 +1130,30 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "available" | "automatic" | "planned";
+            status: "available" | "automatic";
+            usage: components["schemas"]["AgentUsage"];
         };
         /**
          * AgentTaskStatus
          * @enum {string}
          */
         AgentTaskStatus: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+        /**
+         * AgentUsage
+         * @description Counted from agent_tasks for this workspace over the last USAGE_DAYS days.
+         */
+        AgentUsage: {
+            /** Failed */
+            failed: number;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Runs */
+            runs: number;
+            /** Succeeded */
+            succeeded: number;
+        };
         /** AgentsOut */
         AgentsOut: {
             /** Agents */
@@ -1089,6 +1162,8 @@ export interface components {
             ai_enabled: boolean;
             /** Model */
             model: string | null;
+            /** Usage Days */
+            usage_days: number;
         };
         /**
          * ApprovalDecision
@@ -2091,7 +2166,7 @@ export interface components {
         };
         /** OverviewOut */
         OverviewOut: {
-            agent_activity: components["schemas"]["Unavailable"];
+            agent_activity: components["schemas"]["AgentActivity"];
             /** Assessments */
             assessments: components["schemas"]["AssessmentItem"][];
             assets: components["schemas"]["AssetKpi"];
@@ -2151,6 +2226,8 @@ export interface components {
              * Format: uuid
              */
             project_id: string;
+            /** Proposed By Task Id */
+            proposed_by_task_id: string | null;
             /** Review Note */
             review_note: string;
             /** Reviewed At */
@@ -2313,6 +2390,8 @@ export interface components {
             other_asset_id: string;
             /** Other Value */
             other_value: string;
+            /** Proposed By Task Id */
+            proposed_by_task_id: string | null;
             rel_type: components["schemas"]["RelationshipType"];
             /** Rule Id */
             rule_id: string;
@@ -2431,7 +2510,9 @@ export interface components {
              * Agent
              * @enum {string}
              */
-            agent: "scout" | "hunter";
+            agent: "director" | "scout" | "investigator" | "hunter" | "adversary" | "analyst";
+            /** Asset Id */
+            asset_id?: string | null;
             /**
              * Objective
              * @default
@@ -2596,6 +2677,10 @@ export interface components {
                 [key: string]: unknown;
             };
             status: components["schemas"]["AgentTaskStatus"];
+            /** Subject Asset */
+            subject_asset: string | null;
+            /** Subject Asset Id */
+            subject_asset_id: string | null;
             /** Subject Finding Id */
             subject_finding_id: string | null;
         };
@@ -2641,6 +2726,10 @@ export interface components {
             /** Requested By */
             requested_by: string | null;
             status: components["schemas"]["AgentTaskStatus"];
+            /** Subject Asset */
+            subject_asset: string | null;
+            /** Subject Asset Id */
+            subject_asset_id: string | null;
             /** Subject Finding Id */
             subject_finding_id: string | null;
         };
@@ -2651,17 +2740,6 @@ export interface components {
             /** Label */
             label: string;
             risk_class: components["schemas"]["RiskClass"];
-        };
-        /** Unavailable */
-        Unavailable: {
-            /**
-             * Available
-             * @default false
-             * @constant
-             */
-            available: false;
-            /** Phase */
-            phase: number;
         };
         /** UserOut */
         UserOut: {
@@ -3080,6 +3158,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_workspace_tasks_api_workspaces__workspace_id__agent_tasks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"][];
                 };
             };
             /** @description Validation Error */

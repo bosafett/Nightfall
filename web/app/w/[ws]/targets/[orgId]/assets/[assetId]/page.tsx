@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AiBadge } from "@/components/agents/AgentBadges";
 import { notFound } from "next/navigation";
 import { apiGet } from "@/lib/api/server";
 import type { AssetDetail } from "@/lib/api/types";
@@ -36,7 +37,7 @@ export default async function AssetPage({ params }: { params: Promise<{ ws: stri
                   <tr key={`${r.direction}-${r.rel_type}-${r.other_asset_id}`}>
                     <td className="px-4 py-2.5">{(r.direction === "out" ? relLabel : relLabelIn)[r.rel_type]}</td>
                     <td className="px-4 py-2.5"><Link href={`/w/${ws}/targets/${orgId}/assets/${r.other_asset_id}`} className="font-mono text-sm hover:text-crimson-text">{r.other_value}</Link></td>
-                    <td className="px-4 py-2.5"><Badge tone={r.status === "observed" ? "green" : "gray"}>{r.status === "observed" ? "Observed" : "Hypothesis"}</Badge></td>
+                    <td className="px-4 py-2.5"><span className="flex flex-wrap items-center gap-1.5"><Badge tone={r.status === "observed" ? "green" : "gray"}>{r.status === "observed" ? "Observed" : "Hypothesis"}</Badge>{r.proposed_by_task_id && <Link href={`/w/${ws}/agents/${r.proposed_by_task_id}`} title={r.status === "observed" ? "First proposed by the Investigator agent, since observed by a collector" : "Proposed by the Investigator agent"}><AiBadge /></Link>}</span></td>
                     <td className="px-4 py-2.5 font-mono text-xs text-muted">{r.rule_id}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-muted tabular">{formatDateTime(r.last_seen_at)}</td>
                   </tr>

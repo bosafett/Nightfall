@@ -10,14 +10,14 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Response
 from pydantic import StringConstraints
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import IntegrityError
 
-from nightfall.agents.registry import AGENTS, PLANNED
+from nightfall.agents.registry import AGENTS
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
-from nightfall.core.db.models import AgentTask, AgentTaskStatus, Project, Role, User
+from nightfall.core.db.models import AgentTask, AgentTaskStatus, Asset, Project, Role, User
 from nightfall.core.db.session import DB
 from nightfall.core.errors import api_error, not_found
 from nightfall.core.schemas import Model
@@ -30,22 +30,39 @@ HOURLY_LIMIT = 30  # agent runs per workspace per hour
 OPEN = (AgentTaskStatus.QUEUED, AgentTaskStatus.RUNNING)
 
 
+USAGE_DAYS = 30
+RunnableAgent = Literal["director", "scout", "investigator", "hunter", "adversary", "analyst"]
+
+
+class AgentUsage(Model):
+    """Counted from agent_tasks for this workspace over the last USAGE_DAYS days."""
+
+    runs: int
+    succeeded: int
+    failed: int
+    input_tokens: int
+    output_tokens: int
+
+
 class AgentOut(Model):
     key: str
     label: str
     role: str
-    status: Literal["available", "automatic", "planned"]
+    status: Literal["available", "automatic"]
+    usage: AgentUsage
 
 
 class AgentsOut(Model):
     ai_enabled: bool
     model: str | None
+    usage_days: int
     agents: list[AgentOut]
 
 
 class RunIn(Model):
-    agent: Literal["scout", "hunter"]
+    agent: RunnableAgent
     objective: Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)] = ""
+    asset_id: uuid.UUID | None = None  # Investigator: the asset to explain
 
 
 class TaskOut(Model):
@@ -57,6 +74,8 @@ class TaskOut(Model):
     status: AgentTaskStatus
     parent_task_id: uuid.UUID | None
     subject_finding_id: uuid.UUID | None
+    subject_asset_id: uuid.UUID | None
+    subject_asset: str | None
     requested_by: str | None
     error: str | None
     model: str | None
@@ -74,29 +93,53 @@ class TaskDetail(TaskOut):
 
 
 @router.get("/agents", response_model=AgentsOut)
-def list_agents(ctx: WorkspaceContext = ws_permission(Permission.READ)) -> AgentsOut:
+def list_agents(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> AgentsOut:
     s = get_settings()
     enabled = s.ai_provider != "none"
+    since = utcnow() - timedelta(days=USAGE_DAYS)
+    rows = db.execute(
+        select(
+            AgentTask.agent,
+            func.count(),
+            func.count(case((AgentTask.status == AgentTaskStatus.SUCCEEDED, 1))),
+            func.count(case((AgentTask.status == AgentTaskStatus.FAILED, 1))),
+            func.coalesce(func.sum(AgentTask.input_tokens), 0),
+            func.coalesce(func.sum(AgentTask.output_tokens), 0),
+        )
+        .where(AgentTask.workspace_id == ctx.workspace_id, AgentTask.created_at >= since)
+        .group_by(AgentTask.agent)
+    ).all()
+    usage = {
+        r[0]: AgentUsage(
+            runs=r[1],
+            succeeded=r[2],
+            failed=r[3],
+            input_tokens=int(r[4] or 0),
+            output_tokens=int(r[5] or 0),
+        )
+        for r in rows
+    }
+    empty = AgentUsage(runs=0, succeeded=0, failed=0, input_tokens=0, output_tokens=0)
     return AgentsOut(
         ai_enabled=enabled,
         model=s.ai_model if enabled else None,
+        usage_days=USAGE_DAYS,
         agents=[
             AgentOut(
                 key=a.key,
                 label=a.label,
                 role=a.role,
                 status="available" if a.user_runnable else "automatic",
+                usage=usage.get(a.key, empty),
             )
             for a in AGENTS.values()
-        ]
-        + [
-            AgentOut(key=k, label=k.capitalize(), role=r, status="planned")
-            for k, r in PLANNED.items()
         ],
     )
 
 
-def _out(task: AgentTask, names: dict[uuid.UUID, str]) -> TaskOut:
+def _out(
+    task: AgentTask, names: dict[uuid.UUID, str], assets: dict[uuid.UUID, str] | None = None
+) -> TaskOut:
     spec = AGENTS.get(task.agent)
     return TaskOut(
         id=task.id,
@@ -107,6 +150,8 @@ def _out(task: AgentTask, names: dict[uuid.UUID, str]) -> TaskOut:
         status=task.status,
         parent_task_id=task.parent_task_id,
         subject_finding_id=task.subject_finding_id,
+        subject_asset_id=task.subject_asset_id,
+        subject_asset=(assets or {}).get(task.subject_asset_id) if task.subject_asset_id else None,
         requested_by=names.get(task.requested_by_user_id) if task.requested_by_user_id else None,
         error=task.error,
         model=task.model,
@@ -117,6 +162,18 @@ def _out(task: AgentTask, names: dict[uuid.UUID, str]) -> TaskOut:
         queued_at=task.queued_at,
         finished_at=task.finished_at,
     )
+
+
+def _assets(db: DB, tasks: list[AgentTask]) -> dict[uuid.UUID, str]:
+    ids = {t.subject_asset_id for t in tasks if t.subject_asset_id}
+    if not ids:
+        return {}
+    return dict(db.execute(select(Asset.id, Asset.value).where(Asset.id.in_(ids))).tuples().all())
+
+
+def _outs(db: DB, tasks: list[AgentTask]) -> list[TaskOut]:
+    names, assets = _names(db, tasks), _assets(db, tasks)
+    return [_out(t, names, assets) for t in tasks]
 
 
 def _names(db: DB, tasks: list[AgentTask]) -> dict[uuid.UUID, str]:
@@ -143,16 +200,34 @@ def start_run(
     )
     if project is None:
         raise not_found("Project not found.")
+    asset_id = None
+    if body.agent == "investigator":
+        if body.asset_id is None:
+            raise api_error(422, "asset_required", "Choose the asset to explain.")
+        asset = db.scalar(
+            select(Asset).where(Asset.id == body.asset_id, Asset.workspace_id == ctx.workspace_id)
+        )
+        if asset is None or asset.organization_id != project.organization_id:
+            raise api_error(422, "asset", "That asset isn't in this project's organization.")
+        asset_id = asset.id
+    elif body.asset_id is not None:
+        raise api_error(422, "asset_unexpected", "Only the Investigator takes an asset.")
+    if body.agent == "director" and not body.objective:
+        raise api_error(422, "objective_required", "Give the Director an objective.")
     existing = db.scalar(
         select(AgentTask).where(
             AgentTask.project_id == project_id,
             AgentTask.agent == body.agent,
             AgentTask.status.in_(OPEN),
+            AgentTask.subject_finding_id.is_(None),
+            AgentTask.subject_asset_id == asset_id
+            if asset_id is not None
+            else AgentTask.subject_asset_id.is_(None),
         )
     )
     if existing is not None:
         response.status_code = 200
-        return _out(existing, _names(db, [existing]))
+        return _outs(db, [existing])[0]
     recent = (
         db.scalar(
             select(func.count())
@@ -172,6 +247,7 @@ def start_run(
         project_id=project_id,
         agent=body.agent,
         objective=body.objective or spec.role,
+        subject_asset_id=asset_id,
         requested_by_user_id=ctx.user_id,
     )
     db.add(task)
@@ -184,14 +260,18 @@ def start_run(
         "agent_task.requested",
         entity_type="agent_task",
         entity_id=task.id,
-        data={"agent": body.agent, "project_id": str(project_id)},
+        data={
+            "agent": body.agent,
+            "project_id": str(project_id),
+            **({"asset_id": str(asset_id)} if asset_id else {}),
+        },
         **ctx.audit_kwargs(),
     )
     if get_settings().on_demand_worker:
         from nightfall.serverless import drain
 
         background.add_task(drain)
-    return _out(task, _names(db, [task]))
+    return _outs(db, [task])[0]
 
 
 @router.get("/projects/{project_id}/agent-tasks", response_model=list[TaskOut])
@@ -206,8 +286,22 @@ def list_tasks(
             .limit(50)
         )
     )
-    names = _names(db, tasks)
-    return [_out(t, names) for t in tasks]
+    return _outs(db, tasks)
+
+
+@router.get("/agent-tasks", response_model=list[TaskOut])
+def list_workspace_tasks(
+    db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> list[TaskOut]:
+    tasks = list(
+        db.scalars(
+            select(AgentTask)
+            .where(AgentTask.workspace_id == ctx.workspace_id)
+            .order_by(AgentTask.created_at.desc())
+            .limit(50)
+        )
+    )
+    return _outs(db, tasks)
 
 
 def _task(db: DB, task_id: uuid.UUID) -> AgentTask:
@@ -229,12 +323,8 @@ def get_task(
             .order_by(AgentTask.created_at)
         )
     )
-    names = _names(db, [task, *children])
-    return TaskDetail(
-        **_out(task, names).model_dump(),
-        result=task.result,
-        children=[_out(c, names) for c in children],
-    )
+    outs = _outs(db, [task, *children])
+    return TaskDetail(**outs[0].model_dump(), result=task.result, children=outs[1:])
 
 
 @router.post("/agent-tasks/{task_id}/cancel", response_model=TaskOut)
@@ -259,4 +349,4 @@ def cancel_task(
         **ctx.audit_kwargs(),
     )
     db.flush()
-    return _out(task, _names(db, [task]))
+    return _outs(db, [task])[0]

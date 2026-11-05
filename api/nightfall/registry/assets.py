@@ -85,6 +85,7 @@ class RelationshipOut(Model):
     other_value: str
     rule_id: str
     evidence_id: uuid.UUID | None
+    proposed_by_task_id: uuid.UUID | None
     last_seen_at: datetime
 
 
@@ -252,6 +253,7 @@ def get_asset(
                 other_value=ov,
                 rule_id=r.rule_id,
                 evidence_id=r.evidence_id,
+                proposed_by_task_id=r.proposed_by_task_id,
                 last_seen_at=r.last_seen_at,
             )
             for r, oid, ov in rels

@@ -56,6 +56,89 @@
         "title": "AcceptInviteOut",
         "type": "object"
       },
+      "AgentActivity": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_proposals_awaiting_approval": {
+            "title": "Agent Proposals Awaiting Approval",
+            "type": "integer"
+          },
+          "ai_enabled": {
+            "title": "Ai Enabled",
+            "type": "boolean"
+          },
+          "available": {
+            "const": true,
+            "default": true,
+            "title": "Available",
+            "type": "boolean"
+          },
+          "finished_in_window": {
+            "title": "Finished In Window",
+            "type": "integer"
+          },
+          "open": {
+            "title": "Open",
+            "type": "integer"
+          },
+          "recent": {
+            "items": {
+              "$ref": "#/components/schemas/AgentActivityItem"
+            },
+            "title": "Recent",
+            "type": "array"
+          }
+        },
+        "required": [
+          "ai_enabled",
+          "open",
+          "finished_in_window",
+          "agent_proposals_awaiting_approval",
+          "recent"
+        ],
+        "title": "AgentActivity",
+        "type": "object"
+      },
+      "AgentActivityItem": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "agent_label": {
+            "title": "Agent Label",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentTaskStatus"
+          }
+        },
+        "required": [
+          "id",
+          "agent",
+          "agent_label",
+          "objective",
+          "status",
+          "queued_at"
+        ],
+        "title": "AgentActivityItem",
+        "type": "object"
+      },
       "AgentOut": {
         "additionalProperties": false,
         "properties": {
@@ -74,18 +157,21 @@
           "status": {
             "enum": [
               "available",
-              "automatic",
-              "planned"
+              "automatic"
             ],
             "title": "Status",
             "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/AgentUsage"
           }
         },
         "required": [
           "key",
           "label",
           "role",
-          "status"
+          "status",
+          "usage"
         ],
         "title": "AgentOut",
         "type": "object"
@@ -100,6 +186,41 @@
         ],
         "title": "AgentTaskStatus",
         "type": "string"
+      },
+      "AgentUsage": {
+        "additionalProperties": false,
+        "description": "Counted from agent_tasks for this workspace over the last USAGE_DAYS days.",
+        "properties": {
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "succeeded": {
+            "title": "Succeeded",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "succeeded",
+          "failed",
+          "input_tokens",
+          "output_tokens"
+        ],
+        "title": "AgentUsage",
+        "type": "object"
       },
       "AgentsOut": {
         "additionalProperties": false,
@@ -125,11 +246,16 @@
               }
             ],
             "title": "Model"
+          },
+          "usage_days": {
+            "title": "Usage Days",
+            "type": "integer"
           }
         },
         "required": [
           "ai_enabled",
           "model",
+          "usage_days",
           "agents"
         ],
         "title": "AgentsOut",
@@ -2642,7 +2768,7 @@
         "additionalProperties": false,
         "properties": {
           "agent_activity": {
-            "$ref": "#/components/schemas/Unavailable"
+            "$ref": "#/components/schemas/AgentActivity"
           },
           "assessments": {
             "items": {
@@ -2792,6 +2918,18 @@
             "title": "Project Id",
             "type": "string"
           },
+          "proposed_by_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed By Task Id"
+          },
           "review_note": {
             "title": "Review Note",
             "type": "string"
@@ -2845,6 +2983,7 @@
           "reviewed_by",
           "reviewed_at",
           "review_note",
+          "proposed_by_task_id",
           "created_at",
           "steps"
         ],
@@ -3210,6 +3349,18 @@
             "title": "Other Value",
             "type": "string"
           },
+          "proposed_by_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed By Task Id"
+          },
           "rel_type": {
             "$ref": "#/components/schemas/RelationshipType"
           },
@@ -3230,6 +3381,7 @@
           "other_value",
           "rule_id",
           "evidence_id",
+          "proposed_by_task_id",
           "last_seen_at"
         ],
         "title": "RelationshipOut",
@@ -3436,11 +3588,27 @@
         "properties": {
           "agent": {
             "enum": [
+              "director",
               "scout",
-              "hunter"
+              "investigator",
+              "hunter",
+              "adversary",
+              "analyst"
             ],
             "title": "Agent",
             "type": "string"
+          },
+          "asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Id"
           },
           "objective": {
             "default": "",
@@ -3985,6 +4153,29 @@
           "status": {
             "$ref": "#/components/schemas/AgentTaskStatus"
           },
+          "subject_asset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Asset"
+          },
+          "subject_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Asset Id"
+          },
           "subject_finding_id": {
             "anyOf": [
               {
@@ -4007,6 +4198,8 @@
           "status",
           "parent_task_id",
           "subject_finding_id",
+          "subject_asset_id",
+          "subject_asset",
           "requested_by",
           "error",
           "model",
@@ -4156,6 +4349,29 @@
           "status": {
             "$ref": "#/components/schemas/AgentTaskStatus"
           },
+          "subject_asset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Asset"
+          },
+          "subject_asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Asset Id"
+          },
           "subject_finding_id": {
             "anyOf": [
               {
@@ -4178,6 +4394,8 @@
           "status",
           "parent_task_id",
           "subject_finding_id",
+          "subject_asset_id",
+          "subject_asset",
           "requested_by",
           "error",
           "model",
@@ -4212,26 +4430,6 @@
           "risk_class"
         ],
         "title": "ToolOut",
-        "type": "object"
-      },
-      "Unavailable": {
-        "additionalProperties": false,
-        "properties": {
-          "available": {
-            "const": false,
-            "default": false,
-            "title": "Available",
-            "type": "boolean"
-          },
-          "phase": {
-            "title": "Phase",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "phase"
-        ],
-        "title": "Unavailable",
         "type": "object"
       },
       "UserOut": {
@@ -4833,6 +5031,53 @@
         "summary": "Update Workspace",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/agent-tasks": {
+      "get": {
+        "operationId": "list_workspace_tasks_api_workspaces__workspace_id__agent_tasks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskOut"
+                  },
+                  "title": "Response List Workspace Tasks Api Workspaces  Workspace Id  Agent Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Workspace Tasks",
+        "tags": [
+          "agents"
         ]
       }
     },

@@ -14,13 +14,19 @@ export const metadata: Metadata = { title: "Agent task" };
 type Item = { [k: string]: unknown };
 
 function itemLink(ws: string, it: Item) {
+  if (typeof it.task_id === "string") return <Link className="hover:text-crimson-text" href={`/w/${ws}/agents/${it.task_id}`}>Open the task</Link>;
+  if (typeof it.attack_path_id === "string") return <Link className="hover:text-crimson-text" href={`/w/${ws}/attack-graph`}>Open the attack graph</Link>;
   if (typeof it.operation_id === "string") return <Link className="hover:text-crimson-text" href={`/w/${ws}/recon/${it.operation_id}`}>Open collection</Link>;
   if (typeof it.finding_id === "string") return <Link className="hover:text-crimson-text" href={`/w/${ws}/findings/${it.finding_id}`}>Open finding</Link>;
   return "—";
 }
 
+const relText: Record<string, string> = { subdomain_of: "subdomain of", resolves_to: "resolves to", cname_to: "CNAME to" };
+
 function itemLabel(it: Item) {
   if (typeof it.title === "string") return it.title;
+  if (typeof it.agent === "string" && typeof it.objective === "string") return `${it.agent}${typeof it.asset === "string" ? ` · ${it.asset}` : ""}: ${it.objective}`;
+  if (typeof it.to_asset === "string") return `${relText[String(it.rel_type)] ?? String(it.rel_type)} ${it.to_asset}`;
   if (typeof it.target === "string") return `${String(it.tool ?? "")} · ${it.target}`;
   if (typeof it.verdict === "string") return `Verdict: ${it.verdict.replace("_", " ")}`;
   return "—";
@@ -32,9 +38,14 @@ export default async function AgentTaskPage({ params }: { params: Promise<{ ws: 
   const accepted = (task.result.accepted ?? []) as Item[];
   const refused = (task.result.refused ?? []) as Item[];
   const notes = typeof task.result.notes === "string" ? task.result.notes : "";
+  const summary = typeof task.result.summary === "string" ? task.result.summary : "";
+  const list = (k: string) => (Array.isArray(task.result[k]) ? (task.result[k] as unknown[]).map(String) : []);
+  const keyRisks = (Array.isArray(task.result.key_risks) ? task.result.key_risks : []) as Item[];
+  const counts = (task.result.counts ?? null) as Record<string, number | Record<string, number>> | null;
   const open = task.status === "queued" || task.status === "running";
   const rows: [string, string][] = [
     ["Agent", task.agent_label],
+    ...(task.subject_asset ? [["Asset", task.subject_asset] as [string, string]] : []),
     ["Requested by", task.requested_by ?? "—"],
     ["Queued", formatDateTime(task.queued_at)],
     ["Finished", task.finished_at ? formatDateTime(task.finished_at) : "—"],
@@ -66,7 +77,7 @@ export default async function AgentTaskPage({ params }: { params: Promise<{ ws: 
                     {accepted.map((it, i) => (
                       <tr key={i}>
                         <td className="px-4 py-2.5 text-sm">{itemLabel(it)}</td>
-                        <td className="px-4 py-2.5 text-xs text-muted">{String(it.status ?? it.note ?? (it.evidence ? `${String(it.evidence)} evidence linked, hypothesis` : "recorded"))}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted">{String(it.status ?? it.note ?? (it.evidence ? `${String(it.evidence)} evidence linked, hypothesis` : it.steps ? `${String(it.steps)} steps, hypothesis` : it.task_id ? "queued" : "recorded"))}</td>
                         <td className="px-4 py-2.5 text-sm">{itemLink(ws, it)}</td>
                       </tr>
                     ))}
@@ -93,6 +104,47 @@ export default async function AgentTaskPage({ params }: { params: Promise<{ ws: 
           )}
         </Panel>
       </div>
+      {(summary || keyRisks.length > 0 || list("next_steps").length > 0 || list("open_questions").length > 0) && (
+        <div className="mt-6">
+          <Panel title={`${task.agent_label}'s write-up (AI-written, not verified)`}>
+            <div className="space-y-4 rounded-md border border-dashed border-border-strong p-4" data-testid="ai-writeup">
+              {summary && <p className="whitespace-pre-wrap text-sm">{summary}</p>}
+              {keyRisks.length > 0 && (
+                <div>
+                  <p className="mb-1 text-xs font-medium text-muted">Key risks it picked (status from the records)</p>
+                  <ul className="space-y-1 text-sm">
+                    {keyRisks.map((k) => (
+                      <li key={String(k.finding_id)}>
+                        <Link href={`/w/${ws}/findings/${String(k.finding_id)}`} className="font-medium hover:text-crimson-text">{String(k.title)}</Link>{" "}
+                        <span className="text-xs text-muted">({String(k.severity)}, {String(k.status).replace("_", " ")})</span> — {String(k.why)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {([["open_questions", "Open questions"], ["next_steps", "Suggested next steps"]] as const).map(([k, label]) => list(k).length > 0 && (
+                <div key={k}>
+                  <p className="mb-1 text-xs font-medium text-muted">{label}</p>
+                  <ul className="list-disc space-y-1 pl-5 text-sm">{list(k).map((x, i) => <li key={i}>{x}</li>)}</ul>
+                </div>
+              ))}
+            </div>
+            {counts && (
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-medium text-muted">Counts from the records when it ran (not from the model)</p>
+                <dl className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+                  {Object.entries(counts).map(([k, v]) => (
+                    <div key={k} className="rounded-md border border-border px-3 py-2">
+                      <dt className="text-xs text-muted">{k.replaceAll("_", " ")}</dt>
+                      <dd className="font-mono text-xs tabular">{typeof v === "number" ? v : Object.entries(v).map(([a, b]) => `${a.replace("_", " ")} ${b}`).join(" · ") || "none"}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+          </Panel>
+        </div>
+      )}
       {task.children.length > 0 && (
         <div className="mt-6"><Panel title="Follow-up tasks"><AgentTasksTable ws={ws} tasks={task.children} /></Panel></div>
       )}

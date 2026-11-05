@@ -27,8 +27,12 @@ from nightfall.agents.providers import (
 from nightfall.agents.registry import (
     AGENTS,
     PROMPT_VERSION,
+    AdversaryOutput,
+    AnalystOutput,
+    DirectorOutput,
     GuardianOutput,
     HunterOutput,
+    InvestigatorOutput,
     ScoutOutput,
 )
 from nightfall.core.audit.writer import record
@@ -55,6 +59,38 @@ UPDATE agent_tasks SET status = 'failed', finished_at = now(),
   error = 'Gave up after 3 attempts (worker stopped responding).'
 WHERE status = 'running' AND started_at < now() - interval '10 minutes' AND attempts >= 3
 """)
+
+
+BUILDERS: dict[str, Callable[[Session, AgentTask], ctx.Prepared]] = {
+    "director": ctx.director,
+    "scout": ctx.scout,
+    "investigator": ctx.investigator,
+    "hunter": ctx.hunter,
+    "adversary": ctx.adversary,
+    "analyst": ctx.analyst,
+}
+
+
+def _apply(
+    db: Session, task: AgentTask, parsed: object, prepared: ctx.Prepared, model: str
+) -> tuple[gateway.Applied, str]:
+    """Hands the parsed answer to the matching gateway rule; returns it with the notes."""
+    if isinstance(parsed, DirectorOutput):
+        return gateway.apply_director(db, task, parsed), parsed.notes
+    if isinstance(parsed, ScoutOutput):
+        return gateway.apply_scout(db, task, parsed), parsed.notes
+    if isinstance(parsed, InvestigatorOutput):
+        return gateway.apply_investigator(db, task, parsed, prepared.shown_evidence), ""
+    if isinstance(parsed, HunterOutput):
+        return gateway.apply_hunter(db, task, parsed, prepared.shown_evidence), parsed.notes
+    if isinstance(parsed, AdversaryOutput):
+        return gateway.apply_adversary(db, task, parsed, prepared.shown_findings), parsed.notes
+    if isinstance(parsed, GuardianOutput):
+        return gateway.apply_guardian(db, task, parsed, model), parsed.rationale
+    if isinstance(parsed, AnalystOutput):
+        applied = gateway.apply_analyst(db, task, parsed, prepared.shown_findings, prepared.facts)
+        return applied, ""
+    raise RuntimeError("unexpected output type")  # pragma: no cover
 
 
 def run_once(
@@ -131,12 +167,10 @@ def _process(
             )
             return
         try:
-            if task.agent == "scout":
-                prepared = ctx.scout(db, task)
-            elif task.agent == "hunter":
-                prepared = ctx.hunter(db, task)
-            else:
+            if task.agent == "guardian":
                 prepared = ctx.guardian(db, task, store)
+            else:
+                prepared = BUILDERS[task.agent](db, task)
         except LookupError as exc:
             db.rollback()
             _finish(sessions, task_id, ws, AgentTaskStatus.FAILED, str(exc))
@@ -166,17 +200,9 @@ def _process(
         if task is None or task.status is not AgentTaskStatus.RUNNING:
             return  # cancelled meanwhile: nothing is applied
         parsed = result.parsed
-        if isinstance(parsed, ScoutOutput):
-            applied = gateway.apply_scout(db, task, parsed)
-            notes = parsed.notes
-        elif isinstance(parsed, HunterOutput):
-            applied = gateway.apply_hunter(db, task, parsed, prepared.shown_evidence)
-            notes = parsed.notes
-        elif isinstance(parsed, GuardianOutput):
-            applied = gateway.apply_guardian(db, task, parsed, result.model)
-            notes = parsed.rationale
-        else:  # pragma: no cover - registry and runner are in step
+        if not isinstance(parsed, spec.output_model):  # pragma: no cover - provider checks
             raise RuntimeError("unexpected output type")
+        applied, notes = _apply(db, task, parsed, prepared, result.model)
         task.status = AgentTaskStatus.SUCCEEDED
         task.finished_at = utcnow()
         task.result = {**applied.as_dict(), "notes": " ".join(notes.split())[:3000]}

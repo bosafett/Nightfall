@@ -121,12 +121,28 @@ class FixtureProvider:
         import re
 
         from nightfall.agents.registry import (
+            AdversaryOutput,
+            AnalystOutput,
             CandidateFinding,
+            DirectorOutput,
             GuardianOutput,
             HunterOutput,
+            InvestigatorOutput,
+            KeyRisk,
             ProposedCollection,
+            ProposedPath,
+            ProposedRelationship,
+            ProposedStep,
             ScoutOutput,
+            Subtask,
         )
+
+        def block(source: str) -> str:
+            m = re.search(rf'<data source="{source}"[^>]*>\n(.*?)\n</data>', request.user, re.S)
+            return m.group(1) if m else ""
+
+        evidence_ids = re.findall(r'<data source="evidence" id="([0-9a-f-]{36})"', request.user)
+        finding_ids = re.findall(r'"id": "([0-9a-f-]{36})"', block("findings"))
 
         parsed: BaseModel
         if request.output_model is ScoutOutput:
@@ -143,7 +159,7 @@ class FixtureProvider:
                 ]
             parsed = ScoutOutput(proposals=proposals, notes="Fixture plan.")
         elif request.output_model is HunterOutput:
-            ids = re.findall(r'<data source="evidence" id="([0-9a-f-]{36})"', request.user)
+            ids = evidence_ids
             candidates = (
                 [
                     CandidateFinding(
@@ -160,6 +176,59 @@ class FixtureProvider:
                 else []
             )
             parsed = HunterOutput(candidates=candidates, notes="Fixture review.")
+        elif request.output_model is DirectorOutput:
+            parsed = DirectorOutput(
+                subtasks=[
+                    Subtask(agent="scout", objective="Fill gaps in passive coverage."),
+                    Subtask(agent="analyst", objective="Summarise where the assessment stands."),
+                ],
+                notes="Fixture plan: collect first, then summarise.",
+            )
+        elif request.output_model is InvestigatorOutput:
+            values = re.findall(r'"value": "([^"]+)"', block("assets"))
+            subject = re.findall(r'"value": "([^"]+)"', block("subject_asset"))
+            others = [v for v in values if v not in subject]
+            rels = (
+                [
+                    ProposedRelationship(
+                        to_asset=others[0],
+                        rel_type="resolves_to",
+                        rationale="Fixture: listed together in the cited evidence.",
+                        evidence_ids=evidence_ids[:1],
+                    )
+                ]
+                if others and evidence_ids
+                else []
+            )
+            parsed = InvestigatorOutput(
+                summary="Fixture explanation: a host seen in certificate history.",
+                relationships=rels,
+                open_questions=["Who operates this host?"],
+            )
+        elif request.output_model is AdversaryOutput:
+            paths = (
+                [
+                    ProposedPath(
+                        title="Forgotten host to internal foothold",
+                        narrative="Fixture path built from the first recorded finding.",
+                        steps=[
+                            ProposedStep(finding_id=finding_ids[0], description="Entry point."),
+                            ProposedStep(
+                                finding_id=finding_ids[-1], description="Impact if it holds."
+                            ),
+                        ],
+                    )
+                ]
+                if finding_ids
+                else []
+            )
+            parsed = AdversaryOutput(paths=paths, notes="Fixture: rests on unreviewed findings.")
+        elif request.output_model is AnalystOutput:
+            parsed = AnalystOutput(
+                summary="Fixture summary: coverage is early and nothing is validated yet.",
+                key_risks=[KeyRisk(finding_id=f, why="Fixture.") for f in finding_ids[:1]],
+                next_steps=["Review the open hypotheses."],
+            )
         elif request.output_model is GuardianOutput:
             parsed = GuardianOutput(
                 verdict="insufficient_evidence",

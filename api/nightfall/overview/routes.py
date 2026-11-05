@@ -1,8 +1,8 @@
 """Command Center overview (Phase 2).
 
-Every number is computed from stored records. Modules whose tables don't exist yet
-(assets, operations, findings, agents) are reported as unavailable with the phase that
-adds them — never as zero, and never with sample data.
+Every number is computed from stored records. Modules whose tables don't exist yet are
+reported as unavailable with the phase that adds them — never as zero, and never with
+sample data.
 """
 
 from __future__ import annotations
@@ -20,6 +20,8 @@ from nightfall.core.db.models import (
     OPEN_STATUSES as OPEN_FINDING_STATUSES,
 )
 from nightfall.core.db.models import (
+    AgentTask,
+    AgentTaskStatus,
     AssessmentType,
     Asset,
     Finding,
@@ -151,6 +153,24 @@ class Graph(Model):
     truncated: bool
 
 
+class AgentActivityItem(Model):
+    id: uuid.UUID
+    agent: str
+    agent_label: str
+    objective: str
+    status: AgentTaskStatus
+    queued_at: datetime
+
+
+class AgentActivity(Model):
+    available: Literal[True] = True
+    ai_enabled: bool
+    open: int  # queued or running now
+    finished_in_window: int
+    agent_proposals_awaiting_approval: int  # operations an agent proposed, waiting for a person
+    recent: list[AgentActivityItem]
+
+
 class OverviewOut(Model):
     window: Window
     generated_at: datetime
@@ -160,7 +180,7 @@ class OverviewOut(Model):
     operations: OperationKpi
     assessments: list[AssessmentItem]
     recent_findings: RecentFindings
-    agent_activity: Unavailable
+    agent_activity: AgentActivity
     risk: Risk
     graph: Graph
 
@@ -261,9 +281,53 @@ def overview(
         ),
         assessments=assessments,
         recent_findings=RecentFindings(items=recent),
-        agent_activity=Unavailable(phase=5),
+        agent_activity=_agents(db, ws, since),
         risk=_risk(db, ws),
         graph=_graph(db, ws),
+    )
+
+
+def _agents(db: DB, ws: uuid.UUID, since: datetime) -> AgentActivity:
+    from nightfall.agents.registry import AGENTS
+    from nightfall.config import get_settings
+
+    counts = db.execute(
+        select(
+            func.count().filter(
+                AgentTask.status.in_([AgentTaskStatus.QUEUED, AgentTaskStatus.RUNNING])
+            ),
+            func.count().filter(AgentTask.finished_at >= since),
+        ).where(AgentTask.workspace_id == ws)
+    ).one()
+    awaiting = db.scalar(
+        select(func.count()).where(
+            Operation.workspace_id == ws,
+            Operation.status == OperationStatus.AWAITING_APPROVAL,
+            Operation.proposed_by_task_id.is_not(None),
+        )
+    )
+    tasks = db.scalars(
+        select(AgentTask)
+        .where(AgentTask.workspace_id == ws)
+        .order_by(AgentTask.created_at.desc())
+        .limit(6)
+    ).all()
+    return AgentActivity(
+        ai_enabled=get_settings().ai_provider != "none",
+        open=counts[0],
+        finished_in_window=counts[1],
+        agent_proposals_awaiting_approval=awaiting or 0,
+        recent=[
+            AgentActivityItem(
+                id=t.id,
+                agent=t.agent,
+                agent_label=AGENTS[t.agent].label if t.agent in AGENTS else t.agent,
+                objective=t.objective,
+                status=t.status,
+                queued_at=t.queued_at,
+            )
+            for t in tasks
+        ],
     )
 
 

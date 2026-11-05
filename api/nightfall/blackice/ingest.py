@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, literal_column, select
+from sqlalchemy import case, func, literal_column, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -25,10 +25,13 @@ from nightfall.core.db.models import (
     Evidence,
     EvidenceKind,
     Operation,
+    RelationshipStatus,
     RelationshipType,
 )
 from nightfall.recon.collectors import CollectorResult
 from nightfall.scope.engine import ScopeSnapshot, evaluate
+
+_guessed = AssetRelationship.status == RelationshipStatus.HYPOTHESIS
 
 RULESET_VERSION = "2026.11-p3"
 RULE_SUBDOMAIN = "dns-name-hierarchy/v1"
@@ -127,7 +130,16 @@ def _relate(
         )
         .on_conflict_do_update(
             index_elements=["from_asset_id", "to_asset_id", "rel_type"],
-            set_={"last_seen_at": now},
+            # Observing a relationship an agent only guessed makes it a recorded fact,
+            # backed by this collector's rule and evidence (the agent's task stays linked).
+            # Recorded facts keep their original evidence.
+            set_={
+                "last_seen_at": now,
+                "status": RelationshipStatus.OBSERVED,
+                "confidence": Confidence.HIGH,
+                "evidence_id": case((_guessed, evidence_id), else_=AssetRelationship.evidence_id),
+                "rule_id": case((_guessed, rule), else_=AssetRelationship.rule_id),
+            },
         )
     )
 

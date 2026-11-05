@@ -371,8 +371,31 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
   - Agents are defined in code (`nightfall/agents/registry.py`, prompt version on every task) instead of an
     `agents` table.
   - Collected content goes only into neutralized `<data>` blocks. Injection fixtures are in the tests.
-- **5b (next):** Director, Investigator, Adversary, Analyst; agents overview page; benchmark harness and
-  `docs/benchmarks/`.
+- **5b (done):** the remaining four agents. Same rule as 5a: they propose, the gateway decides, and their
+  output is labelled AI output and enters as a hypothesis.
+  - *Director:* creates `agent_tasks` only, for Scout, Investigator, Hunter, Adversary or Analyst. It can't
+    assign work to itself or Guardian, creates at most 5 tasks, and never duplicates a run that is open.
+    Its objective reaches the next agent inside a `<data source="director_objective">` block, not as that
+    agent's task line, because another model wrote it.
+  - *Investigator:* explains one asset (`agent_tasks.subject_asset_id`, migration 0009). Relationships it
+    proposes need both assets known in the organization and evidence it was shown. They are stored as
+    `hypothesis` with low confidence and a rule `agent:investigator@…`. A CHECK stops an agent row from
+    claiming `observed`. A collector that later observes the same relationship promotes it under its own
+    rule and evidence, and keeps the proposing task linked.
+  - *Adversary:* proposes attack paths. Every step must name a finding it was shown or a known asset;
+    every path needs at least one finding and 2 to 8 steps; at most 3 paths per run. False-positive and
+    remediated findings are never shown. Paths are stored as `hypothesis` with low confidence, guarded by a
+    CHECK. The Phase 4 rule still applies: a path can be validated only by a person, and only once every
+    finding in it is validated.
+  - *Analyst:* narrative summary kept on the task and shown as "AI-written, not verified". It isn't part
+    of the frozen report, which stays template-built. The counts beside it are computed from the records.
+    Key risks must be findings it was shown, and their status is read from the record.
+  - Workspace agents page (`/w/{ws}/agents`): roster with 30-day usage counted from `agent_tasks`, plus
+    recent tasks. The Command Center "Agent activity" panel (placeholder until Phase 5) now shows real
+    counts. The sidebar keeps its eight sections.
+  - Benchmark harness: `nightfall/agents/bench.py`, method in `docs/benchmarks/README.md`. 11 fixed
+    cases, 4 of them injection cases. **No real-model results yet**, because no API key is available in
+    development, so the default model is still unmeasured.
 
 ## 11. Decisions requiring human approval
 

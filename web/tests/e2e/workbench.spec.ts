@@ -335,6 +335,54 @@ test.describe("as the owner", () => {
     await expect(page.locator("main").getByText("Hypothesis").first()).toBeVisible();
   });
 
+  test("director plans; adversary and analyst write hypotheses, labelled as AI", async ({ page }) => {
+    test.setTimeout(90_000); // three agent runs, each through the worker
+    await page.goto(`${workspaceUrl}/targets`);
+    await page.getByRole("link", { name: "Acme Corporation" }).click();
+    await page.getByRole("link", { name: "External reconnaissance" }).click();
+    await expect(page.getByText(/Agents only propose/)).toBeVisible();
+    const project = page.url();
+
+    // Adversary: an attack path built from recorded findings, recorded as a hypothesis.
+    await page.getByRole("button", { name: "Propose attack paths (Adversary)" }).click();
+    await page.waitForURL(/\/agents\/[0-9a-f-]{36}$/);
+    await expect(page.getByText("Done", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/steps, hypothesis/)).toBeVisible();
+    await page.getByRole("link", { name: "Open the attack graph" }).click();
+    const card = page.locator("article").filter({ hasText: "Forgotten host to internal foothold" });
+    await expect(card.getByText("AI proposal")).toBeVisible();
+    await expect(card.getByText("Hypothesis — not demonstrated")).toBeVisible();
+
+    // Analyst: a narrative that is labelled as AI-written, beside counts from the records.
+    await page.goto(project);
+    await page.getByRole("button", { name: "Summarise the assessment (Analyst)" }).click();
+    await page.waitForURL(/\/agents\/[0-9a-f-]{36}$/);
+    await expect(page.getByText("Done", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("Analyst's write-up (AI-written, not verified)")).toBeVisible();
+    await expect(page.getByText("Counts from the records when it ran (not from the model)")).toBeVisible();
+    await page.goto(project);
+    await expect(page.getByTestId("analyst-summary")).toContainText("AI-written, not verified");
+
+    // Director: only creates tasks for the other agents.
+    await page.getByLabel("Objective for the Director").fill("Get a picture of the external surface");
+    await page.getByRole("button", { name: "Plan it (Director)" }).click();
+    await page.waitForURL(/\/agents\/[0-9a-f-]{36}$/);
+    await expect(page.getByText("Done", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    const followUps = page.locator("section").filter({ has: page.getByRole("heading", { name: "Follow-up tasks" }) });
+    await expect(followUps.getByText("Scout", { exact: true })).toBeVisible();
+    await expect(followUps.getByText("Analyst", { exact: true })).toBeVisible();
+
+    // Overview: every number comes from the task records.
+    await page.goto(`${workspaceUrl}/agents`);
+    await expect(page.getByRole("heading", { level: 1, name: "AI agents" })).toBeVisible();
+    const roster = page.locator("section").filter({ has: page.getByRole("heading", { name: /^Agents · last/ }) });
+    for (const name of ["Director", "Investigator", "Adversary", "Analyst", "Guardian"]) {
+      await expect(roster.getByRole("cell", { name: new RegExp(`^${name}`) })).toBeVisible();
+    }
+    await page.goto(workspaceUrl);
+    await expect(page.getByRole("link", { name: "All agents" })).toBeVisible();
+  });
+
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
