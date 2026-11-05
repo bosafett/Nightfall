@@ -70,7 +70,7 @@ function SystemStatus({ health }: { health: Health | null }) {
             {components.map((c) => (
               <li key={c.name} className="flex items-center justify-between text-xs text-muted">
                 <span>{componentLabel[c.name] ?? c.name}</span>
-                <span className={c.status === "ok" ? "text-green" : "text-crimson-text"}>{c.status === "ok" ? "Online" : "Down"}</span>
+                <span className={c.status === "down" ? "text-crimson-text" : "text-green"}>{c.status === "ok" ? "Online" : c.status === "on_demand" ? "On demand" : "Down"}</span>
               </li>
             ))}
           </ul>

@@ -25,7 +25,7 @@ export default async function ReconPage({ params }: { params: Promise<{ ws: stri
           </Panel>
         )}
         <Panel title="Discovery history">
-          <AutoRefresh active={pending} />
+          <AutoRefresh ws={ws} active={pending} />
           <OperationsTable ws={ws} ops={ops} />
         </Panel>
         </>

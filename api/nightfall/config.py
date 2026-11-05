@@ -13,6 +13,11 @@ Optional:
                                     evidence_blobs; for hosts without a shared disk).
   NIGHTFALL_EMBEDDED_WORKER         "true" runs the worker loop inside the API process (single-
                                     container hosting). Needs NIGHTFALL_WORKER_DATABASE_URL.
+  NIGHTFALL_ON_DEMAND_WORKER        "true" for serverless hosting: no loop; queued jobs run when
+                                    requested, approved, or drained (see nightfall/serverless.py).
+  NIGHTFALL_CRON_SECRET             bearer secret for the scheduled drain endpoint.
+  NIGHTFALL_RATE_LIMIT_BACKEND      "memory" (default, one API process) or "postgres" (many
+                                    instances, e.g. serverless).
   NIGHTFALL_WORKER_DATABASE_URL     worker connection (role nightfall_worker).
   NIGHTFALL_COLLECTOR_MODE          "live" (default) or "fixture" (tests only: canned results,
                                     labelled as fixture evidence; never contacts the network).
@@ -57,6 +62,9 @@ class Settings:
     nuclei_bin: str | None = None
     evidence_backend: Literal["fs", "postgres"] = "fs"
     embedded_worker: bool = False
+    on_demand_worker: bool = False
+    cron_secret: str | None = None
+    rate_limit_backend: Literal["memory", "postgres"] = "memory"
     tool_sandbox: Literal["uid", "none"] = "uid"
     tool_user: str = "nftool"
     egress_port: int = 3128
@@ -114,6 +122,17 @@ def load_settings() -> Settings:
     embedded = os.environ.get("NIGHTFALL_EMBEDDED_WORKER", "false").strip().lower() == "true"
     if embedded and not worker_url:
         raise ConfigError("NIGHTFALL_EMBEDDED_WORKER needs NIGHTFALL_WORKER_DATABASE_URL")
+    on_demand = os.environ.get("NIGHTFALL_ON_DEMAND_WORKER", "false").strip().lower() == "true"
+    if on_demand and not worker_url:
+        raise ConfigError("NIGHTFALL_ON_DEMAND_WORKER needs NIGHTFALL_WORKER_DATABASE_URL")
+    if on_demand and embedded:
+        raise ConfigError("Choose either the embedded or the on-demand worker, not both")
+    cron_secret = os.environ.get("NIGHTFALL_CRON_SECRET", "").strip() or None
+    if cron_secret is not None and len(cron_secret) < 32:
+        raise ConfigError("NIGHTFALL_CRON_SECRET must be at least 32 characters")
+    rl = os.environ.get("NIGHTFALL_RATE_LIMIT_BACKEND", "memory").strip() or "memory"
+    if rl not in ("memory", "postgres"):
+        raise ConfigError("NIGHTFALL_RATE_LIMIT_BACKEND must be 'memory' or 'postgres'")
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:
         raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
@@ -134,6 +153,9 @@ def load_settings() -> Settings:
         egress_port=egress_port,
         evidence_backend="postgres" if backend == "postgres" else "fs",
         embedded_worker=embedded,
+        on_demand_worker=on_demand,
+        cron_secret=cron_secret,
+        rate_limit_backend="postgres" if rl == "postgres" else "memory",
     )
 
 

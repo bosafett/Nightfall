@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Query, Response
 from pydantic import StringConstraints
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
@@ -164,11 +164,36 @@ def list_tools(ctx: WorkspaceContext = ws_permission(Permission.READ)) -> list[T
     return [ToolOut(key=k, label=label, risk_class=risk) for k, (label, risk) in TOOLS.items()]
 
 
+def _drain_later(background: BackgroundTasks) -> None:
+    """Serverless hosting: run the queue after the response (the request's transaction
+    commits before the response is sent, so the job is visible)."""
+    if get_settings().on_demand_worker:
+        from nightfall.serverless import drain
+
+        background.add_task(drain)
+
+
+class DrainOut(Model):
+    processed: int
+
+
+@router.post("/worker/run", response_model=DrainOut)
+def run_queued_jobs(ctx: WorkspaceContext = ws_permission(Permission.READ)) -> DrainOut:
+    """Serverless hosting only: processes queued jobs now (any member may nudge the queue;
+    every job was already authorized when it was queued, and is re-checked when it runs)."""
+    if not get_settings().on_demand_worker:
+        raise not_found()
+    from nightfall.serverless import drain
+
+    return DrainOut(processed=drain())
+
+
 @router.post("/projects/{project_id}/collections", response_model=OperationOut, status_code=202)
 def request_collection(
     project_id: uuid.UUID,
     body: CollectionIn,
     response: Response,
+    background: BackgroundTasks,
     db: DB,
     ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE),
 ) -> OperationOut:
@@ -253,6 +278,8 @@ def request_collection(
         },
         **ctx.audit_kwargs(),
     )
+    if op.status is OperationStatus.QUEUED:
+        _drain_later(background)
     return _out(_get_op(db, ctx, op.id))
 
 
@@ -405,6 +432,7 @@ def _awaiting(db: Session, ctx: WorkspaceContext, op_id: uuid.UUID) -> Operation
 def approve_operation(
     op_id: uuid.UUID,
     body: DecisionIn,
+    background: BackgroundTasks,
     db: DB,
     ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
 ) -> OperationDetail:
@@ -460,6 +488,7 @@ def approve_operation(
         **ctx.audit_kwargs(),
     )
     db.flush()
+    _drain_later(background)
     return get_operation(op_id, db, ctx)
 
 

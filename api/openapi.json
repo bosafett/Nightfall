@@ -507,7 +507,8 @@
           "status": {
             "enum": [
               "ok",
-              "down"
+              "down",
+              "on_demand"
             ],
             "title": "Status",
             "type": "string"
@@ -540,6 +541,20 @@
           }
         },
         "title": "DecisionIn",
+        "type": "object"
+      },
+      "DrainOut": {
+        "additionalProperties": false,
+        "properties": {
+          "processed": {
+            "title": "Processed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "processed"
+        ],
+        "title": "DrainOut",
         "type": "object"
       },
       "EntryIn": {
@@ -4169,6 +4184,31 @@
         ]
       }
     },
+    "/api/internal/worker/drain": {
+      "get": {
+        "operationId": "cron_drain_api_internal_worker_drain_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Cron Drain Api Internal Worker Drain Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Cron Drain",
+        "tags": [
+          "internal"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}": {
       "get": {
         "operationId": "get_workspace_api_workspaces__workspace_id__get",
@@ -7570,6 +7610,50 @@
         "summary": "Remove Target",
         "tags": [
           "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/worker/run": {
+      "post": {
+        "description": "Serverless hosting only: processes queued jobs now (any member may nudge the queue;\nevery job was already authorized when it was queued, and is re-checked when it runs).",
+        "operationId": "run_queued_jobs_api_workspaces__workspace_id__worker_run_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DrainOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Queued Jobs",
+        "tags": [
+          "recon"
         ]
       }
     }

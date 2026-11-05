@@ -1,0 +1,22 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "web": {
+      "root": "web/",
+      "framework": "nextjs",
+      "bindings": [
+        { "type": "service", "service": "api", "format": "url", "env": "API_INTERNAL_URL" }
+      ]
+    },
+    "api": {
+      "root": "api/",
+      "framework": "fastapi",
+      "entrypoint": "nightfall.asgi:app"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api" } },
+    { "source": "/(.*)", "destination": { "service": "web" } }
+  ],
+  "crons": [{ "path": "/api/internal/worker/drain", "schedule": "17 4 * * *" }]
+}

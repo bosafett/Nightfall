@@ -38,7 +38,7 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
     <>
       <nav className="mb-2 text-sm text-muted"><Link href={`/w/${ws}/recon`} className="hover:text-text">Reconnaissance</Link> /</nav>
       <PageHeader title={op.target} subtitle={op.tool_label} actions={<OperationStatusBadge status={op.status} />} />
-      <AutoRefresh active={op.status === "queued" || op.status === "running"} />
+      <AutoRefresh ws={ws} active={op.status === "queued" || op.status === "running"} />
       {op.status === "denied" && <Alert tone="yellow">Refused: {op.denial_reason}</Alert>}
       {op.status === "failed" && <Alert>Failed: {op.error}</Alert>}
       {op.status === "awaiting_approval" && (

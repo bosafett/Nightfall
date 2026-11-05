@@ -55,7 +55,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
           {active && writable ? <CollectionForm ws={ws} projectId={projectId} suggestions={suggestions} />
             : <p className="text-sm text-muted">{active ? "Your role can view collection results but not request collection." : "Authorize a scope first."}</p>}
           <div className="mt-6">
-            <AutoRefresh active={pending} />
+            <AutoRefresh ws={ws} active={pending} />
             {ops.length > 0 ? <OperationsTable ws={ws} ops={ops} showProject={false} /> : <p className="text-sm text-muted">No collection has run for this project yet.</p>}
           </div>
         </Panel>

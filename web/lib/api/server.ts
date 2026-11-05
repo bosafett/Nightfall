@@ -2,7 +2,8 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { ApiError, parseError } from "./errors";
 
-const API = process.env.API_INTERNAL_URL ?? "http://127.0.0.1:8000";
+// Self-hosted: the API on loopback. Vercel: the backend service's private binding URL.
+const API = (process.env.API_INTERNAL_URL ?? "http://127.0.0.1:8000").replace(/\/+$/, "");
 export const SESSION_COOKIE = "nf_session";
 
 async function call(path: string): Promise<Response> {

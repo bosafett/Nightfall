@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+import hmac
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from fastapi import APIRouter, FastAPI, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
@@ -38,7 +39,7 @@ HEALTH_ROUTES = {("GET", "/api/health")}
 
 class ComponentStatus(Model):
     name: str
-    status: Literal["ok", "down"]
+    status: Literal["ok", "down", "on_demand"]
 
 
 class HealthOut(Model):
@@ -64,6 +65,18 @@ def health() -> HealthOut:
             worker_status = "ok" if fresh else "down"
     except Exception:
         db_status = "down"
+    if get_settings().on_demand_worker:
+        # Serverless: no loop to heartbeat; jobs run when requested (nightfall.serverless).
+        components = [
+            ComponentStatus(name="api", status="ok"),
+            ComponentStatus(name="database", status=db_status),
+            ComponentStatus(name="worker", status="on_demand"),
+        ]
+        return HealthOut(
+            status="ok" if db_status == "ok" else "degraded",
+            version=get_settings().version,
+            components=components,
+        )
     components = [
         ComponentStatus(name="api", status="ok"),
         ComponentStatus(name="database", status=db_status),
@@ -101,6 +114,29 @@ class RequestGuard(BaseHTTPMiddleware):
         return response
 
 
+internal_router = APIRouter(prefix="/api/internal", tags=["internal"])
+
+
+def _cron_auth(request: Request) -> None:
+    """Scheduled calls only: the platform sends `Authorization: Bearer <CRON_SECRET>`."""
+    secret = get_settings().cron_secret
+    given = request.headers.get("authorization", "")
+    if not secret or not hmac.compare_digest(given.encode(), f"Bearer {secret}".encode()):
+        raise HTTPException(status_code=404)
+
+
+_cron_auth._nf_authz = True  # type: ignore[attr-defined]  # marker checked by tests
+
+
+@internal_router.get("/worker/drain", dependencies=[Depends(_cron_auth)])
+def cron_drain() -> dict[str, int]:
+    if not get_settings().on_demand_worker:
+        raise HTTPException(status_code=404)
+    from nightfall.serverless import drain
+
+    return {"processed": drain(budget_seconds=50.0, max_jobs=10)}
+
+
 ROUTERS = (
     health_router,
     auth_router,
@@ -113,12 +149,16 @@ ROUTERS = (
     findings_router,
     paths_router,
     reports_router,
+    internal_router,
 )
 
 
 @asynccontextmanager
 async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Starts the embedded worker when configured (single-container hosting)."""
+    """Serverless: start-up migrations. Single container: starts the embedded worker."""
+    from nightfall.serverless import migrate_on_start
+
+    migrate_on_start()
     embedded = None
     if get_settings().embedded_worker:
         from nightfall.recon.worker import start_embedded
