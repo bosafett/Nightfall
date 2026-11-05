@@ -26,6 +26,11 @@ NIGHTFALL (Vercel) ─▶ database (Neon) ◀─ lab worker ─▶ lab-net (no i
    -join ((1..48) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
    ```
    Copy the 48-character result. It only contains 0–9 and a–f, so it's safe in a connection string.
+> **Hold off on step 4 for now.** The authorization review found that the lab's database account isn't yet
+> confined to lab data (`docs/reviews/2026-11-blacksite-authorization-model.md`, finding F1). You can do every
+> other step and run the seal checks. The lab worker just won't be able to log in until step 4 is done, after
+> the fix.
+
 4. **Tell NIGHTFALL about it.** In Vercel, open Project → Settings → Environment Variables and add
    `NIGHTFALL_LAB_WORKER_DB_PASSWORD` with that value. Then redeploy (Deployments → ⋯ → Redeploy). On its next
    start, NIGHTFALL turns on the lab worker's login. Until then the lab role exists but can't log in.
