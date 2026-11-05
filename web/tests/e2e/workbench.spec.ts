@@ -53,6 +53,19 @@ test("owner signs in, is required to enrol two-factor, then reaches the workspac
   await expect(page.getByTestId("kpi-Critical findings")).toContainText("0");
   await expect(page.getByText("No relationships yet")).toBeVisible();
   await expect(page.getByText("No open assessments")).toBeVisible();
+  // Command Center panels: real empty states, no simulated activity.
+  await expect(page.getByTestId("secondary-metrics")).toContainText("Pending approvals");
+  await expect(page.getByTestId("recent-findings")).toContainText("No findings yet");
+  await expect(page.getByTestId("recent-operations")).toContainText("No operations yet");
+  await expect(page.getByTestId("risk-overview")).toContainText("No open findings");
+  const agents = page.getByTestId("agent-activity");
+  for (const name of ["Director", "Scout", "Investigator", "Hunter", "Adversary", "Guardian", "Analyst"]) {
+    await expect(agents.getByText(name, { exact: true })).toBeVisible();
+  }
+  await expect(agents.getByText("No runs yet")).toHaveCount(7);
+  // The lab does not report health; it must never read as online.
+  await expect(page.getByText("Not reported")).toBeVisible();
+  await expect(page.getByTestId("environment")).toContainText("DRE Lab");
   workspaceUrl = new URL(page.url()).pathname;
   await page.context().storageState({ path: STATE });
 });
@@ -65,7 +78,7 @@ test.describe("as the owner", () => {
     const nav = page.getByRole("navigation", { name: "Primary" });
     for (const [link, heading] of [
       ["Target Registry", "Target Registry"], ["Reconnaissance", "Reconnaissance"], ["Findings", "Findings"],
-      ["Attack Graph", "Attack Graph"], ["War Room", "War Room"], ["Reports", "Reports"],
+      ["Attack Graph", "Attack Graph"], ["War Room", "War Room"], ["BLACKSITE", "BLACKSITE"], ["Reports", "Reports"],
       ["Settings", "Settings"], ["Command Center", "Command Center"],
     ]) {
       await nav.getByRole("link", { name: link }).click();
@@ -73,6 +86,17 @@ test.describe("as the owner", () => {
       await expect(nav.getByRole("link", { name: link })).toHaveAttribute("aria-current", "page");
     }
     await expect(page.getByText("All systems online")).toBeVisible();
+  });
+
+  test("BLACKSITE shows a restricted, not-configured state with no execution controls", async ({ page }) => {
+    await page.goto(workspaceUrl);
+    const nav = page.getByRole("navigation", { name: "Primary" });
+    await expect(nav.getByRole("link", { name: /BLACKSITE/ }).getByText("Restricted")).toBeAttached();
+    await nav.getByRole("link", { name: /BLACKSITE/ }).click();
+    const panel = page.getByTestId("blacksite-restricted");
+    await expect(panel).toContainText("Execution environment not configured");
+    await expect(page.locator("main").getByRole("button")).toHaveCount(0);
+    await expect(page.locator("main form")).toHaveCount(0);
   });
 
   test("create an organization and a project; data persists after reload", async ({ page }) => {
@@ -170,6 +194,8 @@ test.describe("as the owner", () => {
     await expect(page.getByTestId("kpi-Assets discovered")).toContainText("4");
     await expect(page.getByTestId("kpi-Operations")).toContainText("1");
     await expect(page.getByRole("link", { name: "Acme Corporation — External reconnaissance" })).toBeVisible();
+    await expect(page.getByTestId("recent-operations")).toContainText("acme.test");
+    await expect(page.getByTestId("recent-operations")).toContainText("Acme Corporation — External reconnaissance");
     await page.getByRole("navigation", { name: "Time window" }).getByRole("link", { name: "1h" }).click();
     await expect(page).toHaveURL(/window=1h/);
     await expect(page.getByTestId("kpi-Active projects")).toContainText("1 started in the last hour");
@@ -203,6 +229,9 @@ test.describe("as the owner", () => {
     await expect(g.getByRole("link", { name: "Acme Corporation" })).toBeVisible();
     await g.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Settings" }).click();
     await expect(g.getByRole("heading", { name: "Invites" })).toHaveCount(0);
+    await g.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: /BLACKSITE/ }).click();
+    await expect(g.getByTestId("blacksite-restricted")).toContainText("Restricted access");
+    await expect(g.getByTestId("blacksite-restricted")).not.toContainText("not configured");
     await expect(g.getByText("Ana Lyst")).toBeVisible();
 
     // The analyst requests a low-risk probe; it waits for someone else to approve.

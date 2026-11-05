@@ -1,41 +1,68 @@
 import Link from "next/link";
-import type { Overview } from "@/lib/api/types";
+import type { AgentsInfo, AgentTask, Overview } from "@/lib/api/types";
 import { formatRelative } from "@/lib/format";
-import { Panel } from "@/components/ui/primitives";
+import { Badge, Panel } from "@/components/ui/primitives";
 import { AgentTaskStatusBadge } from "@/components/agents/AgentBadges";
 
-/** Command Center: what the agents are doing, counted from agent_tasks. */
-export function AgentActivity({ ws, overview, now }: { ws: string; overview: Overview; now: Date }) {
+const OPEN = new Set(["queued", "running"]);
+
+/**
+ * Command Center: every agent from the registry, with its latest real task.
+ * Nothing is simulated: an agent with no task row reads "No runs yet".
+ */
+export function AgentActivity({ ws, overview, info, tasks, now }: {
+  ws: string; overview: Overview; info: AgentsInfo | null; tasks: AgentTask[] | null; now: Date;
+}) {
   const a = overview.agent_activity;
+  const latest = new Map<string, AgentTask>();
+  for (const t of [...(tasks ?? [])].sort((x, y) => y.queued_at.localeCompare(x.queued_at))) {
+    if (!latest.has(t.agent)) latest.set(t.agent, t);
+  }
   return (
     <Panel title="Agent activity" actions={<Link href={`/w/${ws}/agents`} className="text-sm text-crimson-text hover:underline">All agents</Link>}>
-      {!a.ai_enabled && a.recent.length === 0 ? (
-        <p className="py-6 text-center text-sm text-muted">AI is off on this deployment. Everything else works without it.</p>
-      ) : (
-        <>
-          <dl className="mb-3 grid grid-cols-3 gap-2 text-center">
-            {([["Working", a.open], ["Finished", a.finished_in_window], ["Awaiting you", a.agent_proposals_awaiting_approval]] as const).map(([k, v]) => (
-              <div key={k} className="rounded-md border border-border px-2 py-2">
-                <dd className="font-mono text-lg tabular">{v}</dd>
-                <dt className="text-xs text-muted">{k}</dt>
-              </div>
-            ))}
-          </dl>
-          {a.recent.length === 0 ? <p className="text-sm text-muted">No agent has run yet.</p> : (
-            <ul className="-my-2 divide-y divide-border">
-              {a.recent.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/w/${ws}/agents/${t.id}`} className="block truncate text-sm hover:text-crimson-text">{t.objective}</Link>
-                    <p className="text-xs text-muted">{t.agent_label} · <span className="font-mono tabular">{formatRelative(t.queued_at, now)}</span></p>
+      <div data-testid="agent-activity">
+        {!a.ai_enabled && (
+          <p className="mb-3 rounded-md border border-border-strong bg-surface-2 px-3 py-2 text-xs text-muted">
+            <span className="font-medium text-text">AI is off on this deployment.</span> Agents can&apos;t run; everything else works without them.
+          </p>
+        )}
+        <dl className="mb-3 grid grid-cols-3 gap-2 text-center">
+          {([["Working", a.open], ["Finished", a.finished_in_window], ["Awaiting you", a.agent_proposals_awaiting_approval]] as const).map(([k, v]) => (
+            <div key={k} className={`rounded-md border px-2 py-2 ${k === "Awaiting you" && v > 0 ? "border-yellow/60" : "border-border"}`}>
+              <dd className="font-mono text-lg tabular">{v}</dd>
+              <dt className="text-xs text-muted">{k}</dt>
+            </div>
+          ))}
+        </dl>
+        {info === null ? (
+          <p className="text-sm text-muted">Agent roster unavailable: the API didn&apos;t answer. Counts above are from the overview.</p>
+        ) : (
+          <ul className="-my-1.5 divide-y divide-border">
+            {info.agents.map((agent) => {
+              const t = latest.get(agent.key);
+              const working = t && OPEN.has(t.status);
+              return (
+                <li key={agent.key} className="py-1.5" data-testid={`agent-${agent.key}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-medium">{agent.label}</span>
+                    {!info.ai_enabled ? <Badge tone="gray">AI off</Badge>
+                      : working ? <AgentTaskStatusBadge value={t.status} />
+                      : t ? <span className="flex items-center gap-1.5 text-xs text-muted">Idle · last <AgentTaskStatusBadge value={t.status} /></span>
+                      : <span className="text-xs text-muted">No runs yet</span>}
                   </div>
-                  <AgentTaskStatusBadge value={t.status} />
+                  {t && (
+                    <p className="truncate text-xs text-muted">
+                      <Link href={`/w/${ws}/agents/${t.id}`} className="hover:text-crimson-text">{t.objective}</Link>
+                      {" · "}<span className="font-mono tabular">{formatRelative(t.finished_at ?? t.queued_at, now)}</span>
+                      {t.status === "failed" && <span className="text-crimson-text"> · needs review</span>}
+                    </p>
+                  )}
                 </li>
-              ))}
-            </ul>
-          )}
-        </>
-      )}
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </Panel>
   );
 }

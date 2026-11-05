@@ -47,11 +47,14 @@ describe("permissions mirror the API", () => {
 });
 
 describe("navigation", () => {
-  it("has the eight spec sections in order", () => {
+  it("has the nine spec sections in order", () => {
     expect(NAV.map((n) => n.label)).toEqual([
       "Command Center", "Target Registry", "Reconnaissance", "Findings",
-      "Attack Graph", "War Room", "Reports", "Settings",
+      "Attack Graph", "War Room", "BLACKSITE", "Reports", "Settings",
     ]);
+  });
+  it("marks only BLACKSITE as restricted", () => {
+    expect(NAV.filter((n) => n.restricted).map((n) => n.key)).toEqual(["blacksite"]);
   });
   it("marks the active section", () => {
     const targets = NAV[1]!;

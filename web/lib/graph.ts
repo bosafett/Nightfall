@@ -2,9 +2,9 @@ import type { GEdge, GNode, GraphData, GraphNodeData, ProjectGraph, Severity } f
 
 export type Positioned = GraphNodeData & { x: number; y: number };
 
-const COL_X = { organization: 0, project: 320 } as const;
-const ROW = 72;
-const GROUP_GAP = 32;
+const COL_X = { organization: 0, project: 340 } as const;
+const ROW = 84;
+const GROUP_GAP = 40;
 
 /**
  * Deterministic two-column layout: each organization sits level with the middle of its

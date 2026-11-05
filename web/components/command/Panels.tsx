@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AssessmentItem, Overview, OverviewWindow } from "@/lib/api/types";
+import type { AssessmentItem, Finding, Overview, OverviewWindow } from "@/lib/api/types";
 import { formatRelative } from "@/lib/format";
 import { assessmentTypeLabel } from "@/lib/labels";
 import { Icon } from "@/components/ui/Icon";
@@ -71,6 +71,27 @@ export function KpiRow({ overview }: { overview: Overview }) {
   );
 }
 
+/** Secondary operational counts. All four come from the overview; none are estimated. */
+export function SecondaryMetrics({ overview }: { overview: Overview }) {
+  const approvals = overview.operations.awaiting_approval + overview.agent_activity.agent_proposals_awaiting_approval;
+  const items: [string, number, string][] = [
+    ["Open findings", overview.risk.open_total, ""],
+    ["Verified findings", overview.risk.validated, ""],
+    ["Pending approvals", approvals, approvals > 0 ? "border-yellow/60" : ""],
+    ["Active assessments", overview.assessments.filter((a) => a.status === "active").length, ""],
+  ];
+  return (
+    <dl className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="secondary-metrics">
+      {items.map(([label, value, border]) => (
+        <div key={label} className={cx("flex items-baseline justify-between gap-2 rounded-md border bg-surface px-3 py-2", border || "border-border")}>
+          <dt className="truncate text-xs text-muted">{label}</dt>
+          <dd className="font-mono text-lg tabular">{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 export function ActiveAssessments({ ws, items, now }: { ws: string; items: AssessmentItem[]; now: Date }) {
   return (
     <Panel title="Active assessments" actions={<Link href={`/w/${ws}/targets`} className="text-sm text-crimson-text hover:underline">Target Registry</Link>}>
@@ -123,24 +144,38 @@ export function ComingPanel({ title, phase, body }: { title: string; phase: numb
   );
 }
 
-export function RecentFindings({ ws, overview, now }: { ws: string; overview: Overview; now: Date }) {
-  const items = overview.recent_findings.items;
+const confidenceText = { low: "Low conf.", medium: "Med. conf.", high: "High conf." } as const;
+
+/**
+ * Prefers the findings list (adds confidence and BLACK ICE evidence counts); falls back to the
+ * overview's short list if that call failed.
+ */
+export function RecentFindings({ ws, overview, findings, now }: { ws: string; overview: Overview; findings: Finding[] | null; now: Date }) {
+  const items = findings ? findings.slice(0, 6) : overview.recent_findings.items;
   return (
     <Panel title="Recent findings" actions={<Link href={`/w/${ws}/findings`} className="text-sm text-crimson-text hover:underline">All findings</Link>}>
-      {items.length === 0 ? <p className="py-6 text-center text-sm text-muted">No findings yet.</p> : (
-        <ul className="-my-2 divide-y divide-border">
-          {items.map((f) => (
-            <li key={f.id} className="flex items-center gap-3 py-2.5">
-              <SeverityBadge severity={f.severity} />
-              <div className="min-w-0 flex-1">
-                <Link href={`/w/${ws}/findings/${f.id}`} className="block truncate text-sm hover:text-crimson-text">{f.title}</Link>
-                <span className="block truncate font-mono text-xs text-muted">{f.ref}{f.asset_value && ` · ${f.asset_value}`} · {formatRelative(f.first_observed_at, now)}</span>
-              </div>
-              <StatusBadge status={f.validation_status} />
-            </li>
-          ))}
-        </ul>
-      )}
+      <div data-testid="recent-findings">
+        {items.length === 0 ? <p className="py-6 text-center text-sm text-muted">No findings yet. They appear as rule checks run on collected evidence.</p> : (
+          <ul className="-my-2 divide-y divide-border">
+            {items.map((f) => {
+              const full = "evidence_count" in f ? (f as Finding) : null;
+              return (
+                <li key={f.id} className="flex items-center gap-3 py-2.5">
+                  <SeverityBadge severity={f.severity} />
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/w/${ws}/findings/${f.id}`} className="block truncate text-sm hover:text-crimson-text">{f.title}</Link>
+                    <span className="block truncate font-mono text-xs text-muted">
+                      {f.ref}{f.asset_value && ` · ${f.asset_value}`} · {formatRelative(f.first_observed_at, now)}
+                      {full && <> · {confidenceText[full.confidence]} · <span title="Evidence records (BLACK ICE)">{full.evidence_count} evidence</span></>}
+                    </span>
+                  </div>
+                  <StatusBadge status={f.validation_status} />
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
     </Panel>
   );
 }
@@ -148,11 +183,16 @@ export function RecentFindings({ ws, overview, now }: { ws: string; overview: Ov
 const barColor: Record<string, string> = { critical: "bg-crimson", high: "bg-orange", medium: "bg-yellow", low: "bg-blue", info: "bg-gray" };
 
 /** Severity breakdown of open findings. Deliberately no blended "risk score". */
-export function RiskOverview({ ws, overview }: { ws: string; overview: Overview }) {
+export function RiskOverview({ ws, overview, findings }: { ws: string; overview: Overview; findings: Finding[] | null }) {
   const r = overview.risk;
+  const closed = findings && {
+    remediated: findings.filter((f) => f.validation_status === "remediated").length,
+    falsePositive: findings.filter((f) => f.validation_status === "false_positive").length,
+  };
   const max = Math.max(1, ...Object.values(r.open_by_severity));
   return (
     <Panel title="Risk overview">
+      <div data-testid="risk-overview">
       {r.open_total === 0 ? <p className="py-6 text-center text-sm text-muted">No open findings.</p> : (
         <>
           <ul className="space-y-2" aria-label="Open findings by severity">
@@ -172,9 +212,16 @@ export function RiskOverview({ ws, overview }: { ws: string; overview: Overview 
           <p className="mt-4 text-xs text-muted">
             <span className="font-mono tabular text-text">{r.open_total}</span> open: <span className="font-mono tabular">{r.validated}</span> validated,{" "}
             <span className="font-mono tabular">{r.unverified}</span> unverified, <span className="font-mono tabular">{r.hypotheses}</span> hypotheses.
+            Hypotheses are not confirmed vulnerabilities.
           </p>
         </>
       )}
+      <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-border pt-3 text-xs">
+        <div><dt className="text-muted">Remediated</dt><dd className="font-mono tabular">{closed ? closed.remediated : "—"}</dd></div>
+        <div><dt className="text-muted">False positive</dt><dd className="font-mono tabular">{closed ? closed.falsePositive : "—"}</dd></div>
+        <div title="Findings have no accepted-risk state yet"><dt className="text-muted">Accepted risk</dt><dd className="text-muted">Not tracked</dd></div>
+      </dl>
+      </div>
     </Panel>
   );
 }

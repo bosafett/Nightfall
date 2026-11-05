@@ -7,7 +7,14 @@ import { MobileNav } from "@/components/shell/MobileNav";
 import { SidebarContent } from "@/components/shell/SidebarContent";
 import { UserMenu } from "@/components/shell/UserMenu";
 import { ApprovalsBell } from "@/components/shell/ApprovalsBell";
+import { Badge } from "@/components/ui/primitives";
 import pkg from "@/package.json";
+
+/** Read from the hosting platform's own variable (Vercel sets VERCEL_ENV); nothing new to configure. */
+const ENV = process.env.VERCEL_ENV ?? (process.env.NODE_ENV === "production" ? "production" : "development");
+const envBadge = ENV === "production"
+  ? <Badge tone="gray">Production</Badge>
+  : ENV === "preview" ? <Badge tone="yellow">Preview</Badge> : <Badge tone="blue">Development</Badge>;
 
 export default async function WorkspaceLayout({ children, params }: { children: React.ReactNode; params: Promise<{ ws: string }> }) {
   const { ws } = await params;
@@ -33,6 +40,10 @@ export default async function WorkspaceLayout({ children, params }: { children: 
             Understand. Investigate. Validate. Defend.
           </p>
           <div className="ml-auto flex items-center gap-3">
+            <span className="hidden items-center gap-2 sm:flex" data-testid="environment">
+              <span className="max-w-40 truncate text-xs text-muted" title="Active workspace">{membership.name}</span>
+              {envBadge}
+            </span>
             <ApprovalsBell ws={ws} summary={bell} />
             <UserMenu name={me.user.display_name} email={me.user.email} role={membership.role} workspace={membership.name} />
           </div>
