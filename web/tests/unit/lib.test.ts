@@ -3,6 +3,7 @@ import { parseError } from "@/lib/api/errors";
 import { formatDateTime, formatRelative, groupSecret } from "@/lib/format";
 import { can, mfaRequired } from "@/lib/labels";
 import { NAV, isActive } from "@/lib/nav";
+import { initialsOf } from "@/components/shell/UserMenu";
 
 describe("parseError", () => {
   it("reads the API's error shape", () => {
@@ -57,5 +58,14 @@ describe("navigation", () => {
     expect(isActive(targets, "w1", "/w/w1/targets/abc")).toBe(true);
     expect(isActive(NAV[0]!, "w1", "/w/w1/targets")).toBe(false);
     expect(isActive(NAV[0]!, "w1", "/w/w1")).toBe(true);
+  });
+});
+
+describe("initialsOf", () => {
+  it("uses letters and digits only", () => {
+    expect(initialsOf("Nick (preview)")).toBe("NP");
+    expect(initialsOf("ana lyst")).toBe("AL");
+    expect(initialsOf("Émile Zola")).toBe("ÉZ");
+    expect(initialsOf("(  )")).toBe("?");
   });
 });

@@ -9,7 +9,7 @@ import { Icon } from "@/components/ui/Icon";
 
 export function UserMenu({ name, email, role, workspace }: { name: string; email: string; role: Role; workspace: string }) {
   const router = useRouter();
-  const initials = name.split(/\s+/).map((p) => p[0]).join("").slice(0, 2).toUpperCase();
+  const initials = initialsOf(name);
 
   async function signOut() {
     await api("/auth/logout", { method: "POST" }).catch(() => undefined);
@@ -37,4 +37,10 @@ export function UserMenu({ name, email, role, workspace }: { name: string; email
       </div>
     </details>
   );
+}
+
+/** Up to two initials from the letters/digits of a name ("Nick (preview)" → "NP"). */
+export function initialsOf(name: string): string {
+  const words = name.split(/\s+/).map((w) => w.replace(/[^\p{L}\p{N}]/gu, "")).filter(Boolean);
+  return (words.map((w) => [...w][0]).join("").slice(0, 2) || "?").toUpperCase();
 }
