@@ -329,6 +329,7 @@ class Operation(Base):
         _pg_enum(OperationStatus, "operation_status"), server_default=text("'queued'")
     )
     requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    proposed_by_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_tasks.id"))
     denial_reason: Mapped[str | None]
     error: Mapped[str | None]
     result_summary: Mapped[dict[str, Any]] = mapped_column(
@@ -480,6 +481,8 @@ class Finding(Base):
     validated_at: Mapped[datetime | None]
     status_note: Mapped[str] = mapped_column(server_default=text("''"))
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    proposed_by_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_tasks.id"))
+    guardian_review: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 
@@ -536,3 +539,41 @@ class AssessmentSnapshot(Base):
     ruleset_version: Mapped[str]
     content: Mapped[dict[str, Any]] = mapped_column(JSONB)
     content_sha256: Mapped[bytes] = mapped_column(LargeBinary)
+
+
+class AgentTaskStatus(enum.StrEnum):
+    QUEUED = "queued"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+class AgentTask(Base):
+    __tablename__ = "agent_tasks"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    agent: Mapped[str]
+    parent_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_tasks.id"))
+    subject_finding_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("findings.id"))
+    objective: Mapped[str]
+    context: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    status: Mapped[AgentTaskStatus] = mapped_column(
+        _pg_enum(AgentTaskStatus, "agent_task_status"), server_default=text("'queued'")
+    )
+    result: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    error: Mapped[str | None]
+    provider: Mapped[str | None]
+    model: Mapped[str | None]
+    prompt_version: Mapped[str | None]
+    input_tokens: Mapped[int | None]
+    output_tokens: Mapped[int | None]
+    latency_ms: Mapped[int | None]
+    requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    attempts: Mapped[int] = mapped_column(server_default=text("0"))
+    queued_at: Mapped[datetime] = _created()
+    started_at: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+    updated_at: Mapped[datetime] = _updated()

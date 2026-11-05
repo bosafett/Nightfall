@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Query
 from pydantic import StringConstraints
@@ -131,6 +131,17 @@ class PathRef(Model):
     status: str
 
 
+class GuardianReview(Model):
+    """Advice from the Guardian agent. Never changes the finding's status."""
+
+    verdict: Literal["supported", "not_supported", "insufficient_evidence"]
+    severity_assessment: Literal["agree", "too_high", "too_low", "not_applicable"]
+    rationale: str
+    model: str
+    reviewed_at: datetime
+    task_id: uuid.UUID
+
+
 class FindingDetail(FindingOut):
     description: str
     impact: str
@@ -144,6 +155,8 @@ class FindingDetail(FindingOut):
     created_by: str | None
     evidence: list[LinkedEvidence]
     attack_paths: list[PathRef]
+    proposed_by_task_id: uuid.UUID | None
+    guardian_review: GuardianReview | None
 
 
 def ref(number: int) -> str:
@@ -344,6 +357,10 @@ def get_finding(
             for e, lb, n in links
         ],
         attack_paths=[PathRef(id=i, title=t, status=s.value) for i, t, s in paths],
+        proposed_by_task_id=f.proposed_by_task_id,
+        guardian_review=GuardianReview.model_validate(f.guardian_review)
+        if f.guardian_review
+        else None,
     )
 
 

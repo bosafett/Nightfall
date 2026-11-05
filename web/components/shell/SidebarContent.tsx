@@ -51,7 +51,8 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
   );
 }
 
-const componentLabel: Record<string, string> = { api: "API", database: "Database", worker: "Worker" };
+const componentLabel: Record<string, string> = { api: "API", database: "Database", worker: "Worker", ai: "AI agents" };
+const componentStatus: Record<string, string> = { ok: "Online", on_demand: "On demand", off: "Off", down: "Down" };
 
 function SystemStatus({ health }: { health: Health | null }) {
   const components = health?.components ?? [];
@@ -70,7 +71,7 @@ function SystemStatus({ health }: { health: Health | null }) {
             {components.map((c) => (
               <li key={c.name} className="flex items-center justify-between text-xs text-muted">
                 <span>{componentLabel[c.name] ?? c.name}</span>
-                <span className={c.status === "down" ? "text-crimson-text" : "text-green"}>{c.status === "ok" ? "Online" : c.status === "on_demand" ? "On demand" : "Down"}</span>
+                <span className={c.status === "down" ? "text-crimson-text" : c.status === "off" ? "text-muted" : "text-green"}>{componentStatus[c.status] ?? c.status}</span>
               </li>
             ))}
           </ul>

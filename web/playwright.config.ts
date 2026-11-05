@@ -26,6 +26,9 @@ const apiEnv = {
   // Next.js rewrites pass client X-Forwarded-For through untouched; never trust it here.
   NIGHTFALL_FORWARDED_HOPS: "0",
   NIGHTFALL_EVIDENCE_DIR: E2E.evidenceDir,
+  // Fixture collectors and a fixture model: canned, labelled results; nothing leaves the host.
+  NIGHTFALL_COLLECTOR_MODE: "fixture",
+  NIGHTFALL_AI_PROVIDER: "fixture",
 };
 
 /** The worker runs in fixture mode: canned, clearly labelled results, no network access. */

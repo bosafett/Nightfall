@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse, Response
 from sqlalchemy import text
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 
+from nightfall.agents.routes import router as agents_router
 from nightfall.config import get_settings
 from nightfall.core.db.session import get_engine
 from nightfall.core.identity.routes import router as auth_router
@@ -39,13 +40,21 @@ HEALTH_ROUTES = {("GET", "/api/health")}
 
 class ComponentStatus(Model):
     name: str
-    status: Literal["ok", "down", "on_demand"]
+    status: Literal["ok", "down", "on_demand", "off"]
 
 
 class HealthOut(Model):
     status: Literal["ok", "degraded"]
     version: str
     components: list[ComponentStatus]
+
+
+def _ai_status() -> ComponentStatus:
+    """Configuration only: whether agents are turned on. AI being off never degrades the
+    platform; everything else works without it."""
+    return ComponentStatus(
+        name="ai", status="off" if get_settings().ai_provider == "none" else "ok"
+    )
 
 
 @health_router.get("/health", response_model=HealthOut)
@@ -71,6 +80,7 @@ def health() -> HealthOut:
             ComponentStatus(name="api", status="ok"),
             ComponentStatus(name="database", status=db_status),
             ComponentStatus(name="worker", status="on_demand"),
+            _ai_status(),
         ]
         return HealthOut(
             status="ok" if db_status == "ok" else "degraded",
@@ -81,6 +91,7 @@ def health() -> HealthOut:
         ComponentStatus(name="api", status="ok"),
         ComponentStatus(name="database", status=db_status),
         ComponentStatus(name="worker", status=worker_status),
+        _ai_status(),
     ]
     return HealthOut(
         status="ok" if db_status == worker_status == "ok" else "degraded",
@@ -149,6 +160,7 @@ ROUTERS = (
     findings_router,
     paths_router,
     reports_router,
+    agents_router,
     internal_router,
 )
 

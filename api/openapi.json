@@ -56,6 +56,85 @@
         "title": "AcceptInviteOut",
         "type": "object"
       },
+      "AgentOut": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "available",
+              "automatic",
+              "planned"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "role",
+          "status"
+        ],
+        "title": "AgentOut",
+        "type": "object"
+      },
+      "AgentTaskStatus": {
+        "enum": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed",
+          "cancelled"
+        ],
+        "title": "AgentTaskStatus",
+        "type": "string"
+      },
+      "AgentsOut": {
+        "additionalProperties": false,
+        "properties": {
+          "agents": {
+            "items": {
+              "$ref": "#/components/schemas/AgentOut"
+            },
+            "title": "Agents",
+            "type": "array"
+          },
+          "ai_enabled": {
+            "title": "Ai Enabled",
+            "type": "boolean"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          }
+        },
+        "required": [
+          "ai_enabled",
+          "model",
+          "agents"
+        ],
+        "title": "AgentsOut",
+        "type": "object"
+      },
       "ApprovalDecision": {
         "enum": [
           "approved",
@@ -508,7 +587,8 @@
             "enum": [
               "ok",
               "down",
-              "on_demand"
+              "on_demand",
+              "off"
             ],
             "title": "Status",
             "type": "string"
@@ -870,6 +950,16 @@
             "title": "First Observed At",
             "type": "string"
           },
+          "guardian_review": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GuardianReview"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -908,6 +998,18 @@
           "project_name": {
             "title": "Project Name",
             "type": "string"
+          },
+          "proposed_by_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed By Task Id"
           },
           "ref": {
             "title": "Ref",
@@ -995,7 +1097,9 @@
           "status_note",
           "created_by",
           "evidence",
-          "attack_paths"
+          "attack_paths",
+          "proposed_by_task_id",
+          "guardian_review"
         ],
         "title": "FindingDetail",
         "type": "object"
@@ -1559,6 +1663,59 @@
           "record_id"
         ],
         "title": "GraphNode",
+        "type": "object"
+      },
+      "GuardianReview": {
+        "additionalProperties": false,
+        "description": "Advice from the Guardian agent. Never changes the finding's status.",
+        "properties": {
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "rationale": {
+            "title": "Rationale",
+            "type": "string"
+          },
+          "reviewed_at": {
+            "format": "date-time",
+            "title": "Reviewed At",
+            "type": "string"
+          },
+          "severity_assessment": {
+            "enum": [
+              "agree",
+              "too_high",
+              "too_low",
+              "not_applicable"
+            ],
+            "title": "Severity Assessment",
+            "type": "string"
+          },
+          "task_id": {
+            "format": "uuid",
+            "title": "Task Id",
+            "type": "string"
+          },
+          "verdict": {
+            "enum": [
+              "supported",
+              "not_supported",
+              "insufficient_evidence"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          }
+        },
+        "required": [
+          "verdict",
+          "severity_assessment",
+          "rationale",
+          "model",
+          "reviewed_at",
+          "task_id"
+        ],
+        "title": "GuardianReview",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -3274,6 +3431,30 @@
         "title": "Role",
         "type": "string"
       },
+      "RunIn": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "enum": [
+              "scout",
+              "hunter"
+            ],
+            "title": "Agent",
+            "type": "string"
+          },
+          "objective": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Objective",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent"
+        ],
+        "title": "RunIn",
+        "type": "object"
+      },
       "ScopeEntryKind": {
         "enum": [
           "host",
@@ -3656,6 +3837,358 @@
           "finding_severity"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "TaskDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "agent_label": {
+            "title": "Agent Label",
+            "type": "string"
+          },
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/TaskOut"
+            },
+            "title": "Children",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "result": {
+            "additionalProperties": true,
+            "title": "Result",
+            "type": "object"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentTaskStatus"
+          },
+          "subject_finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Finding Id"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "agent",
+          "agent_label",
+          "objective",
+          "status",
+          "parent_task_id",
+          "subject_finding_id",
+          "requested_by",
+          "error",
+          "model",
+          "prompt_version",
+          "input_tokens",
+          "output_tokens",
+          "latency_ms",
+          "queued_at",
+          "finished_at",
+          "result",
+          "children"
+        ],
+        "title": "TaskDetail",
+        "type": "object"
+      },
+      "TaskOut": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "agent_label": {
+            "title": "Agent Label",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latency Ms"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "parent_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Task Id"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "prompt_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prompt Version"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentTaskStatus"
+          },
+          "subject_finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Finding Id"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "agent",
+          "agent_label",
+          "objective",
+          "status",
+          "parent_task_id",
+          "subject_finding_id",
+          "requested_by",
+          "error",
+          "model",
+          "prompt_version",
+          "input_tokens",
+          "output_tokens",
+          "latency_ms",
+          "queued_at",
+          "finished_at"
+        ],
+        "title": "TaskOut",
         "type": "object"
       },
       "ToolOut": {
@@ -4300,6 +4833,155 @@
         "summary": "Update Workspace",
         "tags": [
           "workspace"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/agent-tasks/{task_id}": {
+      "get": {
+        "operationId": "get_task_api_workspaces__workspace_id__agent_tasks__task_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Task",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/agent-tasks/{task_id}/cancel": {
+      "post": {
+        "operationId": "cancel_task_api_workspaces__workspace_id__agent_tasks__task_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Task",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/agents": {
+      "get": {
+        "operationId": "list_agents_api_workspaces__workspace_id__agents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Agents",
+        "tags": [
+          "agents"
         ]
       }
     },
@@ -6518,6 +7200,126 @@
         "summary": "Update Project",
         "tags": [
           "registry"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/agent-runs": {
+      "post": {
+        "operationId": "start_run_api_workspaces__workspace_id__projects__project_id__agent_runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Run",
+        "tags": [
+          "agents"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/agent-tasks": {
+      "get": {
+        "operationId": "list_tasks_api_workspaces__workspace_id__projects__project_id__agent_tasks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TaskOut"
+                  },
+                  "title": "Response List Tasks Api Workspaces  Workspace Id  Projects  Project Id  Agent Tasks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Tasks",
+        "tags": [
+          "agents"
         ]
       }
     },

@@ -343,6 +343,37 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
     sandbox and proxy. *Amass* v5 needs the separate engine service (see 10a). Both reuse the proxy and the lock
     unchanged.
 
+## 10c. Hosting and Phase 5 delivery notes (added 2026-11-05)
+
+- **Hosting changed by the owner's decision: Vercel + Neon** (decision 9 revised). Next.js and the FastAPI backend
+  run as Vercel Services on one domain. The web service reaches the API through a private binding. Neon provides
+  Postgres. Adaptations (`api/nightfall/serverless.py`):
+  - API and worker database roles are unchanged. Their passwords are derived from the owner password with HMAC,
+    roles and migrations run at cold start under an advisory lock, and start-up refuses if a role could bypass RLS.
+  - Evidence content lives in Postgres (migration 0006): RLS-scoped through the evidence rows, insert-only.
+  - Rate limits are shared through Postgres (migration 0007, keys hashed).
+  - There is no worker loop. Jobs run after a request or approval, when an open operation page nudges the queue,
+    and from a daily cron.
+  - *Weaker than self-hosting:* Neon's owner credentials are in the platform environment, and the tool sandbox
+    can't run, so Nuclei is refused. `render.yaml` and `infra/render/` remain as a tested alternative.
+- **AI provider changed by the owner's decision (§6, Addendum A local-first):** hosted Claude through the
+  official Anthropic SDK (`NIGHTFALL_AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`), default model `claude-opus-5-5`.
+  Assessment data in the agents' data blocks is sent to the provider. `none` remains the default, and
+  Ollama can be added behind the same `Provider` interface.
+- **5a (done):** provider interface (structured outputs validated against each agent's schema, server-side refusal
+  fallback), `agent_tasks` (migration 0008), deterministic Tool Gateway, and three agents:
+  - *Scout:* proposes collections. Each one is checked against the allowlist, scope, exclusions and risk class:
+    passive is queued, low waits for someone other than the requester, and anything else is refused and audited.
+  - *Hunter:* proposes findings. They are recorded only as `hypothesis` / low confidence, and only with evidence
+    the agent was shown from this project.
+  - *Guardian:* reviews each Hunter finding against the cited raw evidence, without Hunter's reasoning. The verdict
+    is stored as advice and never changes status.
+  - Agents are defined in code (`nightfall/agents/registry.py`, prompt version on every task) instead of an
+    `agents` table.
+  - Collected content goes only into neutralized `<data>` blocks. Injection fixtures are in the tests.
+- **5b (next):** Director, Investigator, Adversary, Analyst; agents overview page; benchmark harness and
+  `docs/benchmarks/`.
+
 ## 11. Decisions requiring human approval
 
 **All approved as proposed (2026-11-04).**

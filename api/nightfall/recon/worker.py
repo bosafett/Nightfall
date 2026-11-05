@@ -14,6 +14,7 @@ Safety properties:
 
 from __future__ import annotations
 
+import functools
 import ipaddress
 import logging
 import os
@@ -30,6 +31,8 @@ from sqlalchemy import create_engine, select, text
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session, sessionmaker
 
+from nightfall.agents import runner as agent_runner
+from nightfall.agents.providers import Provider, get_provider
 from nightfall.blackice.ingest import apply_finding_rules, ingest
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record
@@ -103,6 +106,8 @@ class Worker:
     tools: dict[str, Collector]
     worker_id: str = f"{socket.gethostname()}:{os.getpid()}"
     clock: Callable[[], object] = utcnow
+    # Agents (Phase 5): None means AI is off; queued agent tasks then fail with that reason.
+    provider_factory: Callable[[], Provider | None] = lambda: None
 
     def heartbeat(self) -> None:
         with self.sessions() as db:
@@ -118,13 +123,14 @@ class Worker:
             db.commit()
 
     def run_once(self) -> bool:
-        """Processes at most one operation. Returns False when the queue is empty."""
+        """Processes at most one operation, or else one agent task. Returns False when both
+        queues are empty."""
         with self.sessions() as db:
             db.execute(EXPIRE)
             claimed = db.execute(CLAIM).first()
             db.commit()
         if claimed is None:
-            return False
+            return agent_runner.run_once(self.sessions, self.store, self.provider_factory)
         self.process(claimed.id, claimed.workspace_id)
         return True
 
@@ -269,7 +275,12 @@ def build_worker() -> Worker:
         if s.evidence_backend == "postgres"
         else EvidenceStore(s.evidence_dir)
     )
-    return Worker(sessions, store, collectors(s.collector_mode, nuclei_scan=scan))
+    return Worker(
+        sessions,
+        store,
+        collectors(s.collector_mode, nuclei_scan=scan),
+        provider_factory=functools.cache(get_provider),
+    )
 
 
 def run_loop(worker: Worker, stopping: Callable[[], bool]) -> None:

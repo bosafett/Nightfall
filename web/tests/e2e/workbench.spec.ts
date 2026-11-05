@@ -308,6 +308,33 @@ test.describe("as the owner", () => {
     await expect(page.getByRole("link", { name: "Admin panel may accept default credentials" })).toBeVisible();
   });
 
+  test("agents propose; the gateway decides; AI findings stay hypotheses", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/targets`);
+    await page.getByRole("link", { name: "Acme Corporation" }).click();
+    await page.getByRole("link", { name: "External reconnaissance" }).click();
+    await expect(page.getByText(/Agents only propose/)).toBeVisible();
+
+    // Scout: a passive proposal is queued; a low-risk one waits for someone else.
+    await page.getByRole("button", { name: "Suggest collections (Scout)" }).click();
+    await expect(page.getByText("AI proposal")).toBeVisible();
+    await expect(page.getByText("Done", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("dns · www.acme.test")).toBeVisible();
+    await expect(page.getByText("awaiting_approval")).toBeVisible();
+    await expect(page.getByText(/Agent's notes \(AI-written, not verified\)/)).toBeVisible();
+
+    // Hunter: a candidate finding citing real evidence, reviewed by Guardian.
+    await page.goBack();
+    await page.getByRole("button", { name: "Look for findings (Hunter)" }).click();
+    await expect(page.getByText("Done", { exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await page.getByRole("link", { name: "Open finding" }).click();
+    await expect(page.getByRole("heading", { name: "AI provenance" })).toBeVisible();
+    await expect(async () => {
+      await page.reload();
+      await expect(page.getByText("Guardian: Not enough evidence")).toBeVisible({ timeout: 1_000 });
+    }).toPass({ timeout: 20_000 });
+    await expect(page.locator("main").getByText("Hypothesis").first()).toBeVisible();
+  });
+
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();

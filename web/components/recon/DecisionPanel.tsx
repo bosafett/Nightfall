@@ -15,8 +15,10 @@ export function DecisionPanel({ ws, op }: { ws: string; op: OperationDetail }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">
-        Approving sends up to 3 GET requests to <span className="font-mono text-text">{op.target}</span> (ports 443 and 80),
-        only if it still resolves to a public address that the scope doesn&apos;t exclude. Approval is tied to scope v{op.scope_version}.
+        {op.tool === "nuclei"
+          ? <>Approving runs NIGHTFALL&apos;s reviewed GET-only checks against <span className="font-mono text-text">{op.target}</span> through the scope proxy (ports 443 and 80).</>
+          : <>Approving sends up to 3 GET requests to <span className="font-mono text-text">{op.target}</span> (ports 443 and 80).</>}
+        {" "}It runs only if the target still resolves to a public address that the scope doesn&apos;t exclude. Approval is tied to scope v{op.scope_version}.
       </p>
       <Field label="Reason (recorded with your decision)"><Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} /></Field>
       {error && <Alert>{error}</Alert>}

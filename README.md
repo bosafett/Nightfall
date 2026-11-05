@@ -133,3 +133,18 @@ At start-up, `infra/render/start.sh`:
 Limits: the free database expires after 30 days, the service sleeps when idle, and Nuclei runs are refused because
 the tool sandbox needs `NET_ADMIN`. CI job `render-image` builds the image and starts it against a non-superuser
 database user.
+
+## AI agents (Phase 5a)
+
+Off by default (`NIGHTFALL_AI_PROVIDER=none`). To turn them on, set `NIGHTFALL_AI_PROVIDER=anthropic` and
+`ANTHROPIC_API_KEY`; the model is `NIGHTFALL_AI_MODEL` (default `claude-opus-5-5`). Project data in the agents'
+prompts is then sent to Anthropic.
+
+- Scout proposes collections; Hunter proposes findings; Guardian reviews each Hunter finding against its evidence.
+- Agents never run anything. The Tool Gateway (`api/nightfall/agents/gateway.py`) checks every proposal against
+  the allowlist, scope and risk class. Low-risk collections still need someone other than the requester to approve
+  them, and agent findings are always hypotheses until a person decides.
+- Collected content is passed only inside delimited, size-capped data blocks, never in system prompts.
+- Every task records its model, prompt version, tokens and latency.
+- Tests and e2e use `NIGHTFALL_AI_PROVIDER=fixture`: deterministic, labelled answers, allowed only with fixture
+  collectors.

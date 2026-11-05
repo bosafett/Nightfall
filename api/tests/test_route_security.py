@@ -50,6 +50,7 @@ def test_health(client: Any, owner_db: Any) -> None:
         "api": "ok",
         "database": "ok",
         "worker": "down",
+        "ai": "off",  # configuration only; never degrades the platform
     }
     owner_db.execute(text("INSERT INTO worker_heartbeats (worker_id, version) VALUES ('w1', 't')"))
     owner_db.commit()

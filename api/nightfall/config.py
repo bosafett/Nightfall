@@ -18,6 +18,9 @@ Optional:
   NIGHTFALL_CRON_SECRET             bearer secret for the scheduled drain endpoint.
   NIGHTFALL_RATE_LIMIT_BACKEND      "memory" (default, one API process) or "postgres" (many
                                     instances, e.g. serverless).
+  NIGHTFALL_AI_PROVIDER             "none" (default: agents off) or "anthropic" (needs
+                                    ANTHROPIC_API_KEY; worker only).
+  NIGHTFALL_AI_MODEL                model id (default claude-opus-5-5).
   NIGHTFALL_WORKER_DATABASE_URL     worker connection (role nightfall_worker).
   NIGHTFALL_COLLECTOR_MODE          "live" (default) or "fixture" (tests only: canned results,
                                     labelled as fixture evidence; never contacts the network).
@@ -65,6 +68,8 @@ class Settings:
     on_demand_worker: bool = False
     cron_secret: str | None = None
     rate_limit_backend: Literal["memory", "postgres"] = "memory"
+    ai_provider: Literal["none", "anthropic", "fixture"] = "none"
+    ai_model: str = "claude-opus-5-5"
     tool_sandbox: Literal["uid", "none"] = "uid"
     tool_user: str = "nftool"
     egress_port: int = 3128
@@ -133,6 +138,12 @@ def load_settings() -> Settings:
     rl = os.environ.get("NIGHTFALL_RATE_LIMIT_BACKEND", "memory").strip() or "memory"
     if rl not in ("memory", "postgres"):
         raise ConfigError("NIGHTFALL_RATE_LIMIT_BACKEND must be 'memory' or 'postgres'")
+    ai = os.environ.get("NIGHTFALL_AI_PROVIDER", "none").strip() or "none"
+    if ai not in ("none", "anthropic", "fixture"):
+        raise ConfigError("NIGHTFALL_AI_PROVIDER must be 'none' or 'anthropic'")
+    if ai == "fixture" and mode != "fixture":
+        raise ConfigError("NIGHTFALL_AI_PROVIDER=fixture is for tests (fixture collector mode)")
+    ai_model = os.environ.get("NIGHTFALL_AI_MODEL", "claude-opus-5-5").strip() or "claude-opus-5-5"
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:
         raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
@@ -156,6 +167,8 @@ def load_settings() -> Settings:
         on_demand_worker=on_demand,
         cron_secret=cron_secret,
         rate_limit_backend="postgres" if rl == "postgres" else "memory",
+        ai_provider="anthropic" if ai == "anthropic" else "fixture" if ai == "fixture" else "none",
+        ai_model=ai_model,
     )
 
 

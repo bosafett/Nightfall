@@ -3,6 +3,7 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
 import type { EvidenceSummary, FindingDetail } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
+import { GuardianVerdictBadge } from "@/components/agents/AgentBadges";
 import { can } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
 import { EvidenceList } from "@/components/assets/EvidenceList";
@@ -56,6 +57,24 @@ export default async function FindingPage({ params }: { params: Promise<{ ws: st
           )}
         </div>
         <div className="space-y-6">
+          {f.origin === "agent" && (
+            <Panel title="AI provenance">
+              <div className="space-y-3 text-sm">
+                <p className="text-muted">Proposed by the Hunter agent. It stays a hypothesis until a person reviews the evidence and decides.</p>
+                {f.proposed_by_task_id && <Link className="hover:text-crimson-text" href={`/w/${ws}/agents/${f.proposed_by_task_id}`}>Open the agent task</Link>}
+                {f.guardian_review ? (
+                  <div className="space-y-2 rounded-md border border-dashed border-border-strong p-3">
+                    <GuardianVerdictBadge value={f.guardian_review.verdict} />
+                    <p>{f.guardian_review.rationale}</p>
+                    <p className="text-xs text-muted">
+                      Severity: {f.guardian_review.severity_assessment.replace("_", " ")} · {f.guardian_review.model} · {formatDateTime(f.guardian_review.reviewed_at)}.
+                      Advice only; it doesn&apos;t change the status.
+                    </p>
+                  </div>
+                ) : <p className="text-muted">Guardian review pending.</p>}
+              </div>
+            </Panel>
+          )}
           <Panel title="Facts"><dl className="space-y-2 text-sm">{facts.map(([k, v]) => <div key={k} className="flex justify-between gap-4"><dt className="text-muted">{k}</dt><dd className="text-right">{v}</dd></div>)}</dl></Panel>
           {can.editFindings(me.role) && <Panel title="Decision"><StatusDecision ws={ws} finding={f} /></Panel>}
           {can.editFindings(me.role) && <Panel title="Edit"><EditFinding ws={ws} finding={f} /></Panel>}

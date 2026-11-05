@@ -209,6 +209,57 @@ export interface paths {
         patch: operations["update_workspace_api_workspaces__workspace_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/agent-tasks/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Task */
+        get: operations["get_task_api_workspaces__workspace_id__agent_tasks__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/agent-tasks/{task_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Task */
+        post: operations["cancel_task_api_workspaces__workspace_id__agent_tasks__task_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Agents */
+        get: operations["list_agents_api_workspaces__workspace_id__agents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/assets": {
         parameters: {
             query?: never;
@@ -666,6 +717,40 @@ export interface paths {
         patch: operations["update_project_api_workspaces__workspace_id__projects__project_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/agent-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Run */
+        post: operations["start_run_api_workspaces__workspace_id__projects__project_id__agent_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/agent-tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Tasks */
+        get: operations["list_tasks_api_workspaces__workspace_id__projects__project_id__agent_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects/{project_id}/attack-paths": {
         parameters: {
             query?: never;
@@ -977,6 +1062,34 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
         };
+        /** AgentOut */
+        AgentOut: {
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /** Role */
+            role: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "available" | "automatic" | "planned";
+        };
+        /**
+         * AgentTaskStatus
+         * @enum {string}
+         */
+        AgentTaskStatus: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+        /** AgentsOut */
+        AgentsOut: {
+            /** Agents */
+            agents: components["schemas"]["AgentOut"][];
+            /** Ai Enabled */
+            ai_enabled: boolean;
+            /** Model */
+            model: string | null;
+        };
         /**
          * ApprovalDecision
          * @enum {string}
@@ -1182,7 +1295,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "ok" | "down" | "on_demand";
+            status: "ok" | "down" | "on_demand" | "off";
         };
         /**
          * Confidence
@@ -1327,6 +1440,7 @@ export interface components {
              * Format: date-time
              */
             first_observed_at: string;
+            guardian_review: components["schemas"]["GuardianReview"] | null;
             /**
              * Id
              * Format: uuid
@@ -1356,6 +1470,8 @@ export interface components {
             project_id: string;
             /** Project Name */
             project_name: string;
+            /** Proposed By Task Id */
+            proposed_by_task_id: string | null;
             /** Ref */
             ref: string;
             /** Remediation */
@@ -1581,6 +1697,36 @@ export interface components {
              */
             record_id: string;
             status?: components["schemas"]["ProjectStatus"] | null;
+        };
+        /**
+         * GuardianReview
+         * @description Advice from the Guardian agent. Never changes the finding's status.
+         */
+        GuardianReview: {
+            /** Model */
+            model: string;
+            /** Rationale */
+            rationale: string;
+            /**
+             * Reviewed At
+             * Format: date-time
+             */
+            reviewed_at: string;
+            /**
+             * Severity Assessment
+             * @enum {string}
+             */
+            severity_assessment: "agree" | "too_high" | "too_low" | "not_applicable";
+            /**
+             * Task Id
+             * Format: uuid
+             */
+            task_id: string;
+            /**
+             * Verdict
+             * @enum {string}
+             */
+            verdict: "supported" | "not_supported" | "insufficient_evidence";
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -2279,6 +2425,19 @@ export interface components {
          * @enum {string}
          */
         Role: "owner" | "admin" | "operator" | "analyst" | "viewer";
+        /** RunIn */
+        RunIn: {
+            /**
+             * Agent
+             * @enum {string}
+             */
+            agent: "scout" | "hunter";
+            /**
+             * Objective
+             * @default
+             */
+            objective: string;
+        };
         /**
          * ScopeEntryKind
          * @enum {string}
@@ -2388,6 +2547,102 @@ export interface components {
             finding_title: string | null;
             /** Ordinal */
             ordinal: number;
+        };
+        /** TaskDetail */
+        TaskDetail: {
+            /** Agent */
+            agent: string;
+            /** Agent Label */
+            agent_label: string;
+            /** Children */
+            children: components["schemas"]["TaskOut"][];
+            /** Error */
+            error: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Model */
+            model: string | null;
+            /** Objective */
+            objective: string;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Parent Task Id */
+            parent_task_id: string | null;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Prompt Version */
+            prompt_version: string | null;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Requested By */
+            requested_by: string | null;
+            /** Result */
+            result: {
+                [key: string]: unknown;
+            };
+            status: components["schemas"]["AgentTaskStatus"];
+            /** Subject Finding Id */
+            subject_finding_id: string | null;
+        };
+        /** TaskOut */
+        TaskOut: {
+            /** Agent */
+            agent: string;
+            /** Agent Label */
+            agent_label: string;
+            /** Error */
+            error: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Input Tokens */
+            input_tokens: number | null;
+            /** Latency Ms */
+            latency_ms: number | null;
+            /** Model */
+            model: string | null;
+            /** Objective */
+            objective: string;
+            /** Output Tokens */
+            output_tokens: number | null;
+            /** Parent Task Id */
+            parent_task_id: string | null;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Prompt Version */
+            prompt_version: string | null;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Requested By */
+            requested_by: string | null;
+            status: components["schemas"]["AgentTaskStatus"];
+            /** Subject Finding Id */
+            subject_finding_id: string | null;
         };
         /** ToolOut */
         ToolOut: {
@@ -2825,6 +3080,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkspaceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_task_api_workspaces__workspace_id__agent_tasks__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_task_api_workspaces__workspace_id__agent_tasks__task_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_agents_api_workspaces__workspace_id__agents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentsOut"];
                 };
             };
             /** @description Validation Error */
@@ -4080,6 +4430,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_workspaces__workspace_id__projects__project_id__agent_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_tasks_api_workspaces__workspace_id__projects__project_id__agent_tasks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskOut"][];
                 };
             };
             /** @description Validation Error */

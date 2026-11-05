@@ -19,6 +19,7 @@ dependencies = [
   "cryptography~=50.0",
   "httpx~=0.28.1",      # collectors
   "dnspython~=2.9",     # collectors
+  "anthropic~=2.5",     # agents (optional at runtime: NIGHTFALL_AI_PROVIDER)
 ]
 
 [project.optional-dependencies]

@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiGet } from "@/lib/api/server";
-import type { Operation, Project, ScopeVersion } from "@/lib/api/types";
+import type { AgentsInfo, AgentTask, Operation, Project, ScopeVersion } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { assessmentTypeLabel, can } from "@/lib/labels";
 import { AutoRefresh } from "@/components/recon/AutoRefresh";
+import { AgentTasksTable } from "@/components/agents/AgentTasksTable";
+import { RunAgent } from "@/components/agents/RunAgent";
 import { CollectionForm } from "@/components/recon/CollectionForm";
 import { OperationsTable } from "@/components/recon/OperationsTable";
 import { ScopePanel } from "@/components/scope/ScopePanel";
@@ -18,16 +20,19 @@ export const metadata: Metadata = { title: "Project" };
 
 export default async function ProjectPage({ params }: { params: Promise<{ ws: string; orgId: string; projectId: string }> }) {
   const { ws, orgId, projectId } = await params;
-  const [project, scopes, ops, me] = await Promise.all([
+  const [project, scopes, ops, me, ai, tasks] = await Promise.all([
     apiGet<Project>(`/workspaces/${ws}/projects/${projectId}`),
     apiGet<ScopeVersion[]>(`/workspaces/${ws}/projects/${projectId}/scopes`),
     apiGet<Operation[]>(`/workspaces/${ws}/operations?project_id=${encodeURIComponent(projectId)}&limit=20`),
     membership(ws),
+    apiGet<AgentsInfo>(`/workspaces/${ws}/agents`),
+    apiGet<AgentTask[]>(`/workspaces/${ws}/projects/${projectId}/agent-tasks`),
   ]);
   const active = scopes.find((v) => v.status === "active");
   const suggestions = active ? active.targets.filter((t) => t.kind === "host" || t.kind === "domain_tree").map((t) => t.value) : [];
   const writable = can.writeRegistry(me.role);
-  const pending = ops.some((o) => o.status === "queued" || o.status === "running");
+  const pending = ops.some((o) => o.status === "queued" || o.status === "running")
+    || tasks.some((t) => t.status === "queued" || t.status === "running");
   if (project.organization_id !== orgId) notFound();
 
   return (
@@ -58,6 +63,21 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
             <AutoRefresh ws={ws} active={pending} />
             {ops.length > 0 ? <OperationsTable ws={ws} ops={ops} showProject={false} /> : <p className="text-sm text-muted">No collection has run for this project yet.</p>}
           </div>
+        </Panel>
+        <Panel title="AI agents">
+          {!ai.ai_enabled ? (
+            <p className="text-sm text-muted">AI is off on this deployment. Everything else works without it; an owner can turn it on by configuring a model provider.</p>
+          ) : (
+            <div className="space-y-4">
+              <p className="text-sm text-muted">
+                Agents only propose. Collections they suggest are checked against the scope, and anything that contacts a target still needs
+                someone other than you to approve it. Findings they suggest are recorded as hypotheses, each reviewed by Guardian, until a person decides.
+                Model: <span className="font-mono">{ai.model}</span>. Project data is sent to the model provider.
+              </p>
+              {writable ? <RunAgent ws={ws} projectId={projectId} /> : <p className="text-sm text-muted">Your role can view agent results but not start agents.</p>}
+              {tasks.length > 0 ? <AgentTasksTable ws={ws} tasks={tasks} /> : <p className="text-sm text-muted">No agent has run for this project yet.</p>}
+            </div>
+          )}
         </Panel>
       </div>
     </>
