@@ -1,6 +1,6 @@
 import type { IconName } from "@/lib/nav";
 
-type Name = IconName | "menu" | "close" | "plus" | "logout" | "shield" | "alert" | "copy" | "check";
+type Name = IconName | "menu" | "close" | "plus" | "logout" | "shield" | "alert" | "copy" | "check" | "lock";
 
 const paths: Record<Name, React.ReactNode> = {
   command: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -11,6 +11,8 @@ const paths: Record<Name, React.ReactNode> = {
   warroom: (<><rect x="3" y="4" width="18" height="12" rx="1" /><path d="M8 20h8M12 16v4M7 12l3-3 2 2 4-4" /></>),
   reports: (<><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M10 13h6M10 17h6" /></>),
   settings: (<><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1" /></>),
+  blacksite: (<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h10M7 12h10M7 16h6" /></>),
+  lock: (<><rect x="5" y="11" width="14" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>),
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
   plus: <path d="M12 5v14M5 12h14" />,

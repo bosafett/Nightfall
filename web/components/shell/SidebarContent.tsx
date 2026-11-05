@@ -37,7 +37,12 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
                   )}
                 >
                   <Icon name={item.icon} className={cx("size-5", active && "text-crimson-text")} />
-                  {item.label}
+                  <span className={cx(item.restricted && "font-mono tracking-wider")}>{item.label}</span>
+                  {item.restricted && (
+                    <span className="ml-auto flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted" title="Restricted: owner access only">
+                      <Icon name="lock" className="size-3.5" /><span className="sr-only">Restricted</span>
+                    </span>
+                  )}
                 </Link>
               </li>
             );
@@ -51,7 +56,7 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
   );
 }
 
-const componentLabel: Record<string, string> = { api: "API", database: "Database", worker: "Worker", ai: "AI agents" };
+const componentLabel: Record<string, string> = { api: "API", database: "Database", worker: "Worker", ai: "AI provider" };
 const componentStatus: Record<string, string> = { ok: "Online", on_demand: "On demand", off: "Off", down: "Down" };
 
 function SystemStatus({ health }: { health: Health | null }) {
@@ -74,6 +79,10 @@ function SystemStatus({ health }: { health: Health | null }) {
                 <span className={c.status === "down" ? "text-crimson-text" : c.status === "off" ? "text-muted" : "text-green"}>{componentStatus[c.status] ?? c.status}</span>
               </li>
             ))}
+            {/* /api/health does not report the lab machine; never imply it is online. */}
+            <li className="flex items-center justify-between text-xs text-muted" title="The lab worker does not report health to the API yet">
+              <span>Lab</span><span className="text-muted">Not reported</span>
+            </li>
           </ul>
         </>
       )}
