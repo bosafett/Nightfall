@@ -160,6 +160,23 @@ is set (live logs show "lab worker role: no login (not configured)").
 
 Also add a test that the lab role can neither read nor write anything outside lab work.
 
+**Status: FIXED, needs reviewer verification** (migration 0011, branch `lab-hardening`). Restrictive policies
+for `nightfall_lab_worker` limit each table to lab work:
+- projects with a lab operation;
+- their organizations;
+- lab scopes;
+- approvals and evidence of lab operations;
+- findings in lab projects;
+- assets that are private IPv4 addresses in those organizations;
+- relationships between such assets;
+- audit inserts only in workspaces with lab operations.
+
+The probe above now fails with `new row violates row-level security policy "lab_assets"`. Test:
+`test_lab_role_sees_and_writes_only_lab_data` (a real and a lab project in the same workspace, plus another
+workspace). *Residual:* confinement is per project. If one project mixes real-world and lab scopes over time,
+the lab role can see that project's real findings. The recommendation is to keep lab work in dedicated
+projects. Real-world assets aren't exposed, since only private IPv4 assets are visible.
+
 ### F2 (Medium): the two-person rule counts accounts, not people
 
 **What:** "someone other than the requester" means another *account*. One person with two accounts, each with
@@ -195,6 +212,13 @@ record or a file under `/.well-known/`) to scope authorization. **Not needed for
   `lab-net` interface it's attached to, and refuse to run otherwise.
 - Document that the two settings must match.
 
+**Status: FIXED, needs reviewer verification.** At start-up and in `--check`, the lab worker reads its routing
+table and refuses to start unless every configured lab network is **exactly** a directly attached network that
+doesn't carry the default route (`nightfall/scope/lab.py: lab_network_problem`). Unit test:
+`test_lab_worker_refuses_a_lab_network_it_isnt_attached_to`, covering a home LAN, a widened range, a narrowed
+range and the uplink. CI starts the real lab-worker container on the real networks and checks it passes with
+the correct range and refuses `192.168.0.0/16`.
+
 ### F5 (Low): approvals don't expire
 
 **What:** an approved operation stays approved until it runs, as long as the scope version and window still
@@ -202,6 +226,11 @@ hold. A lab job approved on Monday may run on Friday, when the lab machine next 
 
 **Recommendation:** for lab and BLACKSITE operations, expire approvals after a set time (proposed: 24 hours).
 After that the job is denied with a reason and must be requested again.
+
+**Status: FIXED for lab operations, needs reviewer verification.** Lab approvals expire after 24 hours. The
+worker denies an older one with the reason "lab approvals expire" (`LAB_APPROVAL_TTL_HOURS`). Test:
+`test_lab_approvals_expire` (23 h runs, 25 h is denied). BLACKSITE operations should use the same rule when
+built.
 
 ### F6 (Low, accepted): the owner can do everything
 
@@ -242,9 +271,11 @@ All of these have automated tests that pass on `main` (`e31642d`). See §2 for t
 
 ## 7. Conditions before BLACKSITE's lab phase opens
 
-1. **F1 fixed**, with tests, before `NIGHTFALL_LAB_WORKER_DB_PASSWORD` is set.
-2. **F4:** the lab worker refuses a lab network that doesn't match its interface.
-3. **F5:** approval expiry for lab and BLACKSITE operations.
+1. ~~F1 fixed, with tests, before `NIGHTFALL_LAB_WORKER_DB_PASSWORD` is set.~~ Done (branch `lab-hardening`),
+   pending reviewer verification.
+2. ~~F4: the lab worker refuses a lab network that doesn't match its interface.~~ Done, pending verification.
+3. ~~F5: approval expiry for lab operations.~~ Done for lab operations, pending verification. BLACKSITE must
+   adopt it.
 4. **F2 decision recorded** in §8.
 5. BLACKSITE built per §16.2–16.5, including its own confined database role, and every §16.10 test passing.
 6. **Independent sign-off** of this document (§9).
@@ -254,7 +285,7 @@ All of these have automated tests that pass on `main` (`e31642d`). See §2 for t
 | # | Decision | Recorded answer |
 |---|---|---|
 | D1 | F2: accept account-based two-person rule for lab-only work? | _pending_ |
-| D2 | F5: approval expiry for lab/BLACKSITE operations (proposed 24 h)? | _pending_ |
+| D2 | F5: approval expiry for lab/BLACKSITE operations (proposed 24 h)? | 24 h, implemented as requested by the owner (2026-11-05) |
 | D3 | F8: host BLACKSITE on the lab machine, loopback only? | _pending_ |
 | D4 | Who performs the independent review? | _pending_ |
 

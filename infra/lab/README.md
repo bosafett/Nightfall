@@ -26,10 +26,9 @@ NIGHTFALL (Vercel) ─▶ database (Neon) ◀─ lab worker ─▶ lab-net (no i
    -join ((1..48) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
    ```
    Copy the 48-character result. It only contains 0–9 and a–f, so it's safe in a connection string.
-> **Hold off on step 4 for now.** The authorization review found that the lab's database account isn't yet
-> confined to lab data (`docs/reviews/2026-11-blacksite-authorization-model.md`, finding F1). You can do every
-> other step and run the seal checks. The lab worker just won't be able to log in until step 4 is done, after
-> the fix.
+> **Before step 4:** make sure the live site is running a version with migration 0011, which confines the lab
+> account to lab data (review finding F1). The Vercel runtime log shows
+> `Running upgrade 0010 -> 0011` once, after that version deploys.
 
 4. **Tell NIGHTFALL about it.** In Vercel, open Project → Settings → Environment Variables and add
    `NIGHTFALL_LAB_WORKER_DB_PASSWORD` with that value. Then redeploy (Deployments → ⋯ → Redeploy). On its next
@@ -50,7 +49,7 @@ Run each command in PowerShell from `infra\lab` and compare the result:
 
 | Check | Command | Expected |
 |---|---|---|
-| The worker is running in lab mode | `docker compose logs lab-worker` | `egress-lock: lab mode …` and `LAB WORKER: lab operations only` |
+| The worker is running in lab mode | `docker compose logs lab-worker` | `egress-lock: lab mode …` and `LAB WORKER: lab operations only` (never `LAB WORKER REFUSED TO START`) |
 | The tools are ready | `docker compose exec lab-worker nightfall-worker --check` | every line starts with `ok` |
 | The practice app is up, inside the lab | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -o NUL -w "%{http_code}" http://172.30.99.10/` | `200` |
 | The lab has no internet | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -m 5 https://example.com` | fails (timeout or "could not resolve") |
@@ -65,7 +64,8 @@ If any check doesn't match, stop the lab (`docker compose down`) and send me the
    and outside addresses are refused, and normal scopes can't name lab addresses. Authorize it.
 2. **Request a run.** Request **Technology identification** or the **curated checks** on `172.30.99.10`.
    Every lab run waits for a second person's approval, the same as a real target.
-3. **What happens next.** Once approved, your lab machine picks it up within seconds. Its results are stored
+3. **What happens next.** Once approved, your lab machine picks it up within seconds. Lab approvals are good
+   for 24 hours: if the lab machine is off longer than that, the job is refused and needs a new request. Its results are stored
    as **lab (simulation) evidence** and kept apart from real-world results.
 
 The normal NIGHTFALL worker on Vercel never sees lab jobs, and the lab worker never sees anything else. The
