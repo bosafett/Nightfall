@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Literal
 
 from fastapi import APIRouter, FastAPI, Request
@@ -21,6 +22,8 @@ from nightfall.recon.routes import router as recon_router
 from nightfall.registry.assets import router as assets_router
 from nightfall.registry.routes import router as registry_router
 from nightfall.scope.routes import router as scope_router
+
+log = logging.getLogger("nightfall.api")
 
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 
@@ -78,6 +81,11 @@ class RequestGuard(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.method in MUTATING and request.url.path.startswith("/api/"):
             if request.headers.get("origin") != get_settings().public_origin:
+                log.warning(
+                    "rejected mutating request from origin %r (allowed: %r)",
+                    request.headers.get("origin"),
+                    get_settings().public_origin,
+                )
                 return _error(403, "bad_origin", "Request origin not allowed.")
             if mutations_by_ip.hit_and_check(client_ip(request)):
                 return _error(429, "rate_limited", "Too many requests. Slow down.")
