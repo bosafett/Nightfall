@@ -13,6 +13,7 @@ import hashlib
 import ipaddress
 import json
 import ssl
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -36,6 +37,11 @@ from nightfall.tools.runner import run as run_tool
 
 MAX_NAMES = 5000
 CT_TIMEOUT = 30.0
+# crt.sh is a free public service that often answers 502/503 under load. Transient
+# failures are retried with a short backoff (worst case ~100 s, well inside the function
+# time limit); anything else fails at once.
+CT_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+CT_BACKOFF = (2.0, 5.0)  # seconds before attempts 2 and 3
 DNS_LIFETIME = 5.0
 DNS_TYPES = ("A", "AAAA", "CNAME", "MX", "NS", "TXT")
 
@@ -103,13 +109,20 @@ class CertificateTransparency:
     method = "Certificate transparency log search"
     url = "https://crt.sh/"
 
-    def run(self, target: str, ctx: RunContext) -> CollectorResult:
+    transport: httpx.BaseTransport | None = None  # tests inject a mock transport
+
+    def sleep(self, seconds: float) -> None:  # replaced in tests
+        time.sleep(seconds)
+
+    def _fetch(self, target: str) -> bytes:
         params = {"q": f"%.{target}", "output": "json"}
         chunks: list[bytes] = []
         size = 0
         headers = {"User-Agent": "nightfall-recon"}
         with (
-            httpx.Client(timeout=CT_TIMEOUT, follow_redirects=False) as client,
+            httpx.Client(
+                timeout=CT_TIMEOUT, follow_redirects=False, transport=self.transport
+            ) as client,
             client.stream("GET", self.url, params=params, headers=headers) as resp,
         ):
             resp.raise_for_status()
@@ -118,6 +131,29 @@ class CertificateTransparency:
                 if size > MAX_BLOB_BYTES:
                     raise RuntimeError("crt.sh response exceeded the 5 MiB evidence limit")
                 chunks.append(chunk)
+        return b"".join(chunks)
+
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
+        last = ""
+        for attempt in range(len(CT_BACKOFF) + 1):
+            if attempt:
+                self.sleep(CT_BACKOFF[attempt - 1])
+            try:
+                raw_bytes = self._fetch(target)
+                break
+            except httpx.HTTPStatusError as exc:
+                if exc.response.status_code not in CT_RETRY_STATUS:
+                    raise
+                last = f"HTTP {exc.response.status_code}"
+            except (httpx.TimeoutException, httpx.TransportError) as exc:
+                last = type(exc).__name__
+        else:
+            raise RuntimeError(
+                f"crt.sh (the public certificate-log search) is unavailable right now "
+                f"({last}, {len(CT_BACKOFF) + 1} attempts). It's a free service that is often "
+                "overloaded; request the collection again in a few minutes."
+            )
+        chunks = [raw_bytes]
         raw = b"".join(chunks)
         entries = json.loads(raw or b"[]")
         values: list[str] = []
