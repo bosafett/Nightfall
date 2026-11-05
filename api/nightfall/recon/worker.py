@@ -19,6 +19,7 @@ import logging
 import os
 import signal
 import socket
+import sys
 import time
 import uuid
 from collections.abc import Callable
@@ -47,10 +48,11 @@ from nightfall.core.db.models import (
 )
 from nightfall.core.db.session import set_workspace_context
 from nightfall.core.evidence_store import EvidenceStore
-from nightfall.recon.collectors import Collector, RunContext, collectors
+from nightfall.recon.collectors import Collector, NucleiScan, RunContext, collectors
 from nightfall.recon.safe_http import Refused
 from nightfall.scope.engine import evaluate
 from nightfall.scope.repository import active_scope, snapshot
+from nightfall.tools.runner import Sandbox
 
 log = logging.getLogger("nightfall.worker")
 
@@ -177,7 +179,11 @@ class Worker:
                 )
                 if approval is None:
                     decision_ok, reason = False, "No valid approval for this operation."
-            run_ctx = RunContext(excluded_networks=_excluded_networks(db, op.scope_id))
+            pinned = db.get(Scope, op.scope_id)
+            run_ctx = RunContext(
+                excluded_networks=_excluded_networks(db, op.scope_id),
+                scope=snapshot(db, pinned) if decision_ok and pinned is not None else None,
+            )
             tool = self.tools.get(op.tool)
             target, tool_key = op.target_value, op.tool
         if not decision_ok:
@@ -229,6 +235,9 @@ class Worker:
             op.status = OperationStatus.SUCCEEDED
             op.finished_at = utcnow()
             op.result_summary = {**summary.as_dict(), "findings": findings}
+            if op.tool == "nuclei":
+                op.result_summary["checks"] = result.matches
+                op.result_summary["egress"] = result.egress
             record(
                 db,
                 "operation.completed",
@@ -248,15 +257,59 @@ def build_worker() -> Worker:
     engine = create_engine(s.worker_database_url, pool_pre_ping=True, pool_size=2)
     if s.collector_mode == "fixture":
         log.warning("COLLECTOR MODE IS 'fixture': canned results only, for tests.")
+    scan = NucleiScan(
+        s.nuclei_bin,
+        Sandbox(mode=s.tool_sandbox, user=s.tool_user if s.tool_sandbox == "uid" else None),
+        egress_port=s.egress_port,
+    )
     return Worker(
         sessionmaker(bind=engine, expire_on_commit=False),
         EvidenceStore(s.evidence_dir),
-        collectors(s.collector_mode),
+        collectors(s.collector_mode, nuclei_scan=scan),
     )
+
+
+def self_check() -> list[tuple[str, bool, str]]:
+    """Tool readiness, without touching the database or the network:
+    sandbox lock, Nuclei binary and version, pinned templates."""
+    from nightfall.tools import nuclei
+    from nightfall.tools.runner import run as run_tool
+
+    s = get_settings()
+    sandbox = Sandbox(mode=s.tool_sandbox, user=s.tool_user if s.tool_sandbox == "uid" else None)
+    checks: list[tuple[str, bool, str]] = []
+    try:
+        sandbox.verify_lock()
+        checks.append(("sandbox lock", True, f"tools run as {s.tool_user}, proxy port only"))
+    except Refused as exc:
+        checks.append(("sandbox lock", False, str(exc)))
+    try:
+        nuclei.template_paths()
+        checks.append(("templates", True, f"{len(nuclei.CATALOG)} pinned, hashes match"))
+    except (nuclei.TemplateTampered, OSError) as exc:
+        checks.append(("templates", False, str(exc)))
+    if not s.nuclei_bin:
+        checks.append(("nuclei", False, "NIGHTFALL_NUCLEI_BIN is not set"))
+    else:
+        try:
+            res = run_tool([s.nuclei_bin, "-version", "-duc"], sandbox=sandbox, timeout=30)
+            ver = nuclei.engine_version(res.stderr)
+            checks.append(("nuclei", ver != "unknown", f"{s.nuclei_bin} {ver}"))
+        except (OSError, ValueError) as exc:
+            checks.append(("nuclei", False, f"{type(exc).__name__}: {exc}"))
+    return checks
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
+    # Evidence and temporary files are private to the worker user: the tool user must not
+    # be able to read other runs' evidence.
+    os.umask(0o077)
+    if "--check" in sys.argv[1:]:
+        results = self_check()
+        for name, ok, detail in results:
+            print(f"{'ok  ' if ok else 'FAIL'} {name}: {detail}")
+        raise SystemExit(0 if all(ok for _, ok, _ in results) else 1)
     worker = build_worker()
     stopping = False
 
@@ -267,6 +320,9 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
     log.info("worker %s started", worker.worker_id)
+    if get_settings().collector_mode == "live":
+        for name, ok, detail in self_check():
+            (log.info if ok else log.warning)("tool check %s: %s", name, detail)
     last_beat = 0.0
     while not stopping:
         if time.monotonic() - last_beat > 10:

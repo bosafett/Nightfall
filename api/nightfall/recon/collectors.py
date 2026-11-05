@@ -15,17 +15,24 @@ import json
 import ssl
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from importlib.metadata import version
 from typing import Protocol
 
 import httpx
 
+from nightfall.core.clock import utcnow
 from nightfall.core.db.models import Confidence, RiskClass
 from nightfall.core.evidence_store import MAX_BLOB_BYTES
 from nightfall.recon.fingerprint import RULESET, fingerprint, page_title
 from nightfall.recon.safe_http import Exchange, Refused, SafeHttp
 from nightfall.scope import normalize
+from nightfall.scope.engine import ScopeSnapshot, evaluate
 from nightfall.scope.normalize import NormalizationError
+from nightfall.tools import nuclei
+from nightfall.tools.egress import EgressProxy, Policy, canonical_host
+from nightfall.tools.runner import Sandbox
+from nightfall.tools.runner import run as run_tool
 
 MAX_NAMES = 5000
 CT_TIMEOUT = 30.0
@@ -48,6 +55,8 @@ class CollectorResult:
     rejected: int = 0  # values dropped as malformed
     technologies: list[dict[str, str | None]] = field(default_factory=list)
     http: list[dict[str, object]] = field(default_factory=list)  # per-request summaries
+    matches: list[dict[str, str]] = field(default_factory=list)  # catalog check matches
+    egress: dict[str, int] = field(default_factory=dict)  # proxy connection counts
 
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network
@@ -58,6 +67,7 @@ class RunContext:
     """Scope facts a collector needs at run time (from the operation's pinned scope)."""
 
     excluded_networks: tuple[Network, ...] = ()
+    scope: ScopeSnapshot | None = None
 
 
 class Collector(Protocol):
@@ -352,14 +362,157 @@ class FixtureHttpFingerprint(HttpFingerprint):
         )
 
 
-def collectors(mode: str) -> dict[str, Collector]:
+class NucleiScan:
+    """Curated Nuclei checks (nightfall.tools.nuclei.CATALOG), run in the tool sandbox with
+    all traffic through a per-run egress proxy that admits only the operation target, and
+    only while the operation's pinned scope still allows it."""
+
+    key = "nuclei"
+    label = "Web exposure checks (Nuclei, curated)"
+    risk_class = RiskClass.LOW
+    method = "Nuclei with NIGHTFALL's pinned GET-only templates, through the scope proxy"
+
+    def __init__(
+        self,
+        binary: str | None,
+        sandbox: Sandbox,
+        egress_port: int = 0,
+        require_lock: bool = True,
+        make_pinner: Callable[[list[Network]], SafeHttp] | None = None,
+        clock: Callable[[], datetime] = utcnow,
+        timeout: float = 300.0,
+        ports: frozenset[int] = frozenset({80, 443}),
+    ) -> None:
+        self.binary = binary
+        self.sandbox = sandbox
+        self.egress_port = egress_port
+        self.require_lock = require_lock
+        self.make_pinner = make_pinner or (lambda nets: SafeHttp(excluded_networks=nets))
+        self.clock = clock
+        self.timeout = timeout
+        self.ports = ports
+
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
+        if not self.binary:
+            raise RuntimeError("Nuclei isn't installed on this worker (NIGHTFALL_NUCLEI_BIN).")
+        if self.require_lock:
+            self.sandbox.verify_lock()
+        scope = ctx.scope
+        if scope is None:
+            raise Refused("No pinned scope for this run.")
+        target = canonical_host(target)
+
+        def check_host(host: str) -> str | None:
+            if host != target:
+                return f"{host} is not this operation's target"
+            decision = evaluate(scope, host, self.clock())
+            return None if decision.allowed else decision.reason
+
+        policy = Policy(
+            check_host=check_host,
+            ports=self.ports,
+            pinner=self.make_pinner(list(ctx.excluded_networks)),
+        )
+        with EgressProxy(policy, bind=("127.0.0.1", self.egress_port)) as proxy:
+            argv = nuclei.build_invocation(self.binary, target, proxy.url)
+            res = run_tool(argv, sandbox=self.sandbox, timeout=self.timeout)
+            version_res = run_tool(
+                [self.binary, "-version", "-duc"], sandbox=self.sandbox, timeout=30
+            )
+            egress = proxy.log()
+            dropped = proxy.dropped_log_entries
+            safe_argv = nuclei.redact(argv, proxy.url)
+        matches, rejected = nuclei.parse(res.stdout, target)
+        if res.returncode != 0 and not matches:
+            tail = res.stderr.decode("utf-8", "replace")[-300:]
+            raise RuntimeError(f"Nuclei exited with {res.returncode}: {tail}")
+        tool_version = (
+            f"nuclei {nuclei.engine_version(version_res.stderr)}; {nuclei.CATALOG_VERSION}"
+        )
+        raw = json.dumps(
+            {
+                "target": target,
+                "argv": safe_argv,
+                "tool_version": tool_version,
+                "templates": {t: c.sha256 for t, c in sorted(nuclei.CATALOG.items())},
+                "returncode": res.returncode,
+                "timed_out": res.timed_out,
+                "output_truncated": res.stdout_truncated,
+                "output_jsonl": res.stdout.decode("utf-8", "replace"),
+                "stderr_tail": res.stderr.decode("utf-8", "replace")[-2000:],
+                "egress": egress,
+                "egress_log_dropped": dropped,
+                "matches": matches,
+                "rejected_lines": rejected,
+            },
+            indent=2,
+        ).encode()
+        if len(raw) > MAX_BLOB_BYTES:
+            raise RuntimeError("Nuclei output exceeded the evidence size limit.")
+        addresses = sorted(
+            {str(d["ip"]) for d in egress if d["allowed"] and d["host"] == target and d["ip"]}
+            - {target}
+        )
+        return CollectorResult(
+            raw=raw,
+            content_type="application/json",
+            tool_name="nuclei",
+            tool_version=tool_version,
+            source="nuclei",
+            confidence=Confidence.HIGH,
+            addresses=addresses,
+            matches=matches,
+            rejected=rejected,
+            egress={
+                "allowed": sum(1 for d in egress if d["allowed"]),
+                "refused": sum(1 for d in egress if not d["allowed"]),
+            },
+        )
+
+
+class FixtureNucleiScan(NucleiScan):
+    """Canned matches, labelled 'fixture-nuclei'. Never runs a binary or contacts anything."""
+
+    def __init__(self) -> None:
+        super().__init__(None, Sandbox())
+
+    def run(self, target: str, ctx: RunContext) -> CollectorResult:
+        matches = [
+            {
+                "template_id": tid,
+                "check_id": nuclei.CATALOG[tid].check_id,
+                "title": nuclei.CATALOG[tid].title,
+                "matched_at": f"https://{target}{path}",
+            }
+            for tid, path in (("nf-git-head-exposed", "/.git/HEAD"), ("nf-missing-hsts", "/"))
+        ]
+        raw = json.dumps({"target": target, "fixture": True, "matches": matches}).encode()
+        return CollectorResult(
+            raw=raw,
+            content_type="application/json",
+            tool_name="fixture-nuclei",
+            tool_version="fixture",
+            source="fixture",
+            confidence=Confidence.HIGH,
+            matches=matches,
+            egress={"allowed": 0, "refused": 0},
+        )
+
+
+def collectors(mode: str, nuclei_scan: NucleiScan | None = None) -> dict[str, Collector]:
     if mode == "fixture":
         return {
             "ct": FixtureCertificateTransparency(),
             "dns": FixtureDnsRecords(),
             "http": FixtureHttpFingerprint(),
+            "nuclei": FixtureNucleiScan(),
         }
-    return {"ct": CertificateTransparency(), "dns": DnsRecords(), "http": HttpFingerprint()}
+    return {
+        "ct": CertificateTransparency(),
+        "dns": DnsRecords(),
+        "http": HttpFingerprint(),
+        "nuclei": nuclei_scan or NucleiScan(None, Sandbox()),
+    }
 
 
 # Tool metadata used by the API without instantiating anything.
@@ -367,4 +520,5 @@ TOOLS: dict[str, tuple[str, RiskClass]] = {
     "ct": (CertificateTransparency.label, RiskClass.PASSIVE),
     "dns": (DnsRecords.label, RiskClass.PASSIVE),
     "http": (HttpFingerprint.label, RiskClass.LOW),
+    "nuclei": (NucleiScan.label, RiskClass.LOW),
 }

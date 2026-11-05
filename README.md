@@ -94,3 +94,24 @@ CI fails if either generated file is stale.
   with a note (enforced by the database). Attack paths stay hypotheses until every finding in them is validated.
 - Reports are frozen snapshots with a SHA-256; later changes never alter an existing report, and tampering shows.
 - Raw collector output is stored once, content-addressed by SHA-256, and verified on every download.
+
+## Third-party tools (Phase 4b)
+
+- Tools run in the worker image (`infra/tools/Dockerfile`, images pinned by digest) as a separate user whose only
+  network destination is a per-run egress proxy on `127.0.0.1:3128`. A kernel firewall rule
+  (`infra/tools/egress-lock.sh`) enforces this. The worker keeps only the capabilities needed to start tools as that
+  user, and the tool process gets none.
+- The proxy needs a per-run credential, and it allows only the operation's target, re-checked against the pinned
+  scope. It resolves the name once, refuses private, metadata, CGNAT and scope-excluded addresses, and connects to the
+  address it checked. Plain HTTP: GET/HEAD without bodies, one request per connection. Every decision is logged and
+  stored with the tool's evidence.
+- Nuclei runs only NIGHTFALL's own reviewed, GET-only templates (`api/nightfall/tools/nuclei/templates`), each
+  pinned by SHA-256. Out-of-band callbacks, update checks and redirects are off. Matches become unverified findings,
+  worded from the reviewed catalog rather than from tool output.
+- Live tool runs refuse to start unless the worker verifies the lock first. `nightfall-worker --check` reports
+  sandbox, template and binary status.
+- Local development without the image: set `NIGHTFALL_NUCLEI_BIN`. Tool runs then refuse, because the sandbox
+  isn't active. Use `NIGHTFALL_COLLECTOR_MODE=fixture` for canned results.
+- Tests: `NIGHTFALL_TEST_NUCLEI_BIN=/path/to/nuclei pytest` adds a real-binary test through the proxy.
+  `tests_sandbox/` runs under the real lock: see CI job `sandbox`, or
+  `sudo ../infra/tools/egress-lock.sh .venv/bin/python -m pytest tests_sandbox`.

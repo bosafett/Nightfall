@@ -320,7 +320,28 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
   Command Center findings panels without a blended score, and reports frozen as insert-only, SHA-256-hashed
   snapshots that list hypotheses, unverified findings and test-fixture evidence under Limitations. PDF via the
   browser's print dialog; server-side PDF later.
-- **4b (next):** tools container (Nuclei, ZAP, Amass engine) with the scope-enforcing egress proxy.
+- **4b (done):** the tool sandbox and Nuclei.
+  - *Egress proxy* (`nightfall/tools/egress.py`): per-run credential, port allowlist, host check against the
+    operation target and pinned scope, resolve once and connect to the checked address (private, metadata, CGNAT
+    and excluded addresses refused), plain HTTP limited to bodyless GET/HEAD with one request per connection,
+    connection/byte/time caps, every decision logged into the evidence. CONNECT tunnels are enforced at the TCP
+    destination; TLS isn't intercepted.
+  - *Runner and sandbox* (`nightfall/tools/runner.py`, `infra/tools/`): argv only, empty environment, own process
+    group, rlimits, capped output. The tool user may reach only the proxy port (nftables rule installed at
+    container start). The worker keeps CAP_SETUID/SETGID only, under no_new_privs, and the tool process gets
+    none. Setuid bits are stripped from the image, which is pinned by digest. A live run first verifies the
+    lock: the tool user must fail to reach a loopback canary and fail to change uid. Verified in the built
+    image: the tool process has no capabilities, connections to the internet, DNS and Postgres are all refused,
+    and without NET_ADMIN the container doesn't start.
+  - *Nuclei* v3.11.1 (`nightfall/tools/nuclei/`): only NIGHTFALL-authored, hash-pinned, GET-only HTTP templates
+    run (git metadata, directory listing, Apache server-status, missing HSTS). The upstream nuclei-templates
+    aren't used yet; adding any of them means reviewing and pinning each one. Flags: `-ni -duc -dr -or -ot -pt http`,
+    honest User-Agent, low rate. Output is parsed as untrusted: only catalog ids matched on the target host are
+    kept. Finding rule R6 takes its wording and severity from the catalog. LOW risk: approval required.
+  - **Moved to 4c, with reasons.** *ZAP* is a long-running JVM daemon driven through its own API. Its spider
+    needs a context/scope model and its own upstream-proxy settings, so it is a separate adapter on top of this
+    sandbox and proxy. *Amass* v5 needs the separate engine service (see 10a). Both reuse the proxy and the lock
+    unchanged.
 
 ## 11. Decisions requiring human approval
 

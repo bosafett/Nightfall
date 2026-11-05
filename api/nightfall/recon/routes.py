@@ -49,7 +49,7 @@ PENDING = (OperationStatus.AWAITING_APPROVAL, OperationStatus.QUEUED, OperationS
 
 
 class CollectionIn(Model):
-    tool: Literal["ct", "dns", "http"]
+    tool: Literal["ct", "dns", "http", "nuclei"]
     target: Annotated[str, StringConstraints(max_length=300)]
 
 

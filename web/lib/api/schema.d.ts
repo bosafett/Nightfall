@@ -1134,7 +1134,7 @@ export interface components {
              * Tool
              * @enum {string}
              */
-            tool: "ct" | "dns" | "http";
+            tool: "ct" | "dns" | "http" | "nuclei";
         };
         /** ComponentStatus */
         ComponentStatus: {

@@ -20,6 +20,10 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
   const techs = (op.result_summary.technologies ?? []) as { name: string; version: string | null; rule_id: string; confidence: string; evidence: string }[];
   const http = ((op.result_summary as { http?: unknown }).http ?? []) as { status?: number; title?: string | null; location?: string | null; tls?: { version?: string; subject_cn?: string; issuer_cn?: string; not_after?: string } | null }[];
   const s = op.result_summary as Record<string, number | string | undefined>;
+  const checks = ((op.result_summary as { checks?: unknown }).checks ?? []) as { template_id: string; check_id: string; title: string; matched_at: string }[];
+  const changes = ((op.result_summary as { findings?: unknown }).findings ?? []) as { finding_id: string; check_id: string; change: string }[];
+  const egress = ((op.result_summary as { egress?: unknown }).egress ?? {}) as { allowed?: number; refused?: number };
+  const changeLabel: Record<string, string> = { new: "New finding", seen_again: "Seen again", reopened: "Reopened (was marked remediated)" };
   const rows: [string, string][] = [
     ["Project", `${op.organization_name} — ${op.project_name}`],
     ["Scope version", `v${op.scope_version}`],
@@ -77,6 +81,27 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
                   ))}
                 </DataTable>
               )}
+            </div>
+          ) : op.status === "succeeded" && op.tool === "nuclei" ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted">
+                <span className="font-mono tabular text-text">{egress.allowed ?? 0}</span> connections through the scope proxy · <span className="font-mono tabular text-text">{egress.refused ?? 0}</span> refused
+              </p>
+              {checks.length === 0 ? <p className="text-sm">None of the reviewed checks matched.</p> : (
+                <DataTable head={["Check", "Matched at", "Finding"]}>
+                  {checks.map((c) => {
+                    const ch = changes.find((x) => x.check_id === c.check_id);
+                    return (
+                      <tr key={`${c.template_id}-${c.matched_at}`}>
+                        <td className="px-4 py-2.5"><span className="block text-sm">{c.title}</span><span className="block font-mono text-xs text-muted">{c.template_id}</span></td>
+                        <td className="max-w-xs truncate px-4 py-2.5 font-mono text-xs text-muted" title={c.matched_at}>{c.matched_at}</td>
+                        <td className="px-4 py-2.5 text-sm">{ch ? <Link className="hover:text-crimson-text" href={`/w/${ws}/findings/${ch.finding_id}`}>{changeLabel[ch.change] ?? ch.change}</Link> : "—"}</td>
+                      </tr>
+                    );
+                  })}
+                </DataTable>
+              )}
+              <p className="text-xs text-muted">Matches create unverified findings. Someone has to review the evidence before a finding counts as validated.</p>
             </div>
           ) : op.status === "succeeded" ? (
             <ul className="space-y-1 text-sm">

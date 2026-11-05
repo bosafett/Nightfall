@@ -182,6 +182,7 @@ def ingest(
                 "records": result.records,
                 "technologies": result.technologies,
                 "http": result.http,
+                "checks": result.matches,
             },
             is_simulation=False,
         )
@@ -266,7 +267,7 @@ def apply_finding_rules(
     """Creates or refreshes rule-based findings for this evidence. Re-observation updates the
     existing finding (last seen + evidence link); a finding marked remediated is reopened as
     unverified. A finding marked false positive keeps that status."""
-    from nightfall.blackice.finding_rules import RULESET, from_http
+    from nightfall.blackice.finding_rules import RULESET, from_http, from_nuclei
     from nightfall.core.db.models import (
         Finding,
         FindingEvidence,
@@ -275,7 +276,8 @@ def apply_finding_rules(
     )
 
     changes: list[dict[str, object]] = []
-    for d in from_http(result.http, result.technologies, now):
+    drafts = from_http(result.http, result.technologies, now) + from_nuclei(result.matches)
+    for d in drafts:
         existing = db.scalar(
             select(Finding)
             .where(

@@ -1,0 +1,8 @@
+# CI only: the worker image plus pytest and the live sandbox tests.
+#   docker build -f infra/tools/Dockerfile -t nightfall-worker .
+#   docker build -f infra/tools/Dockerfile.sandbox-test -t nightfall-sandbox-test .
+FROM nightfall-worker
+RUN pip install --no-cache-dir pytest==9.2.0 pluggy==1.7.0 iniconfig==2.3.1 packaging==26.3
+COPY api/tests_sandbox /opt/tests_sandbox
+ENV NIGHTFALL_TEST_NUCLEI_BIN=/usr/local/bin/nuclei
+CMD ["python", "-m", "pytest", "/opt/tests_sandbox", "-q", "-p", "no:cacheprovider"]

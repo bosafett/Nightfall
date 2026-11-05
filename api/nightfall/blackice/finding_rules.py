@@ -14,7 +14,7 @@ from typing import Any
 
 from nightfall.core.db.models import Confidence, Severity
 
-RULESET = "findings/2026.11-1"
+RULESET = "findings/2026.11-2"
 
 
 @dataclass(frozen=True)
@@ -137,4 +137,31 @@ def from_http(
                     remediation="Renew the certificate and automate renewal.",
                 )
             )
+    return drafts
+
+
+def from_nuclei(matches: list[dict[str, str]]) -> list[Draft]:
+    """R6: a curated Nuclei check matched. Wording and severity come from the reviewed
+    catalog, never from the tool's output."""
+    from nightfall.tools.nuclei import CATALOG
+
+    drafts: list[Draft] = []
+    seen: set[str] = set()
+    for m in matches:
+        check = CATALOG.get(m.get("template_id", ""))
+        if check is None or check.template_id in seen:
+            continue
+        seen.add(check.template_id)
+        drafts.append(
+            Draft(
+                check_id=check.check_id,
+                rule_id=f"R6-curated-check:{check.template_id}",
+                title=check.title,
+                severity=check.severity,
+                confidence=Confidence.HIGH,
+                description=f"{check.description} Matched at {m.get('matched_at', '?')}.",
+                impact=check.impact,
+                remediation=check.remediation,
+            )
+        )
     return drafts

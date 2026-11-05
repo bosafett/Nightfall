@@ -1,0 +1,22 @@
+id: nf-directory-listing
+info:
+  name: Directory listing on the web root
+  author: nightfall
+  severity: low
+  description: Reads the web root only and matches a server-generated index page.
+  tags: nightfall,misconfig
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    max-size: 65536
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: regex
+        part: body
+        regex:
+          - "(?i)<title>\\s*Index of /"

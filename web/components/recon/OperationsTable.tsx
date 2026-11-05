@@ -12,6 +12,10 @@ function outcome(op: Operation): string {
   if (op.status !== "succeeded") return "—";
   const s = op.result_summary as { assets_new?: number; assets_seen?: number; out_of_scope?: number; technologies?: { name: string }[] };
   if (op.tool === "http") return `${s.technologies?.length ?? 0} technologies identified`;
+  if (op.tool === "nuclei") {
+    const n = (op.result_summary as { checks?: unknown[] }).checks?.length ?? 0;
+    return n === 1 ? "1 check matched" : `${n} checks matched`;
+  }
   return `${s.assets_new ?? 0} new · ${s.assets_seen ?? 0} seen · ${s.out_of_scope ?? 0} outside scope`;
 }
 

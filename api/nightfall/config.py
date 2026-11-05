@@ -15,6 +15,13 @@ Optional:
   NIGHTFALL_FORWARDED_HOPS          trusted reverse proxies in front of the API that set
                                     X-Forwarded-For themselves (default 0). Never count the
                                     Next.js rewrite proxy: it forwards the client's header as-is.
+  NIGHTFALL_NUCLEI_BIN              absolute path to the pinned nuclei binary (worker only).
+  NIGHTFALL_TOOL_SANDBOX            "uid" (default) or "none". "uid" runs tools as
+                                    NIGHTFALL_TOOL_USER (default nftool), whose only network
+                                    route is the egress proxy port (infra/tools/egress-lock.sh).
+                                    With "none", live tool runs refuse to start.
+  NIGHTFALL_EGRESS_PORT             loopback port of the per-run egress proxy (default 3128;
+                                    must match the firewall rule).
 """
 
 from __future__ import annotations
@@ -43,6 +50,10 @@ class Settings:
     evidence_dir: Path
     worker_database_url: str | None
     collector_mode: Literal["live", "fixture"]
+    nuclei_bin: str | None = None
+    tool_sandbox: Literal["uid", "none"] = "uid"
+    tool_user: str = "nftool"
+    egress_port: int = 3128
     session_idle_seconds: int = 12 * 3600
     session_absolute_seconds: int = 7 * 86400
     version: str = "0.1.0"
@@ -81,6 +92,15 @@ def load_settings() -> Settings:
     if mode not in ("live", "fixture"):
         raise ConfigError("NIGHTFALL_COLLECTOR_MODE must be 'live' or 'fixture'")
     worker_url = os.environ.get("NIGHTFALL_WORKER_DATABASE_URL", "").strip() or None
+    nuclei_bin = os.environ.get("NIGHTFALL_NUCLEI_BIN", "").strip() or None
+    if nuclei_bin and not os.path.isabs(nuclei_bin):
+        raise ConfigError("NIGHTFALL_NUCLEI_BIN must be an absolute path")
+    sandbox = os.environ.get("NIGHTFALL_TOOL_SANDBOX", "uid").strip() or "uid"
+    if sandbox not in ("uid", "none"):
+        raise ConfigError("NIGHTFALL_TOOL_SANDBOX must be 'uid' or 'none'")
+    egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
+    if not 0 < egress_port < 65536:
+        raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
 
     return Settings(
         database_url=_sqlalchemy_url(_require("NIGHTFALL_DATABASE_URL")),
@@ -92,6 +112,10 @@ def load_settings() -> Settings:
         evidence_dir=Path(os.environ.get("NIGHTFALL_EVIDENCE_DIR", "var/evidence")).resolve(),
         worker_database_url=_sqlalchemy_url(worker_url) if worker_url else None,
         collector_mode="fixture" if mode == "fixture" else "live",
+        nuclei_bin=nuclei_bin,
+        tool_sandbox="none" if sandbox == "none" else "uid",
+        tool_user=os.environ.get("NIGHTFALL_TOOL_USER", "nftool").strip() or "nftool",
+        egress_port=egress_port,
     )
 
 

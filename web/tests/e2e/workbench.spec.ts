@@ -134,13 +134,13 @@ test.describe("as the owner", () => {
     // Server-side refusal of out-of-scope and excluded targets.
     for (const target of ["evil.test", "mail.acme.test"]) {
       await page.getByLabel("Target", { exact: true }).fill(target);
-      await page.getByRole("button", { name: "Run passive collection" }).click();
+      await page.getByRole("button", { name: "Request collection" }).click();
       await expect(alertIn(page)).toContainText(target === "evil.test" ? "Not in the authorized scope" : "Excluded by scope");
     }
 
     await page.getByLabel("Collector").selectOption("ct");
     await page.getByLabel("Target", { exact: true }).fill("acme.test");
-    await page.getByRole("button", { name: "Run passive collection" }).click();
+    await page.getByRole("button", { name: "Request collection" }).click();
     await expect(page.getByText("Queued Certificate transparency")).toBeVisible();
     await expect(page.getByRole("row", { name: /acme\.test.*Done/ })).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText(/4 new · 0 seen · 2 outside scope/)).toBeVisible();
@@ -211,7 +211,7 @@ test.describe("as the owner", () => {
     await g.getByRole("link", { name: "External reconnaissance" }).click();
     await g.getByLabel("Collector").selectOption("http");
     await g.getByLabel("Target", { exact: true }).fill("www.acme.test");
-    await g.getByRole("button", { name: "Run passive collection" }).click();
+    await g.getByRole("button", { name: "Request collection" }).click();
     await expect(g.getByText(/runs once an operator, admin or owner other than you approves it/)).toBeVisible();
 
     await page.goto(`${workspaceUrl}/recon`);
@@ -224,6 +224,22 @@ test.describe("as the owner", () => {
     await expect(page.getByText(/Approved by Nick Operator/)).toBeVisible();
     await expect(page.getByRole("cell", { name: "WordPress", exact: true }).first()).toBeVisible({ timeout: 20_000 });
     await expect(page.getByText("High: stated by server").first()).toBeVisible();
+
+    // Web exposure checks (Nuclei, through the scope proxy) take the same approval path.
+    await g.getByLabel("Collector").selectOption("nuclei");
+    await g.getByLabel("Target", { exact: true }).fill("www.acme.test");
+    await g.getByRole("button", { name: "Request collection" }).click();
+    await expect(g.getByText(/Requested Web exposure checks \(Nuclei, curated\) for www.acme.test/)).toBeVisible();
+    await page.goto(`${workspaceUrl}/recon`);
+    await page.getByRole("region").or(page.locator("section")).filter({ hasText: "Awaiting approval" }).first()
+      .getByRole("link", { name: "www.acme.test" }).click();
+    await page.getByLabel("Reason (recorded with your decision)").fill("Client approved exposure checks");
+    await page.getByRole("button", { name: "Approve", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Approve and queue" }).click();
+    await expect(page.getByText("Git repository metadata is publicly readable")).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText(/connections through the scope proxy/)).toBeVisible();
+    await page.getByRole("row", { name: /Git repository metadata/ }).getByRole("link", { name: "New finding" }).click();
+    await expect(page.getByRole("heading", { name: "Git repository metadata is publicly readable" })).toBeVisible();
 
     // Reusing the invite fails.
     const again = await browser.newContext();

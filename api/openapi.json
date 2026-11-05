@@ -483,7 +483,8 @@
             "enum": [
               "ct",
               "dns",
-              "http"
+              "http",
+              "nuclei"
             ],
             "title": "Tool",
             "type": "string"

@@ -1,0 +1,21 @@
+id: nf-missing-hsts
+info:
+  name: HTTPS response without Strict-Transport-Security
+  author: nightfall
+  severity: low
+  description: Reads the web root over HTTPS only and checks for the HSTS header.
+  tags: nightfall,headers
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/"
+    max-size: 65536
+    matchers-condition: and
+    matchers:
+      - type: dsl
+        dsl:
+          - "startswith(tolower(BaseURL), 'https://')"
+          - "status_code >= 200 && status_code < 400"
+          - "!regex('(?im)^strict-transport-security:', header)"
+        condition: and

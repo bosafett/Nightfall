@@ -1,0 +1,22 @@
+id: nf-git-head-exposed
+info:
+  name: Git repository metadata exposed
+  author: nightfall
+  severity: medium
+  description: Reads /.git/HEAD only. Matches a branch reference; never downloads objects.
+  tags: nightfall,exposure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/.git/HEAD"
+    max-size: 1024
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: regex
+        part: body
+        regex:
+          - "^ref: refs/heads/[A-Za-z0-9._/-]{1,200}\\s*$"

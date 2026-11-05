@@ -83,3 +83,30 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: gitleaks/gitleaks-action@v2
         env: { GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}" }
+
+  sandbox:
+    # Builds the worker + tools image and proves the tool sandbox inside it: the network
+    # lock, dropped privileges, and Nuclei reaching a target only through the egress proxy.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f infra/tools/Dockerfile -t nightfall-worker .
+      - run: docker build -f infra/tools/Dockerfile.sandbox-test -t nightfall-sandbox-test .
+      - name: Self-check passes with the required capabilities
+        run: >-
+          docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP
+          --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
+          -e NIGHTFALL_DATABASE_URL=postgresql://unused@db/unused
+          -e NIGHTFALL_WORKER_DATABASE_URL=postgresql://unused@db/unused
+          -e NIGHTFALL_SECRET_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+          -e NIGHTFALL_PUBLIC_ORIGIN=https://nightfall.invalid
+          nightfall-worker nightfall-worker --check
+      - name: Container refuses to start without the network lock
+        run: >-
+          ! docker run --rm --cap-drop ALL --cap-add SETPCAP --cap-add SETUID --cap-add SETGID
+          nightfall-worker nightfall-worker --check
+      - name: Live sandbox tests
+        run: >-
+          docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP
+          --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
+          nightfall-sandbox-test

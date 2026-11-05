@@ -1,0 +1,22 @@
+id: nf-apache-server-status
+info:
+  name: Apache server-status page exposed
+  author: nightfall
+  severity: medium
+  description: Reads /server-status only and matches the Apache status page heading.
+  tags: nightfall,exposure
+
+http:
+  - method: GET
+    path:
+      - "{{BaseURL}}/server-status"
+    max-size: 65536
+    matchers-condition: and
+    matchers:
+      - type: status
+        status:
+          - 200
+      - type: word
+        part: body
+        words:
+          - "Apache Server Status for"
