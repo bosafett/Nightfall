@@ -415,10 +415,33 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
     assessment (§15 mockup review), hidden when an assessment has none.
 - **Security pass on Phases 5a–6a:** `docs/reviews/2026-11-05-phase5-6-security-pass.md`. One fix: the hourly
   agent limit now also bounds tasks the Director creates.
-- **6b (blocked by hosting): isolated lab and simulations.** §16.5 requires a lab worker on a network with no
-  internet route and no production credentials. Vercel has no such network, so moderate-risk and lab operations stay
-  refused. This needs a self-hosted worker (the `infra/tools` sandbox image is the starting point), plus the independent
-  review of the authorization model that §16.1 requires before BLACKSITE's lab phase.
+- **6b (built; runs on the owner's Windows machine): isolated lab** (§16.5). Hosting decision: lab worker on the
+  owner's home computer with Docker Desktop. It connects outward to Neon only and opens no ports.
+  - *Lab scopes* (`scopes.is_lab`, migration 0010): only IP addresses or ranges inside `NIGHTFALL_LAB_NETWORKS`
+    (default `172.30.99.0/24`), and no hostnames, because the API can't check what a lab name resolves to.
+    Normal scopes can't name lab addresses. Checked when a target is added, when a draft is switched, at
+    authorization, and at run time by the lab worker (`SafeHttp.only_networks`).
+  - *Operations* copy `is_lab` from their scope. Every lab run needs a second person's approval. Moderate risk is
+    allowed only in a lab (DB CHECK), but no moderate tool is registered yet. Agents can't propose lab runs.
+  - *Two workers, disjoint queues:* the restrictive RLS policy limits `nightfall_worker` to `NOT is_lab` and
+    `nightfall_lab_worker` to `is_lab`, and the claim queries filter the same way. The lab role has no access to
+    agent tasks, attack paths, users or sessions, and can add evidence content but not read it. Its login is
+    enabled only when `NIGHTFALL_LAB_WORKER_DB_PASSWORD` is set.
+  - *Network:*
+    - `lab-net` is a Docker `internal` network with no route out. Practice apps (OWASP Juice Shop, MIT) live
+      only there, with no published ports.
+    - In lab mode, `egress-lock.sh` also limits the worker's own process to the lab network, DNS and the
+      database port.
+    - Tools still reach only the per-run proxy.
+    - CI proves the app answers inside the lab, the lab has no route out, nothing is published, and the
+      worker process can't reach the internet.
+  - *Results:* lab evidence is `is_simulation`, and lab scopes, runs and reports are labelled "LAB · ISOLATED"
+    in text.
+  - *Not yet:*
+    - moderate-risk tool packs (full Nuclei template set, ZAP active scan), each needing its own review;
+    - more practice apps, each after a license review;
+    - BLACKSITE, still gated on the independent authorization-model review (§16.1).
+  - Setup guide: `infra/lab/README.md`.
 
 ## 11. Decisions requiring human approval
 

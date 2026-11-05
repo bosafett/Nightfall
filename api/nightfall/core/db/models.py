@@ -289,6 +289,7 @@ class Scope(Base):
     authorized_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     authorized_at: Mapped[datetime | None]
     superseded_at: Mapped[datetime | None]
+    is_lab: Mapped[bool] = mapped_column(server_default=text("false"))
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 
@@ -330,6 +331,7 @@ class Operation(Base):
     )
     requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     proposed_by_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_tasks.id"))
+    is_lab: Mapped[bool] = mapped_column(server_default=text("false"))
     denial_reason: Mapped[str | None]
     error: Mapped[str | None]
     result_summary: Mapped[dict[str, Any]] = mapped_column(

@@ -52,7 +52,13 @@ from nightfall.core.db.models import (
 )
 from nightfall.core.db.session import set_workspace_context
 from nightfall.core.evidence_store import BlobStore, EvidenceStore, PostgresEvidenceStore
-from nightfall.recon.collectors import Collector, NucleiScan, RunContext, collectors
+from nightfall.recon.collectors import (
+    Collector,
+    NucleiScan,
+    RunContext,
+    collectors,
+    lab_collectors,
+)
 from nightfall.recon.safe_http import Refused
 from nightfall.scope.engine import evaluate
 from nightfall.scope.repository import active_scope, snapshot
@@ -61,23 +67,30 @@ from nightfall.tools.runner import Sandbox
 log = logging.getLogger("nightfall.worker")
 
 
-# Constants are inlined (not formatted) so these stay static SQL.
-CLAIM = text("""
+# Constants are inlined (not formatted) so these stay static SQL. The lab worker and the
+# normal worker take disjoint queues (also enforced by RLS, migration 0010).
+_CLAIM = """
 UPDATE operations SET status = 'running', started_at = now(), attempts = attempts + 1
 WHERE id = (
   SELECT id FROM operations
-  WHERE (status = 'queued')
-     OR (status = 'running' AND started_at < now() - interval '10 minutes' AND attempts < 3)
+  WHERE ((status = 'queued')
+     OR (status = 'running' AND started_at < now() - interval '10 minutes' AND attempts < 3))
+    AND {lab}
   ORDER BY queued_at
   FOR UPDATE SKIP LOCKED
   LIMIT 1)
 RETURNING id, workspace_id
-""")
-EXPIRE = text("""
+"""
+_EXPIRE = """
 UPDATE operations SET status = 'failed', finished_at = now(),
   error = 'Gave up after 3 attempts (worker stopped responding).'
 WHERE status = 'running' AND started_at < now() - interval '10 minutes' AND attempts >= 3
-""")
+  AND {lab}
+"""
+CLAIM = text(_CLAIM.format(lab="NOT is_lab"))
+EXPIRE = text(_EXPIRE.format(lab="NOT is_lab"))
+CLAIM_LAB = text(_CLAIM.format(lab="is_lab"))
+EXPIRE_LAB = text(_EXPIRE.format(lab="is_lab"))
 
 
 def _excluded_networks(
@@ -108,6 +121,8 @@ class Worker:
     clock: Callable[[], object] = utcnow
     # Agents (Phase 5): None means AI is off; queued agent tasks then fail with that reason.
     provider_factory: Callable[[], Provider | None] = lambda: None
+    # Isolated lab worker (Phase 6b): only lab operations, never agent tasks.
+    lab: bool = False
 
     def heartbeat(self) -> None:
         with self.sessions() as db:
@@ -126,10 +141,12 @@ class Worker:
         """Processes at most one operation, or else one agent task. Returns False when both
         queues are empty."""
         with self.sessions() as db:
-            db.execute(EXPIRE)
-            claimed = db.execute(CLAIM).first()
+            db.execute(EXPIRE_LAB if self.lab else EXPIRE)
+            claimed = db.execute(CLAIM_LAB if self.lab else CLAIM).first()
             db.commit()
         if claimed is None:
+            if self.lab:
+                return False
             return agent_runner.run_once(self.sessions, self.store, self.provider_factory)
         self.process(claimed.id, claimed.workspace_id)
         return True
@@ -187,6 +204,11 @@ class Worker:
                 if approval is None:
                     decision_ok, reason = False, "No valid approval for this operation."
             pinned = db.get(Scope, op.scope_id)
+            if decision_ok and (
+                pinned is None or pinned.is_lab != op.is_lab or op.is_lab != self.lab
+            ):
+                decision_ok = False
+                reason = "Lab and non-lab work are kept apart; this worker can't run it."
             run_ctx = RunContext(
                 excluded_networks=_excluded_networks(db, op.scope_id),
                 scope=snapshot(db, pinned) if decision_ok and pinned is not None else None,
@@ -275,6 +297,11 @@ def build_worker() -> Worker:
         if s.evidence_backend == "postgres"
         else EvidenceStore(s.evidence_dir)
     )
+    if s.worker_mode == "lab":
+        if s.collector_mode != "live":
+            raise SystemExit("The lab worker runs live tools only.")
+        log.info("LAB WORKER: lab operations only, addresses in %s only", s.lab_networks)
+        return Worker(sessions, store, lab_collectors(s.lab_networks, nuclei_scan=scan), lab=True)
     return Worker(
         sessions,
         store,

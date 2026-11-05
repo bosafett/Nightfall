@@ -17,6 +17,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from nightfall.config import get_settings
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
@@ -34,6 +35,7 @@ from nightfall.core.schemas import Model, OkOut
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
 from nightfall.scope.engine import evaluate, normalize_entry
+from nightfall.scope.lab import entry_problem
 from nightfall.scope.normalize import NormalizationError
 from nightfall.scope.repository import active_scope, snapshot
 
@@ -57,6 +59,7 @@ class EntryOut(Model):
 
 class ScopePatch(Model):
     authorization_reference: Short | None = None
+    is_lab: bool | None = None  # isolated lab scope (Phase 6b): lab-network addresses only
     valid_from: datetime | None = None
     valid_until: datetime | None = None
 
@@ -80,6 +83,7 @@ class ScopeOut(Model):
     authorized_at: datetime | None
     superseded_at: datetime | None
     created_at: datetime
+    is_lab: bool
     targets: list[EntryOut]
     exclusions: list[EntryOut]
 
@@ -155,6 +159,7 @@ def _out(db: Session, s: Scope) -> ScopeOut:
         authorized_at=s.authorized_at,
         superseded_at=s.superseded_at,
         created_at=s.created_at,
+        is_lab=s.is_lab,
         targets=[EntryOut(id=t.id, kind=t.kind, value=t.value, note=t.note) for t in targets],
         exclusions=[
             EntryOut(id=e.id, kind=e.kind, value=e.value, note=e.reason) for e in exclusions
@@ -195,6 +200,7 @@ def start_draft(
         authorization_reference=current.authorization_reference if current else "",
         valid_from=current.valid_from if current else None,
         valid_until=current.valid_until if current else None,
+        is_lab=current.is_lab if current else False,
     )
     db.add(draft)
     db.flush()
@@ -241,6 +247,10 @@ def update_draft(
 ) -> ScopeOut:
     s = _draft(db, ctx, scope_id)
     changes = body.model_dump(exclude_unset=True)
+    if changes.get("is_lab") is None:
+        changes.pop("is_lab", None)
+    elif changes["is_lab"] != s.is_lab and (problem := _lab_problem(db, s, changes["is_lab"])):
+        raise api_error(422, "lab_mismatch", problem)
     for k, v in changes.items():
         setattr(s, k, v)
     if s.valid_from and s.valid_until and s.valid_until <= s.valid_from:
@@ -260,6 +270,17 @@ def update_draft(
     return _out(db, s)
 
 
+def _lab_problem(db: Session, s: Scope, is_lab: bool) -> str | None:
+    """First target that doesn't fit the scope type (lab or not), if any."""
+    networks = get_settings().lab_networks
+    for kind, value in db.execute(
+        select(ScopeTarget.kind, ScopeTarget.value).where(ScopeTarget.scope_id == s.id)
+    ).all():
+        if problem := entry_problem(kind, value, is_lab, networks):
+            return problem
+    return None
+
+
 def _add_entry(
     db: Session, ctx: WorkspaceContext, scope_id: uuid.UUID, body: EntryIn, exclusion: bool
 ) -> ScopeOut:
@@ -272,6 +293,10 @@ def _add_entry(
         value = normalize_entry(body.kind, body.value)
     except NormalizationError as exc:
         raise api_error(422, "invalid_value", str(exc)) from exc
+    if not exclusion and (
+        problem := entry_problem(body.kind, value, s.is_lab, get_settings().lab_networks)
+    ):
+        raise api_error(422, "lab_mismatch", problem)
     if exclusion:
         db.add(
             ScopeExclusion(
@@ -409,6 +434,8 @@ def authorize(
         select(func.count()).select_from(ScopeTarget).where(ScopeTarget.scope_id == s.id)
     ):
         raise api_error(422, "no_targets", "Add at least one target before authorizing.")
+    if problem := _lab_problem(db, s, s.is_lab):  # re-checked with the current lab networks
+        raise api_error(422, "lab_mismatch", problem)
     now = utcnow()
     if s.valid_until is not None and s.valid_until <= now:
         raise api_error(422, "window_ended", "The authorization period has already ended.")
@@ -432,6 +459,7 @@ def authorize(
             "version": s.version,
             "reference": s.authorization_reference,
             "superseded_version": previous.version if previous else None,
+            "is_lab": s.is_lab,
         },
         **ctx.audit_kwargs(),
     )

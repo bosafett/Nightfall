@@ -2574,6 +2574,10 @@
             "title": "Id",
             "type": "string"
           },
+          "is_lab": {
+            "title": "Is Lab",
+            "type": "boolean"
+          },
           "organization_id": {
             "format": "uuid",
             "title": "Organization Id",
@@ -2671,6 +2675,7 @@
           "tool_label",
           "risk_class",
           "target",
+          "is_lab",
           "status",
           "requested_by",
           "requested_by_user_id",
@@ -2768,6 +2773,10 @@
             "title": "Id",
             "type": "string"
           },
+          "is_lab": {
+            "title": "Is Lab",
+            "type": "boolean"
+          },
           "organization_id": {
             "format": "uuid",
             "title": "Organization Id",
@@ -2865,6 +2874,7 @@
           "tool_label",
           "risk_class",
           "target",
+          "is_lab",
           "status",
           "requested_by",
           "requested_by_user_id",
@@ -3993,6 +4003,10 @@
             "title": "Id",
             "type": "string"
           },
+          "is_lab": {
+            "title": "Is Lab",
+            "type": "boolean"
+          },
           "project_id": {
             "format": "uuid",
             "title": "Project Id",
@@ -4062,6 +4076,7 @@
           "authorized_at",
           "superseded_at",
           "created_at",
+          "is_lab",
           "targets",
           "exclusions"
         ],
@@ -4082,6 +4097,17 @@
               }
             ],
             "title": "Authorization Reference"
+          },
+          "is_lab": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Is Lab"
           },
           "valid_from": {
             "anyOf": [

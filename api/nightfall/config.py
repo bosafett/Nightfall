@@ -34,12 +34,20 @@ Optional:
                                     With "none", live tool runs refuse to start.
   NIGHTFALL_EGRESS_PORT             loopback port of the per-run egress proxy (default 3128;
                                     must match the firewall rule).
+  NIGHTFALL_LAB_NETWORKS            comma-separated CIDRs of the isolated lab network (default
+                                    172.30.99.0/24, matching infra/lab/compose.yml). Lab scopes
+                                    may only name addresses inside them; normal scopes never.
+  NIGHTFALL_WORKER_MODE             "standard" (default) or "lab": the lab machine's worker,
+                                    which only claims lab operations and only contacts
+                                    addresses inside NIGHTFALL_LAB_NETWORKS.
+  NIGHTFALL_LAB_WORKER_DB_PASSWORD  (bootstrap-roles only) enables the lab worker's login.
 """
 
 from __future__ import annotations
 
 import base64
 import binascii
+import ipaddress
 import os
 from dataclasses import dataclass
 from functools import lru_cache
@@ -73,6 +81,10 @@ class Settings:
     tool_sandbox: Literal["uid", "none"] = "uid"
     tool_user: str = "nftool"
     egress_port: int = 3128
+    lab_networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...] = (
+        ipaddress.ip_network("172.30.99.0/24"),
+    )
+    worker_mode: Literal["standard", "lab"] = "standard"
     session_idle_seconds: int = 12 * 3600
     session_absolute_seconds: int = 7 * 86400
     version: str = "0.1.0"
@@ -144,6 +156,18 @@ def load_settings() -> Settings:
     if ai == "fixture" and mode != "fixture":
         raise ConfigError("NIGHTFALL_AI_PROVIDER=fixture is for tests (fixture collector mode)")
     ai_model = os.environ.get("NIGHTFALL_AI_MODEL", "claude-opus-5-5").strip() or "claude-opus-5-5"
+    raw_lab = os.environ.get("NIGHTFALL_LAB_NETWORKS", "").strip() or "172.30.99.0/24"
+    try:
+        lab_networks = tuple(
+            ipaddress.ip_network(n.strip()) for n in raw_lab.split(",") if n.strip()
+        )
+    except ValueError as exc:
+        raise ConfigError(f"NIGHTFALL_LAB_NETWORKS: {exc}") from exc
+    if not lab_networks or any(not n.is_private for n in lab_networks):
+        raise ConfigError("NIGHTFALL_LAB_NETWORKS must be private address ranges")
+    worker_mode = os.environ.get("NIGHTFALL_WORKER_MODE", "standard").strip() or "standard"
+    if worker_mode not in ("standard", "lab"):
+        raise ConfigError("NIGHTFALL_WORKER_MODE must be 'standard' or 'lab'")
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:
         raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
@@ -169,6 +193,8 @@ def load_settings() -> Settings:
         rate_limit_backend="postgres" if rl == "postgres" else "memory",
         ai_provider="anthropic" if ai == "anthropic" else "fixture" if ai == "fixture" else "none",
         ai_model=ai_model,
+        lab_networks=lab_networks,
+        worker_mode="lab" if worker_mode == "lab" else "standard",
     )
 
 

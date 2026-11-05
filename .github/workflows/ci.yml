@@ -111,6 +111,43 @@ jobs:
           --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
           nightfall-sandbox-test
 
+  lab:
+    # The isolated lab package (infra/lab, Phase 6b): the practice app answers inside the lab
+    # network, the lab network has no route out, nothing is published, and the lab worker's
+    # own process can't reach the internet.
+    runs-on: ubuntu-24.04
+    env: { LAB_DB_PASSWORD: ci-not-a-secret, DB_HOST: db.invalid }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose file is valid
+        working-directory: infra/lab
+        run: docker compose --env-file lab.env.example config -q
+      - name: Practice app answers inside the lab network only
+        working-directory: infra/lab
+        run: |
+          docker compose up -d juice-shop
+          code=000
+          for i in $(seq 1 90); do
+            code=$(docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 \
+              -s -o /dev/null -w "%{http_code}" http://172.30.99.10/ || true)
+            [ "$code" = 200 ] && break; sleep 2
+          done
+          echo "juice-shop: HTTP $code"; test "$code" = 200
+          test -z "$(docker compose port juice-shop 80 2>/dev/null)"
+      - name: The lab network has no route out
+        run: >-
+          ! docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1
+          -s -m 5 https://example.com
+      - run: docker build -f infra/tools/Dockerfile -t nightfall-worker:lab .
+      - name: The lab worker process can't reach the internet
+        run: >-
+          docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP
+          --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
+          -e NIGHTFALL_WORKER_MODE=lab
+          nightfall-worker:lab python -c "import socket,sys;
+          s=socket.socket();s.settimeout(5);
+          sys.exit(0 if s.connect_ex(('1.1.1.1',443)) else 'reached the internet')"
+
   render-image:
     # Builds the single-container Render image and starts it against a database user that
     # is not a superuser (only CREATEROLE), as on Render's managed Postgres.

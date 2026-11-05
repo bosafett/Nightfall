@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LabBadge } from "@/components/scope/LabBadge";
 import type { Operation } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { DataTable } from "@/components/ui/primitives";
@@ -25,7 +26,7 @@ export function OperationsTable({ ws, ops, showProject = true }: { ws: string; o
       {ops.map((op) => (
         <tr key={op.id} className="hover:bg-surface-2">
           {showProject && <td className="px-4 py-3"><span className="block">{op.project_name}</span><span className="block text-xs text-muted">{op.organization_name}</span></td>}
-          <td className="px-4 py-3 text-muted">{op.tool_label}</td>
+          <td className="px-4 py-3 text-muted">{op.tool_label}{op.is_lab && <span className="ml-2"><LabBadge /></span>}</td>
           <td className="px-4 py-3">
             <Link href={`/w/${ws}/recon/${op.id}`} className="font-mono text-sm hover:text-crimson-text">{op.target}</Link>
           </td>

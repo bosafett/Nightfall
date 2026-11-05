@@ -26,3 +26,6 @@ next-env.d.ts
 
 # Local evidence store
 var/
+
+# Isolated lab machine settings (secrets)
+infra/lab/lab.env

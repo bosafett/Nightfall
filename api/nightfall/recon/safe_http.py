@@ -79,7 +79,10 @@ class Exchange:
 @dataclass
 class SafeHttp:
     resolver: Resolver = system_resolver
-    allow_private: bool = False  # tests and isolated labs only
+    allow_private: bool = False  # tests only
+    # Isolated lab worker: every address must be inside these networks (and nothing else
+    # is allowed, private or public). Empty means the normal rules above.
+    only_networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = field(default_factory=list)
     excluded_networks: list[ipaddress.IPv4Network | ipaddress.IPv6Network] = field(
         default_factory=list
     )
@@ -98,6 +101,10 @@ class SafeHttp:
         for a in addrs:
             if any(a.version == n.version and a in n for n in self.excluded_networks):
                 raise Refused(f"{host} resolves to {a}, which the scope excludes.")
+            if self.only_networks:
+                if not any(a.version == n.version and a in n for n in self.only_networks):
+                    raise Refused(f"{host} resolves to {a}, which is outside the lab network.")
+                continue
             if not self.allow_private and (why := blocked_reason(a)):
                 raise Refused(f"{host} resolves to {a} ({why}); probes to it are blocked.")
         return str(addrs[0])

@@ -21,6 +21,7 @@ import argparse
 import getpass
 import os
 import sys
+from typing import Any
 
 from sqlalchemy import create_engine, select, text, update
 from sqlalchemy.orm import Session
@@ -139,6 +140,36 @@ ROLES = {
 }
 
 
+LAB_ROLE = "nightfall_lab_worker"
+LAB_PASSWORD_VAR = "NIGHTFALL_LAB_WORKER_DB_PASSWORD"  # noqa: S105 - env var name
+
+
+def _lab_worker_role(db: Session, conn: Any) -> None:
+    """The isolated lab machine's role (migration 0010). It can only log in when its
+    password is configured; without it the role exists but is NOLOGIN."""
+    from psycopg import sql
+
+    pw = os.environ.get(LAB_PASSWORD_VAR, "")
+    if pw and len(pw) < 24:
+        sys.exit(f"{LAB_PASSWORD_VAR} must be a random value of at least 24 characters.")
+    exists = db.scalar(text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": LAB_ROLE})
+    if pw:
+        stmt = sql.SQL(
+            "ALTER ROLE {} LOGIN PASSWORD {}"
+            if exists
+            else "CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE"
+        ).format(sql.Identifier(LAB_ROLE), sql.Literal(pw))
+    else:
+        stmt = sql.SQL(
+            "ALTER ROLE {} NOLOGIN"
+            if exists
+            else "CREATE ROLE {} NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE"
+        ).format(sql.Identifier(LAB_ROLE))
+    with conn.cursor() as cur:
+        cur.execute(stmt)
+    print(f"lab worker role: {'login enabled' if pw else 'no login (not configured)'}")
+
+
 def bootstrap_roles(a: argparse.Namespace) -> None:
     from psycopg import sql
 
@@ -167,13 +198,14 @@ def bootstrap_roles(a: argparse.Namespace) -> None:
             with conn.cursor() as cur:
                 cur.execute(stmt)
             print(f"{'updated' if exists else 'created'} role {role}")
+        _lab_worker_role(db, conn)
         # Isolation depends on these roles being unable to bypass row-level security.
         unsafe = db.scalars(
             text(
                 "SELECT rolname FROM pg_roles WHERE rolname = ANY(:r) "
                 "AND (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb)"
             ),
-            {"r": list(ROLES)},
+            {"r": [*ROLES, LAB_ROLE]},
         ).all()
         if unsafe:
             sys.exit(f"Refusing to start: {', '.join(unsafe)} can bypass isolation.")

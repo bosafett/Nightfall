@@ -1,0 +1,58 @@
+# NIGHTFALL isolated lab (Phase 6b, review §16.5). Runs on the lab machine only.
+#
+#   docker compose --env-file lab.env up -d --build       (from this folder)
+#
+# Two networks:
+#   lab-net : internal (no route to anywhere outside it). The practice apps live only here,
+#             and nothing in this file publishes a port, so nothing outside can reach them.
+#   uplink  : the lab worker's way out, used only to reach the NIGHTFALL database. The worker
+#             container's firewall (infra/tools/egress-lock.sh, lab mode) lets the worker
+#             reach only the lab network, DNS and the database port; tools run by it reach
+#             only the per-run proxy, which allows only lab addresses.
+name: nightfall-lab
+
+networks:
+  lab-net:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.30.99.0/24
+  uplink: {}
+
+services:
+  lab-worker:
+    build:
+      context: ../..
+      dockerfile: infra/tools/Dockerfile
+    image: nightfall-worker:lab
+    restart: unless-stopped
+    networks:
+      lab-net:
+        ipv4_address: 172.30.99.2
+      uplink: {}
+    cap_drop: [ALL]
+    cap_add: [NET_ADMIN, SETPCAP, SETUID, SETGID]  # used once at start, then dropped
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      NIGHTFALL_WORKER_MODE: lab
+      NIGHTFALL_LAB_NETWORKS: 172.30.99.0/24
+      NIGHTFALL_LAB_DB_PORT: "5432"
+      NIGHTFALL_EVIDENCE_BACKEND: postgres
+      NIGHTFALL_COLLECTOR_MODE: live
+      # The lab worker never serves the API; these only satisfy the shared settings loader.
+      NIGHTFALL_PUBLIC_ORIGIN: https://lab.invalid
+      NIGHTFALL_SECRET_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      NIGHTFALL_DATABASE_URL: postgresql://unused@unused/unused
+      NIGHTFALL_WORKER_DATABASE_URL: "postgresql://nightfall_lab_worker:${LAB_DB_PASSWORD:?set LAB_DB_PASSWORD in lab.env}@${DB_HOST:?set DB_HOST in lab.env}/${DB_NAME:-neondb}?sslmode=require"
+
+  # OWASP Juice Shop (MIT), an intentionally vulnerable web app for practice.
+  # Only on lab-net, fixed address, no published ports.
+  juice-shop:
+    image: bkimminich/juice-shop:v17.1.1
+    restart: unless-stopped
+    networks:
+      lab-net:
+        ipv4_address: 172.30.99.10
+    environment:
+      PORT: "80"

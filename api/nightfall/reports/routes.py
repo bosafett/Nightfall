@@ -100,6 +100,7 @@ def build_content(db: Session, project: Project, now: datetime) -> dict[str, Any
         scope_block = {
             "version": scope.version,
             "reference": scope.authorization_reference,
+            "is_lab": scope.is_lab,
             "authorized_by": name(scope.authorized_by_user_id),
             "authorized_at": _iso(scope.authorized_at),
             "valid_from": _iso(scope.valid_from),

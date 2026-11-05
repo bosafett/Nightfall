@@ -123,6 +123,9 @@ def apply_scout(db: Session, task: AgentTask, out: ScoutOutput) -> Applied:
     now = utcnow()
     for i, p in enumerate(out.proposals):
         item = {"tool": str(p.tool)[:20], "target": str(p.target)[:300]}
+        if scope is not None and scope.is_lab:
+            _refuse(db, task, applied, item, "Agents can't propose operations in the lab.")
+            continue
         if i >= MAX_SCOUT_PROPOSALS:
             _refuse(db, task, applied, item, f"More than {MAX_SCOUT_PROPOSALS} proposals.")
             continue

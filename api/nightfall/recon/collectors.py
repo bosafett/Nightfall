@@ -551,6 +551,25 @@ def collectors(mode: str, nuclei_scan: NucleiScan | None = None) -> dict[str, Co
     }
 
 
+# Tools the isolated lab worker runs (they contact a target directly; the passive ones need
+# public records the lab has no route to).
+LAB_TOOLS = frozenset({"http", "nuclei"})
+
+
+def lab_collectors(
+    networks: tuple[Network, ...], nuclei_scan: NucleiScan | None = None
+) -> dict[str, Collector]:
+    """The lab worker's tools: every address they contact must be inside the lab networks
+    (SafeHttp.only_networks), on top of the scope check and the tool sandbox."""
+
+    def pinner(excluded: list[Network]) -> SafeHttp:
+        return SafeHttp(excluded_networks=excluded, only_networks=list(networks))
+
+    scan = nuclei_scan or NucleiScan(None, Sandbox())
+    scan.make_pinner = pinner
+    return {"http": HttpFingerprint(make_client=pinner), "nuclei": scan}
+
+
 # Tool metadata used by the API without instantiating anything.
 TOOLS: dict[str, tuple[str, RiskClass]] = {
     "ct": (CertificateTransparency.label, RiskClass.PASSIVE),

@@ -7,6 +7,7 @@ import { scopeKindHint, scopeKindLabel } from "@/lib/labels";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { useAction } from "@/components/ui/useAction";
 import { Alert, Badge, Button, Field, Input, Select } from "@/components/ui/primitives";
+import { LabBadge } from "@/components/scope/LabBadge";
 
 const KINDS: ScopeEntryKind[] = ["domain_tree", "host", "cidr", "ip"];
 const toInput = (iso: string | null) => (iso ? iso.slice(0, 16) : "");
@@ -73,6 +74,7 @@ export function ScopePanel({ ws, projectId, versions, canEdit, canAuthorize }: {
         <section aria-label="Active scope" className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             <Badge tone="green">Authorized · v{active.version}</Badge>
+            {active.is_lab && <LabBadge />}
             <span className="text-sm text-muted">Ref: <span className="text-text">{active.authorization_reference}</span></span>
           </div>
           <p className="font-mono text-xs text-muted tabular">
@@ -91,7 +93,10 @@ export function ScopePanel({ ws, projectId, versions, canEdit, canAuthorize }: {
       {draft ? (
         <section aria-label="Draft scope" className="space-y-4 rounded-md border border-yellow/40 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Badge tone="yellow">Draft · v{draft.version}</Badge>
+            <span className="flex flex-wrap items-center gap-2">
+              <Badge tone="yellow">Draft · v{draft.version}</Badge>
+              {draft.is_lab && <LabBadge />}
+            </span>
             {canEdit && (
               <ConfirmButton label="Discard draft" title="Discard this draft?" body="The authorized scope (if any) stays as it is." confirmLabel="Discard draft"
                 onConfirm={async () => { await run(() => api(`${base}/scopes/${draft.id}`, { method: "DELETE" })); }} />
@@ -103,6 +108,19 @@ export function ScopePanel({ ws, projectId, versions, canEdit, canAuthorize }: {
             <Entries title="Excluded" entries={draft.exclusions} empty="No exclusions."
               onRemove={canEdit ? (id) => run(() => api(`${base}/scopes/${draft.id}/exclusions/${id}`, { method: "DELETE" })) : undefined} />
           </div>
+          {canEdit && (
+            <label className="flex items-start gap-2 text-sm">
+              <input type="checkbox" className="mt-1" checked={draft.is_lab} disabled={busy}
+                onChange={(e) => run(() => api(`${base}/scopes/${draft.id}`, { method: "PATCH", body: { is_lab: e.target.checked } }))} />
+              <span>
+                <span className="font-medium">Lab scope (isolated lab machine)</span>
+                <span className="block text-xs text-muted">
+                  Targets must be IP addresses inside the lab network, e.g. <span className="font-mono">172.30.99.10</span>. Lab runs are carried out
+                  only by your lab machine, always need a second person&apos;s approval, and are recorded as lab results.
+                </span>
+              </span>
+            </label>
+          )}
           {canEdit && (
             <>
               <AddEntry label="Target" noteLabel="Note (optional)" onAdd={(kind, value, note) =>

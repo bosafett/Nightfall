@@ -11,6 +11,11 @@
 #      before exec, and checks the lock before every live run (nightfall/tools/runner.py).
 # The container needs CAP_NET_ADMIN (step 1) and CAP_SETPCAP (to shrink the bounding set in
 # step 2); neither survives into the worker.
+#
+# Lab mode (NIGHTFALL_WORKER_MODE=lab, isolated lab machine, infra/lab/): the worker user is
+# locked down too. It may reach only the lab networks, DNS, and the database port
+# (NIGHTFALL_LAB_DB_PORT, default 5432); everything else it sends is rejected. So even the
+# worker process itself can't browse the internet from the lab machine.
 set -eu
 
 TOOL_USER="${NIGHTFALL_TOOL_USER:-nftool}"
@@ -18,6 +23,19 @@ WORKER_USER="${NIGHTFALL_WORKER_USER:-nfworker}"
 PORT="${NIGHTFALL_EGRESS_PORT:-3128}"
 case "$PORT" in *[!0-9]*|'') echo "egress-lock: bad NIGHTFALL_EGRESS_PORT" >&2; exit 1;; esac
 TOOL_UID="$(id -u "$TOOL_USER")"
+WORKER_RULES=""
+if [ "${NIGHTFALL_WORKER_MODE:-standard}" = "lab" ]; then
+  WORKER_UID="$(id -u "$WORKER_USER")"
+  LABNETS="${NIGHTFALL_LAB_NETWORKS:-172.30.99.0/24}"
+  DBPORT="${NIGHTFALL_LAB_DB_PORT:-5432}"
+  case "$LABNETS" in *[!0-9./,]*|'') echo "egress-lock: bad NIGHTFALL_LAB_NETWORKS (IPv4 CIDRs, comma-separated)" >&2; exit 1;; esac
+  case "$DBPORT" in *[!0-9]*|'') echo "egress-lock: bad NIGHTFALL_LAB_DB_PORT" >&2; exit 1;; esac
+  WORKER_RULES="meta skuid $WORKER_UID oifname \"lo\" accept
+    meta skuid $WORKER_UID ip daddr { $LABNETS } accept
+    meta skuid $WORKER_UID udp dport 53 accept
+    meta skuid $WORKER_UID tcp dport { 53, $DBPORT } accept
+    meta skuid $WORKER_UID counter reject"
+fi
 
 nft -f - <<RULES
 table inet nightfall_tools
@@ -27,10 +45,14 @@ table inet nightfall_tools {
     type filter hook output priority filter; policy accept;
     meta skuid $TOOL_UID oifname "lo" ip daddr 127.0.0.1 tcp dport $PORT accept
     meta skuid $TOOL_UID counter reject
+    $WORKER_RULES
   }
 }
 RULES
 echo "egress-lock: $TOOL_USER (uid $TOOL_UID) may reach only 127.0.0.1:$PORT" >&2
+if [ -n "$WORKER_RULES" ]; then
+  echo "egress-lock: lab mode: $WORKER_USER may reach only $LABNETS, DNS and port $DBPORT" >&2
+fi
 
 if [ "${NIGHTFALL_EGRESS_LOCK_ONLY:-}" = "1" ]; then
   exit 0

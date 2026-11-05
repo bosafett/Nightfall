@@ -37,7 +37,7 @@ from nightfall.core.evidence_store import EvidenceStore, IntegrityError, read_fr
 from nightfall.core.schemas import Model, OkOut
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
-from nightfall.recon.collectors import TOOLS
+from nightfall.recon.collectors import LAB_TOOLS, TOOLS
 from nightfall.registry.assets import EvidenceSummary, evidence_summary
 from nightfall.scope.engine import evaluate
 from nightfall.scope.repository import active_scope, snapshot
@@ -70,6 +70,7 @@ class OperationOut(Model):
     tool_label: str
     risk_class: RiskClass
     target: str
+    is_lab: bool
     status: OperationStatus
     requested_by: str | None
     requested_by_user_id: uuid.UUID | None
@@ -137,6 +138,7 @@ def _out(row: Any) -> OperationOut:
         tool_label=TOOLS.get(op.tool, (op.tool, op.risk_class))[0],
         risk_class=op.risk_class,
         target=op.target_value,
+        is_lab=op.is_lab,
         status=op.status,
         requested_by=requester,
         requested_by_user_id=op.requested_by_user_id,
@@ -203,10 +205,16 @@ def request_collection(
     if project is None:
         raise not_found("Project not found.")
     label, risk = TOOLS[body.tool]
-    if risk not in (RiskClass.PASSIVE, RiskClass.LOW):  # moderate/high: not in this phase
-        raise api_error(403, "not_available", "This tool isn't available.")
-
     scope = active_scope(db, project_id)
+    is_lab = scope is not None and scope.is_lab
+    # High risk never; moderate only against the isolated lab (DB CHECK too, migration 0010).
+    if risk is RiskClass.HIGH or (risk is RiskClass.MODERATE and not is_lab):
+        raise api_error(403, "not_available", "This tool isn't available.")
+    if is_lab and body.tool not in LAB_TOOLS:
+        raise api_error(
+            422, "not_in_lab", "That tool isn't available in the lab (it needs public records)."
+        )
+
     decision = evaluate(snapshot(db, scope) if scope else None, body.target, utcnow())
     if not decision.allowed or scope is None:
         record_detached(
@@ -258,9 +266,11 @@ def request_collection(
         target_value=decision.target,
         params={"method": label},
         requested_by_user_id=ctx.user_id,
-        # Passive runs within scope; anything above passive waits for a second person.
+        is_lab=is_lab,
+        # Passive runs within scope; anything above passive, and every lab run, waits for
+        # a second person.
         status=OperationStatus.QUEUED
-        if risk is RiskClass.PASSIVE
+        if risk is RiskClass.PASSIVE and not is_lab
         else OperationStatus.AWAITING_APPROVAL,
     )
     db.add(op)

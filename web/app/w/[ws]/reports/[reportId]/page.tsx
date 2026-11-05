@@ -65,6 +65,10 @@ export default async function ReportPage({ params }: { params: Promise<{ ws: str
       <H2 n={++n}>Assessment scope</H2>
       {c.scope ? (
         <div className="text-sm">
+          {c.scope.is_lab && (
+            <p className="mb-2 rounded-md border border-blue/50 px-3 py-2 text-sm"><span className="font-semibold">LAB · ISOLATED.</span> These results come from the isolated lab
+              against practice targets, not from real systems.</p>
+          )}
           <p>Scope v{c.scope.version}, authorization <span className="font-medium">{c.scope.reference}</span>, authorized by {c.scope.authorized_by} on {formatDateTime(c.scope.authorized_at)}.</p>
           <p className="mt-2">In scope: <span className="font-mono">{c.scope.targets.map((t: { value: string }) => t.value).join(", ")}</span></p>
           <p className="mt-1">Excluded: <span className="font-mono">{c.scope.exclusions.map((t: { value: string; reason: string }) => `${t.value}${t.reason ? ` (${t.reason})` : ""}`).join(", ") || "none"}</span></p>

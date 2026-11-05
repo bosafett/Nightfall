@@ -1,3 +1,4 @@
+import { LabBadge } from "@/components/scope/LabBadge";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
@@ -37,7 +38,7 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
   return (
     <>
       <nav className="mb-2 text-sm text-muted"><Link href={`/w/${ws}/recon`} className="hover:text-text">Reconnaissance</Link> /</nav>
-      <PageHeader title={op.target} subtitle={op.tool_label} actions={<OperationStatusBadge status={op.status} />} />
+      <PageHeader title={op.target} subtitle={op.tool_label} actions={<span className="flex items-center gap-2">{op.is_lab && <LabBadge />}<OperationStatusBadge status={op.status} /></span>} />
       <AutoRefresh ws={ws} active={op.status === "queued" || op.status === "running"} />
       {op.status === "denied" && <Alert tone="yellow">Refused: {op.denial_reason}</Alert>}
       {op.status === "failed" && <Alert>Failed: {op.error}</Alert>}

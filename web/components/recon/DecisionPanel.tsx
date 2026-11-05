@@ -15,16 +15,18 @@ export function DecisionPanel({ ws, op }: { ws: string; op: OperationDetail }) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted">
-        {op.tool === "nuclei"
+        {op.is_lab
+          ? <>Approving lets your isolated lab machine run {op.tool_label} against <span className="font-mono text-text">{op.target}</span>, inside the lab network only. Results are recorded as lab results.</>
+          : op.tool === "nuclei"
           ? <>Approving runs NIGHTFALL&apos;s reviewed GET-only checks against <span className="font-mono text-text">{op.target}</span> through the scope proxy (ports 443 and 80).</>
           : <>Approving sends up to 3 GET requests to <span className="font-mono text-text">{op.target}</span> (ports 443 and 80).</>}
-        {" "}It runs only if the target still resolves to a public address that the scope doesn&apos;t exclude. Approval is tied to scope v{op.scope_version}.
+        {!op.is_lab && <>{" "}It runs only if the target still resolves to a public address that the scope doesn&apos;t exclude. </>}{" "}Approval is tied to scope v{op.scope_version}.
       </p>
       <Field label="Reason (recorded with your decision)"><Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000} /></Field>
       {error && <Alert>{error}</Alert>}
       <div className="flex flex-wrap gap-2">
         <ConfirmButton variant="secondary" label="Approve" title={`Approve ${op.tool_label}?`}
-          body={`${op.target} will be contacted directly. Your name, the reason and scope v${op.scope_version} are recorded.`}
+          body={`${op.target} will be contacted ${op.is_lab ? "from your lab machine" : "directly"}. Your name, the reason and scope v${op.scope_version} are recorded.`}
           confirmLabel="Approve and queue"
           onConfirm={async () => { await run(() => api(`${base}/approve`, { method: "POST", body: { reason } })); }} />
         <ConfirmButton label="Reject" title="Reject this operation?" body="It won't run. Rejection is final; it can be requested again."

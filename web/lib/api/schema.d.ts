@@ -2137,6 +2137,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Lab */
+            is_lab: boolean;
             /**
              * Organization Id
              * Format: uuid
@@ -2209,6 +2211,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Lab */
+            is_lab: boolean;
             /**
              * Organization Id
              * Format: uuid
@@ -2715,6 +2719,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Is Lab */
+            is_lab: boolean;
             /**
              * Project Id
              * Format: uuid
@@ -2736,6 +2742,8 @@ export interface components {
         ScopePatch: {
             /** Authorization Reference */
             authorization_reference?: string | null;
+            /** Is Lab */
+            is_lab?: boolean | null;
             /** Valid From */
             valid_from?: string | null;
             /** Valid Until */

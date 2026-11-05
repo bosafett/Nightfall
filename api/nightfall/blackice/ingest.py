@@ -196,7 +196,7 @@ def ingest(
                 "http": result.http,
                 "checks": result.matches,
             },
-            is_simulation=False,
+            is_simulation=op.is_lab,  # lab results are kept apart from real ones
         )
         .on_conflict_do_nothing(index_elements=["operation_id", "content_sha256"])
     )
