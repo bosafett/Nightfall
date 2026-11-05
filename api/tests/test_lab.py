@@ -208,3 +208,136 @@ def test_agents_cannot_propose_lab_operations(
     result = client.get(f"/api/workspaces/{env['ws']}/agent-tasks/{task['id']}").json()["result"]
     assert result["refused"][0]["reason"] == "Agents can't propose operations in the lab."
     assert owner_db.execute(text("SELECT count(*) FROM operations")).scalar() == 0
+
+
+def test_lab_role_sees_and_writes_only_lab_data(client: TestClient, env, owner_db: Session) -> None:
+    """Review finding F1: the lab credential can't reach real-world data, even in the same
+    workspace, and can't plant data anywhere else."""
+    from tests.phase3_helpers import org_project
+
+    # Real-world data: env's project has a normal scope; collect so assets/evidence exist.
+    use(client, env["owner"])
+    client.post(
+        f"/api/workspaces/{env['ws']}/projects/{env['pid']}/collections",
+        json={"tool": "ct", "target": "example.com"},
+    )
+    assert make_worker().run_once() is True
+    # A separate lab project in the same workspace, with an approved lab run.
+    lab_org, lab_pid = org_project(owner_db, env["ws"], "Lab org")
+    base = f"/api/workspaces/{env['ws']}"
+    sid = client.post(f"{base}/projects/{lab_pid}/scopes").json()["id"]
+    client.patch(f"{base}/scopes/{sid}", json={"is_lab": True, "authorization_reference": "Lab"})
+    assert add_target(client, env, sid, "ip", APP).status_code == 201
+    assert client.post(f"{base}/scopes/{sid}/authorize").status_code == 200
+    use(client, env["operator"])
+    op = client.post(
+        f"{base}/projects/{lab_pid}/collections", json={"tool": "http", "target": APP}
+    ).json()
+    use(client, env["owner"])
+    client.post(f"{base}/operations/{op['id']}/approve", json={"reason": "lab"})
+    assert lab_worker({"http": fake_app()}).run_once() is True
+
+    real_org = owner_db.execute(
+        text("SELECT organization_id FROM projects WHERE id = :p"), {"p": env["pid"]}
+    ).scalar_one()
+    with lab_worker().sessions() as db:
+        db.execute(text("SELECT set_config('app.workspace_id', :w, false)"), {"w": str(env["ws"])})
+
+        def ids(sql: str) -> set[str]:
+            return {str(r[0]) for r in db.execute(text(sql))}
+
+        assert ids("SELECT id FROM projects") == {str(lab_pid)}
+        assert ids("SELECT id FROM organizations") == {str(lab_org)}
+        assert ids("SELECT id FROM scopes") == {sid}
+        assert ids("SELECT value FROM assets") == {APP}
+        assert ids("SELECT project_id FROM evidence") == {str(lab_pid)}
+        assert ids("SELECT project_id FROM findings") <= {str(lab_pid)}
+        assert ids("SELECT count(*) FROM scope_targets WHERE value = 'example.com'") == {"0"}
+
+        # Writes outside lab work are refused.
+        for sql, params in [
+            (
+                "INSERT INTO assets (workspace_id, organization_id, kind, value, source) "
+                "VALUES (:w, :o, 'hostname', 'planted.example.com', 'x')",
+                {"w": env["ws"], "o": real_org},
+            ),
+            (
+                "INSERT INTO assets (workspace_id, organization_id, kind, value, source) "
+                "VALUES (:w, :o, 'ip_address', '172.30.99.66', 'x')",
+                {"w": env["ws"], "o": real_org},
+            ),
+            (
+                "INSERT INTO findings (workspace_id, project_id, title, severity, confidence, "
+                "validation_status, origin, check_id) VALUES (:w, :p, 'planted', 'high', "
+                "'high', 'unverified', 'deterministic_check', 'x')",
+                {"w": env["ws"], "p": env["pid"]},
+            ),
+        ]:
+            with pytest.raises(DBAPIError):
+                db.execute(text(sql), params)
+            db.rollback()
+            db.execute(
+                text("SELECT set_config('app.workspace_id', :w, false)"), {"w": str(env["ws"])}
+            )
+
+        # Another workspace entirely: nothing visible at all.
+        other = owner_db.execute(
+            text("INSERT INTO workspaces (name, slug) VALUES ('Other', 'other-f1') RETURNING id")
+        ).scalar_one()
+        owner_db.commit()
+        db.execute(text("SELECT set_config('app.workspace_id', :w, false)"), {"w": str(other)})
+        for table in ("projects", "organizations", "assets", "findings", "evidence", "scopes"):
+            assert db.execute(text(f"SELECT count(*) FROM {table}")).scalar() == 0  # noqa: S608
+
+
+# Routing table shaped like the lab-worker container: lab-net on eth0 (internal, no
+# gateway), the uplink on eth1 with the default route.
+ROUTES = """Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\tMTU\tWindow\tIRTT
+eth1\t00000000\t010012AC\t0003\t0\t0\t0\t00000000\t0\t0\t0
+eth0\t00631EAC\t00000000\t0001\t0\t0\t0\t00FFFFFF\t0\t0\t0
+eth1\t000012AC\t00000000\t0001\t0\t0\t0\t0000FFFF\t0\t0\t0
+"""
+
+
+@pytest.mark.parametrize(
+    ("configured", "problem"),
+    [
+        ("172.30.99.0/24", None),
+        ("192.168.1.0/24", "isn't a network this lab worker is attached to"),  # home LAN
+        ("172.30.0.0/16", "isn't a network this lab worker is attached to"),  # widened
+        ("172.30.99.0/25", "isn't a network this lab worker is attached to"),  # narrowed
+        ("172.18.0.0/16", "leads out"),  # the uplink
+    ],
+)
+def test_lab_worker_refuses_a_lab_network_it_isnt_attached_to(
+    configured: str, problem: str | None
+) -> None:
+    """Review finding F4."""
+    from nightfall.scope.lab import lab_network_problem
+
+    got = lab_network_problem((ipaddress.ip_network(configured),), ROUTES)
+    assert (got is None) if problem is None else (got is not None and problem in got)
+
+
+@pytest.mark.parametrize(("age_hours", "status"), [(23, "succeeded"), (25, "denied")])
+def test_lab_approvals_expire(
+    client: TestClient, env, owner_db: Session, age_hours: int, status: str
+) -> None:
+    """Review finding F5: a lab job that waited too long after approval doesn't run."""
+    _active_lab_scope(client, env)
+    op = _request(client, env, "operator", "http").json()
+    use(client, env["owner"])
+    client.post(f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={})
+    owner_db.execute(
+        text(
+            "UPDATE approvals SET decided_at = now() - make_interval(hours => :h) "
+            "WHERE operation_id = :o"
+        ),
+        {"h": age_hours, "o": op["id"]},
+    )
+    owner_db.commit()
+    assert lab_worker({"http": fake_app()}).run_once() is True
+    detail = client.get(f"/api/workspaces/{env['ws']}/operations/{op['id']}").json()
+    assert detail["status"] == status
+    if status == "denied":
+        assert "lab approvals expire" in detail["denial_reason"]

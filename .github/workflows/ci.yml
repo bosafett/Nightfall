@@ -139,6 +139,14 @@ jobs:
           ! docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1
           -s -m 5 https://example.com
       - run: docker build -f infra/tools/Dockerfile -t nightfall-worker:lab .
+      - name: The lab worker's self-check passes on the real lab networks
+        working-directory: infra/lab
+        run: docker compose run --rm --no-deps lab-worker nightfall-worker --check
+      - name: The lab worker refuses a lab range it isn't attached to (review F4)
+        working-directory: infra/lab
+        run: >-
+          ! docker compose run --rm --no-deps -e NIGHTFALL_LAB_NETWORKS=192.168.0.0/16
+          lab-worker nightfall-worker --check
       - name: The lab worker process can't reach the internet
         run: >-
           docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP

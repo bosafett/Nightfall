@@ -26,6 +26,7 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import timedelta
 
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.dialects.postgresql import insert
@@ -61,6 +62,7 @@ from nightfall.recon.collectors import (
 )
 from nightfall.recon.safe_http import Refused
 from nightfall.scope.engine import evaluate
+from nightfall.scope.lab import LAB_APPROVAL_TTL_HOURS
 from nightfall.scope.repository import active_scope, snapshot
 from nightfall.tools.runner import Sandbox
 
@@ -203,6 +205,14 @@ class Worker:
                 )
                 if approval is None:
                     decision_ok, reason = False, "No valid approval for this operation."
+                elif op.is_lab and approval.decided_at < now - timedelta(
+                    hours=LAB_APPROVAL_TTL_HOURS
+                ):
+                    decision_ok, reason = (
+                        False,
+                        f"The approval is more than {LAB_APPROVAL_TTL_HOURS} hours old "
+                        "(lab approvals expire). Request it again.",
+                    )
             pinned = db.get(Scope, op.scope_id)
             if decision_ok and (
                 pinned is None or pinned.is_lab != op.is_lab or op.is_lab != self.lab
@@ -300,6 +310,8 @@ def build_worker() -> Worker:
     if s.worker_mode == "lab":
         if s.collector_mode != "live":
             raise SystemExit("The lab worker runs live tools only.")
+        if problem := _lab_network_problem():
+            raise SystemExit(f"LAB WORKER REFUSED TO START: {problem}")
         log.info("LAB WORKER: lab operations only, addresses in %s only", s.lab_networks)
         return Worker(sessions, store, lab_collectors(s.lab_networks, nuclei_scan=scan), lab=True)
     return Worker(
@@ -308,6 +320,17 @@ def build_worker() -> Worker:
         collectors(s.collector_mode, nuclei_scan=scan),
         provider_factory=functools.cache(get_provider),
     )
+
+
+def _lab_network_problem() -> str | None:
+    from nightfall.scope.lab import lab_network_problem
+
+    try:
+        with open("/proc/net/route") as f:
+            table = f.read()
+    except OSError as exc:
+        return f"can't read the routing table ({exc})"
+    return lab_network_problem(get_settings().lab_networks, table)
 
 
 def run_loop(worker: Worker, stopping: Callable[[], bool]) -> None:
@@ -363,6 +386,12 @@ def self_check() -> list[tuple[str, bool, str]]:
         checks.append(("templates", True, f"{len(nuclei.CATALOG)} pinned, hashes match"))
     except (nuclei.TemplateTampered, OSError) as exc:
         checks.append(("templates", False, str(exc)))
+    if s.worker_mode == "lab":
+        problem = _lab_network_problem()
+        nets = ", ".join(str(n) for n in s.lab_networks)
+        checks.append(
+            ("lab network", problem is None, problem or f"{nets} is the attached lab-net")
+        )
     if not s.nuclei_bin:
         checks.append(("nuclei", False, "NIGHTFALL_NUCLEI_BIN is not set"))
     else:
