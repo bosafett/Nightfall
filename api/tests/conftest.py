@@ -59,7 +59,8 @@ from nightfall.main import create_app  # noqa: E402
 
 PASSWORD = "correct horse battery staple"
 TABLES = (
-    "approvals, asset_relationships, evidence, operations, scope_exclusions, scope_targets, "
+    "approvals, asset_relationships, evidence, evidence_blobs, operations, scope_exclusions, "
+    "scope_targets, "
     "scopes, "
     "assets, worker_heartbeats, audit_events, projects, organizations, auth_tokens, "
     "workspace_members, workspaces, sessions, users"

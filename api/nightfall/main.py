@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import APIRouter, FastAPI, Request
@@ -114,10 +116,28 @@ ROUTERS = (
 )
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Starts the embedded worker when configured (single-container hosting)."""
+    embedded = None
+    if get_settings().embedded_worker:
+        from nightfall.recon.worker import start_embedded
+
+        embedded = start_embedded()
+    try:
+        yield
+    finally:
+        if embedded is not None:
+            thread, stop = embedded
+            stop.set()
+            thread.join(timeout=15)
+
+
 def create_app(*, check_settings: bool = True) -> FastAPI:
     if check_settings:
         get_settings()  # fail fast on bad configuration
     app = FastAPI(
+        lifespan=_lifespan if check_settings else None,
         title="NIGHTFALL API",
         version="0.1.0",
         docs_url=None,

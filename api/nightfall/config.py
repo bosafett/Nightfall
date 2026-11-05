@@ -9,6 +9,10 @@ Optional:
   NIGHTFALL_MIGRATION_DATABASE_URL  schema-owner connection (migrations, admin CLI).
   NIGHTFALL_COOKIE_SECURE           "true" (default) / "false".
   NIGHTFALL_EVIDENCE_DIR            content-addressed evidence store (default ./var/evidence).
+  NIGHTFALL_EVIDENCE_BACKEND        "fs" (default: NIGHTFALL_EVIDENCE_DIR) or "postgres" (table
+                                    evidence_blobs; for hosts without a shared disk).
+  NIGHTFALL_EMBEDDED_WORKER         "true" runs the worker loop inside the API process (single-
+                                    container hosting). Needs NIGHTFALL_WORKER_DATABASE_URL.
   NIGHTFALL_WORKER_DATABASE_URL     worker connection (role nightfall_worker).
   NIGHTFALL_COLLECTOR_MODE          "live" (default) or "fixture" (tests only: canned results,
                                     labelled as fixture evidence; never contacts the network).
@@ -51,6 +55,8 @@ class Settings:
     worker_database_url: str | None
     collector_mode: Literal["live", "fixture"]
     nuclei_bin: str | None = None
+    evidence_backend: Literal["fs", "postgres"] = "fs"
+    embedded_worker: bool = False
     tool_sandbox: Literal["uid", "none"] = "uid"
     tool_user: str = "nftool"
     egress_port: int = 3128
@@ -75,10 +81,14 @@ def _sqlalchemy_url(url: str) -> str:
 
 
 def load_settings() -> Settings:
+    raw_key = _require("NIGHTFALL_SECRET_KEY")
     try:
-        key = base64.b64decode(_require("NIGHTFALL_SECRET_KEY"), validate=True)
-    except binascii.Error as exc:
-        raise ConfigError("NIGHTFALL_SECRET_KEY must be base64") from exc
+        key = base64.b64decode(raw_key, validate=True)
+    except binascii.Error:
+        try:  # URL-safe alphabet (some hosts' generated secrets)
+            key = base64.urlsafe_b64decode(raw_key + "=" * (-len(raw_key) % 4))
+        except (binascii.Error, ValueError) as exc:
+            raise ConfigError("NIGHTFALL_SECRET_KEY must be base64") from exc
     if len(key) != 32:
         raise ConfigError("NIGHTFALL_SECRET_KEY must decode to exactly 32 bytes")
 
@@ -98,6 +108,12 @@ def load_settings() -> Settings:
     sandbox = os.environ.get("NIGHTFALL_TOOL_SANDBOX", "uid").strip() or "uid"
     if sandbox not in ("uid", "none"):
         raise ConfigError("NIGHTFALL_TOOL_SANDBOX must be 'uid' or 'none'")
+    backend = os.environ.get("NIGHTFALL_EVIDENCE_BACKEND", "fs").strip() or "fs"
+    if backend not in ("fs", "postgres"):
+        raise ConfigError("NIGHTFALL_EVIDENCE_BACKEND must be 'fs' or 'postgres'")
+    embedded = os.environ.get("NIGHTFALL_EMBEDDED_WORKER", "false").strip().lower() == "true"
+    if embedded and not worker_url:
+        raise ConfigError("NIGHTFALL_EMBEDDED_WORKER needs NIGHTFALL_WORKER_DATABASE_URL")
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:
         raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
@@ -116,6 +132,8 @@ def load_settings() -> Settings:
         tool_sandbox="none" if sandbox == "none" else "uid",
         tool_user=os.environ.get("NIGHTFALL_TOOL_USER", "nftool").strip() or "nftool",
         egress_port=egress_port,
+        evidence_backend="postgres" if backend == "postgres" else "fs",
+        embedded_worker=embedded,
     )
 
 

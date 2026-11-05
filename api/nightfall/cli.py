@@ -4,8 +4,15 @@
   nightfall-admin create-owner --email E --name N --workspace-name W --workspace-slug S
   nightfall-admin reset-password --email E
   nightfall-admin reset-mfa --email E
+  nightfall-admin bootstrap-roles    create/update the API and worker database roles
+  nightfall-admin bootstrap-owner    create the first owner if no account exists yet
 
 Passwords are read interactively, or from NIGHTFALL_ADMIN_PASSWORD for automation.
+
+The bootstrap commands are for hosts without a shell (start-up scripts). bootstrap-roles
+reads NIGHTFALL_APP_DB_PASSWORD and NIGHTFALL_WORKER_DB_PASSWORD and needs CREATEROLE.
+bootstrap-owner reads NIGHTFALL_BOOTSTRAP_OWNER_EMAIL / _NAME / _WORKSPACE and
+NIGHTFALL_ADMIN_PASSWORD, and does nothing once any account exists.
 """
 
 from __future__ import annotations
@@ -15,7 +22,7 @@ import getpass
 import os
 import sys
 
-from sqlalchemy import create_engine, select, update
+from sqlalchemy import create_engine, select, text, update
 from sqlalchemy.orm import Session
 
 from nightfall.config import _sqlalchemy_url
@@ -126,6 +133,72 @@ def reset_mfa(a: argparse.Namespace) -> None:
         print(f"Two-factor removed for {user.email}. They'll set it up again at next sign-in.")
 
 
+ROLES = {
+    "nightfall_app": "NIGHTFALL_APP_DB_PASSWORD",
+    "nightfall_worker": "NIGHTFALL_WORKER_DB_PASSWORD",
+}
+
+
+def bootstrap_roles(a: argparse.Namespace) -> None:
+    from psycopg import sql
+
+    passwords = {}
+    for role, var in ROLES.items():
+        pw = os.environ.get(var, "")
+        if len(pw) < 24:
+            sys.exit(f"{var} must be set to a random value of at least 24 characters.")
+        passwords[role] = pw
+    with _db() as db:
+        conn = db.connection().connection.driver_connection
+        if conn is None:
+            sys.exit("No database connection.")
+        for role, pw in passwords.items():
+            exists = db.scalar(text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": role})
+            if exists:
+                # Only the password: restating SUPERUSER/BYPASSRLS needs superuser rights.
+                stmt = sql.SQL("ALTER ROLE {} LOGIN PASSWORD {}").format(
+                    sql.Identifier(role), sql.Literal(pw)
+                )
+            else:
+                stmt = sql.SQL(
+                    "CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOBYPASSRLS NOCREATEDB "
+                    "NOCREATEROLE"
+                ).format(sql.Identifier(role), sql.Literal(pw))
+            with conn.cursor() as cur:
+                cur.execute(stmt)
+            print(f"{'updated' if exists else 'created'} role {role}")
+        # Isolation depends on these roles being unable to bypass row-level security.
+        unsafe = db.scalars(
+            text(
+                "SELECT rolname FROM pg_roles WHERE rolname = ANY(:r) "
+                "AND (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb)"
+            ),
+            {"r": list(ROLES)},
+        ).all()
+        if unsafe:
+            sys.exit(f"Refusing to start: {', '.join(unsafe)} can bypass isolation.")
+        db.commit()
+
+
+def bootstrap_owner(a: argparse.Namespace) -> None:
+    email = os.environ.get("NIGHTFALL_BOOTSTRAP_OWNER_EMAIL", "").strip()
+    if not email:
+        print("NIGHTFALL_BOOTSTRAP_OWNER_EMAIL not set; no owner created.")
+        return
+    with _db() as db:
+        if db.scalar(select(User.id).limit(1)) is not None:
+            print("Accounts already exist; bootstrap owner skipped.")
+            return
+    create_owner(
+        argparse.Namespace(
+            email=email,
+            name=os.environ.get("NIGHTFALL_BOOTSTRAP_OWNER_NAME", "Owner"),
+            workspace_name=os.environ.get("NIGHTFALL_BOOTSTRAP_WORKSPACE", "NIGHTFALL"),
+            workspace_slug="main",
+        )
+    )
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="nightfall-admin")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -135,6 +208,8 @@ def main(argv: list[str] | None = None) -> None:
     c.add_argument("--workspace-name", required=True)
     c.add_argument("--workspace-slug", required=True)
     c.set_defaults(fn=create_owner)
+    sub.add_parser("bootstrap-roles").set_defaults(fn=bootstrap_roles)
+    sub.add_parser("bootstrap-owner").set_defaults(fn=bootstrap_owner)
     for name, fn in (("reset-password", reset_password), ("reset-mfa", reset_mfa)):
         s = sub.add_parser(name)
         s.add_argument("--email", required=True)

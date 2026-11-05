@@ -115,3 +115,21 @@ CI fails if either generated file is stale.
 - Tests: `NIGHTFALL_TEST_NUCLEI_BIN=/path/to/nuclei pytest` adds a real-binary test through the proxy.
   `tests_sandbox/` runs under the real lock: see CI job `sandbox`, or
   `sudo ../infra/tools/egress-lock.sh .venv/bin/python -m pytest tests_sandbox`.
+
+## Deploying on Render (free tier)
+
+`render.yaml` describes a trial deployment: one free Docker web service (`infra/render/Dockerfile`) and one free
+Postgres. The web server is the only public listener; the API, with the worker embedded, listens on
+`127.0.0.1:8000` inside the container. Evidence content is stored in Postgres, under the same row-level security as
+evidence rows.
+
+At start-up, `infra/render/start.sh`:
+- creates the API and worker database roles with generated passwords (needs `CREATEROLE`, not superuser) and
+  refuses to start if either role could bypass row-level security;
+- runs migrations;
+- creates the first owner once, from `NIGHTFALL_BOOTSTRAP_OWNER_EMAIL` and `NIGHTFALL_ADMIN_PASSWORD`;
+- removes the schema-owner credentials from the environment before starting the servers.
+
+Limits: the free database expires after 30 days, the service sleeps when idle, and Nuclei runs are refused because
+the tool sandbox needs `NET_ADMIN`. CI job `render-image` builds the image and starts it against a non-superuser
+database user.

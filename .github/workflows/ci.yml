@@ -110,3 +110,42 @@ jobs:
           docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP
           --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
           nightfall-sandbox-test
+
+  render-image:
+    # Builds the single-container Render image and starts it against a database user that
+    # is not a superuser (only CREATEROLE), as on Render's managed Postgres.
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_PASSWORD: postgres_ci }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f infra/render/Dockerfile -t nightfall-render .
+      - name: Database user like Render's (no superuser)
+        run: >-
+          $PSQL -v ON_ERROR_STOP=1
+          -c "CREATE ROLE render_user LOGIN PASSWORD 'render_pw' CREATEROLE NOSUPERUSER"
+          -c "CREATE DATABASE nightfall_db OWNER render_user"
+      - name: Start and check health
+        run: |
+          docker run -d --name nf --network host --read-only --tmpfs /tmp \
+            -e DB_HOST=127.0.0.1 -e DB_NAME=nightfall_db -e DB_USER=render_user -e DB_PASSWORD=render_pw \
+            -e NIGHTFALL_APP_DB_PASSWORD=ci-app-password-0123456789abcdef \
+            -e NIGHTFALL_WORKER_DB_PASSWORD=ci-worker-password-0123456789abcd \
+            -e NIGHTFALL_SECRET_KEY=AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA= \
+            -e RENDER_EXTERNAL_URL=http://127.0.0.1:10000 -e PORT=10000 -e NIGHTFALL_COOKIE_SECURE=false \
+            -e NIGHTFALL_BOOTSTRAP_OWNER_EMAIL=owner@example.com \
+            -e NIGHTFALL_ADMIN_PASSWORD='ci owner password long enough' \
+            nightfall-render
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:10000/api/health && break; sleep 2; done
+          curl -fsS http://127.0.0.1:10000/api/health | grep -q '"status":"ok"'
+          curl -fsS -o /dev/null http://127.0.0.1:10000/login
+          docker restart nf
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:10000/api/health && break; sleep 2; done
+          curl -fsS http://127.0.0.1:10000/api/health | grep -q '"status":"ok"'
+          docker logs nf 2>&1 | grep -q "bootstrap owner skipped"
+      - if: failure()
+        run: docker logs nf

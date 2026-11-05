@@ -20,6 +20,7 @@ import os
 import signal
 import socket
 import sys
+import threading
 import time
 import uuid
 from collections.abc import Callable
@@ -47,7 +48,7 @@ from nightfall.core.db.models import (
     WorkerHeartbeat,
 )
 from nightfall.core.db.session import set_workspace_context
-from nightfall.core.evidence_store import EvidenceStore
+from nightfall.core.evidence_store import BlobStore, EvidenceStore, PostgresEvidenceStore
 from nightfall.recon.collectors import Collector, NucleiScan, RunContext, collectors
 from nightfall.recon.safe_http import Refused
 from nightfall.scope.engine import evaluate
@@ -98,7 +99,7 @@ def _get_op(db: Session, op_id: uuid.UUID) -> Operation:
 @dataclass
 class Worker:
     sessions: sessionmaker[Session]
-    store: EvidenceStore
+    store: BlobStore
     tools: dict[str, Collector]
     worker_id: str = f"{socket.gethostname()}:{os.getpid()}"
     clock: Callable[[], object] = utcnow
@@ -262,11 +263,47 @@ def build_worker() -> Worker:
         Sandbox(mode=s.tool_sandbox, user=s.tool_user if s.tool_sandbox == "uid" else None),
         egress_port=s.egress_port,
     )
-    return Worker(
-        sessionmaker(bind=engine, expire_on_commit=False),
-        EvidenceStore(s.evidence_dir),
-        collectors(s.collector_mode, nuclei_scan=scan),
+    sessions = sessionmaker(bind=engine, expire_on_commit=False)
+    store: BlobStore = (
+        PostgresEvidenceStore(sessions)
+        if s.evidence_backend == "postgres"
+        else EvidenceStore(s.evidence_dir)
     )
+    return Worker(sessions, store, collectors(s.collector_mode, nuclei_scan=scan))
+
+
+def run_loop(worker: Worker, stopping: Callable[[], bool]) -> None:
+    log.info("worker %s started", worker.worker_id)
+    if get_settings().collector_mode == "live":
+        for name, ok, detail in self_check():
+            (log.info if ok else log.warning)("tool check %s: %s", name, detail)
+    last_beat = 0.0
+    while not stopping():
+        if time.monotonic() - last_beat > 10:
+            try:
+                worker.heartbeat()
+            except Exception:
+                log.exception("worker heartbeat failed")
+            last_beat = time.monotonic()
+        try:
+            busy = worker.run_once()
+        except Exception:
+            log.exception("worker loop error")
+            busy = False
+        if not busy:
+            time.sleep(1.0)
+    log.info("worker %s stopped", worker.worker_id)
+
+
+def start_embedded() -> tuple[threading.Thread, threading.Event]:
+    """Runs the worker loop on a daemon thread inside the API process (single-container
+    hosting). It still connects as nightfall_worker, never with the API's credentials."""
+    stop = threading.Event()
+    thread = threading.Thread(
+        target=run_loop, args=(build_worker(), stop.is_set), name="nightfall-worker", daemon=True
+    )
+    thread.start()
+    return thread, stop
 
 
 def self_check() -> list[tuple[str, bool, str]]:
@@ -319,23 +356,7 @@ def main() -> None:
 
     signal.signal(signal.SIGTERM, stop)
     signal.signal(signal.SIGINT, stop)
-    log.info("worker %s started", worker.worker_id)
-    if get_settings().collector_mode == "live":
-        for name, ok, detail in self_check():
-            (log.info if ok else log.warning)("tool check %s: %s", name, detail)
-    last_beat = 0.0
-    while not stopping:
-        if time.monotonic() - last_beat > 10:
-            worker.heartbeat()
-            last_beat = time.monotonic()
-        try:
-            busy = worker.run_once()
-        except Exception:
-            log.exception("worker loop error")
-            busy = False
-        if not busy:
-            time.sleep(1.0)
-    log.info("worker %s stopped", worker.worker_id)
+    run_loop(worker, lambda: stopping)
 
 
 if __name__ == "__main__":

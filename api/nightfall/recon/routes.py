@@ -33,7 +33,7 @@ from nightfall.core.db.models import (
 )
 from nightfall.core.db.session import DB
 from nightfall.core.errors import api_error, not_found
-from nightfall.core.evidence_store import EvidenceStore, IntegrityError
+from nightfall.core.evidence_store import EvidenceStore, IntegrityError, read_from
 from nightfall.core.schemas import Model, OkOut
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
@@ -343,7 +343,11 @@ def get_evidence_content(
     attacker-controlled content can't render in the app's origin."""
     e = _evidence(db, ctx, evidence_id)
     try:
-        data = EvidenceStore(get_settings().evidence_dir).get(e.content_sha256)
+        s = get_settings()
+        if s.evidence_backend == "postgres":
+            data = read_from(db, e.content_sha256)
+        else:
+            data = EvidenceStore(s.evidence_dir).get(e.content_sha256)
     except IntegrityError as exc:
         record_detached(
             "evidence.integrity_failed",
