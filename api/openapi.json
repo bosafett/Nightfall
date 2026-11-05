@@ -625,6 +625,109 @@
         "title": "AttackPathStatus",
         "type": "string"
       },
+      "AwaitingOp": {
+        "additionalProperties": false,
+        "properties": {
+          "can_decide": {
+            "title": "Can Decide",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "organization_name": {
+            "title": "Organization Name",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "proposed_by_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed By Task Id"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "scope_version": {
+            "title": "Scope Version",
+            "type": "integer"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          },
+          "why_not": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Why Not"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "organization_name",
+          "tool",
+          "risk_class",
+          "target",
+          "purpose",
+          "scope_version",
+          "requested_by",
+          "proposed_by_task_id",
+          "queued_at",
+          "can_decide",
+          "why_not"
+        ],
+        "title": "AwaitingOp",
+        "type": "object"
+      },
       "CheckIn": {
         "additionalProperties": false,
         "properties": {
@@ -735,6 +838,73 @@
         ],
         "title": "Confidence",
         "type": "string"
+      },
+      "Decision": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "actor_type": {
+            "title": "Actor Type",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Type"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "actor",
+          "actor_type",
+          "entity_type",
+          "entity_id",
+          "details",
+          "occurred_at"
+        ],
+        "title": "Decision",
+        "type": "object"
       },
       "DecisionIn": {
         "additionalProperties": false,
@@ -1886,6 +2056,51 @@
           "components"
         ],
         "title": "HealthOut",
+        "type": "object"
+      },
+      "InFlight": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "operation",
+              "agent_task"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "label",
+          "detail",
+          "status",
+          "since"
+        ],
+        "title": "InFlight",
         "type": "object"
       },
       "InviteCreatedOut": {
@@ -3499,6 +3714,30 @@
         "title": "ReportSummary",
         "type": "object"
       },
+      "ReviewCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "attack_paths": {
+            "title": "Attack Paths",
+            "type": "integer"
+          },
+          "findings": {
+            "title": "Findings",
+            "type": "integer"
+          },
+          "relationships": {
+            "title": "Relationships",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "findings",
+          "attack_paths",
+          "relationships"
+        ],
+        "title": "ReviewCounts",
+        "type": "object"
+      },
       "ReviewIn": {
         "additionalProperties": false,
         "properties": {
@@ -3516,6 +3755,66 @@
           "status"
         ],
         "title": "ReviewIn",
+        "type": "object"
+      },
+      "ReviewItem": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "finding",
+              "attack_path",
+              "relationship"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "link_id": {
+            "format": "uuid",
+            "title": "Link Id",
+            "type": "string"
+          },
+          "proposed_by_task_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposed By Task Id"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "label",
+          "detail",
+          "proposed_by_task_id",
+          "link_id",
+          "created_at"
+        ],
+        "title": "ReviewItem",
         "type": "object"
       },
       "Risk": {
@@ -4512,6 +4811,57 @@
         ],
         "title": "ValidationStatus",
         "type": "string"
+      },
+      "WarRoomOut": {
+        "additionalProperties": false,
+        "properties": {
+          "awaiting": {
+            "items": {
+              "$ref": "#/components/schemas/AwaitingOp"
+            },
+            "title": "Awaiting",
+            "type": "array"
+          },
+          "decisions": {
+            "items": {
+              "$ref": "#/components/schemas/Decision"
+            },
+            "title": "Decisions",
+            "type": "array"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "in_flight": {
+            "items": {
+              "$ref": "#/components/schemas/InFlight"
+            },
+            "title": "In Flight",
+            "type": "array"
+          },
+          "review_counts": {
+            "$ref": "#/components/schemas/ReviewCounts"
+          },
+          "to_review": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewItem"
+            },
+            "title": "To Review",
+            "type": "array"
+          }
+        },
+        "required": [
+          "generated_at",
+          "awaiting",
+          "in_flight",
+          "to_review",
+          "review_counts",
+          "decisions"
+        ],
+        "title": "WarRoomOut",
+        "type": "object"
       },
       "Window": {
         "enum": [
@@ -8657,6 +9007,49 @@
         "summary": "Remove Target",
         "tags": [
           "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/war-room": {
+      "get": {
+        "operationId": "war_room_api_workspaces__workspace_id__war_room_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarRoomOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "War Room",
+        "tags": [
+          "war-room"
         ]
       }
     },

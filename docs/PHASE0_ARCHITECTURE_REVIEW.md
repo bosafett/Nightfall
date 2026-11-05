@@ -397,6 +397,23 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
     cases, 4 of them injection cases. **No real-model results yet**, because no API key is available in
     development, so the default model is still unmeasured.
 
+## 10d. Phase 6 delivery note (added 2026-11-05)
+
+- **6a (done): War Room** (`GET /war-room`, `/w/{ws}/war-room`). One screen for everything waiting on a person, all
+  read from stored records:
+  - *Awaiting a decision:* operations that need approval. Approve and reject work inline and use the existing
+    routes, which re-check role, self-approval and the scope. The screen says why you can't decide: you
+    requested it, or your role doesn't allow it.
+  - *In flight:* collections and agent tasks that are queued or running. It refreshes on its own.
+  - *AI proposals to review:* agent findings, attack paths and relationships still marked hypothesis, with exact
+    counts and the Guardian verdict.
+  - *Decision log:* from `audit_events`, limited to an allowlist of decision actions and data fields. IPs and user
+    agents are never shown.
+- **6b (blocked by hosting): isolated lab and simulations.** §16.5 requires a lab worker on a network with no
+  internet route and no production credentials. Vercel has no such network, so moderate-risk and lab operations stay
+  refused. This needs a self-hosted worker (the `infra/tools` sandbox image is the starting point), plus the independent
+  review of the authorization model that §16.1 requires before BLACKSITE's lab phase.
+
 ## 11. Decisions requiring human approval
 
 **All approved as proposed (2026-11-04).**

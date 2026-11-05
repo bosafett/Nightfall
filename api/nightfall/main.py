@@ -29,6 +29,7 @@ from nightfall.registry.assets import router as assets_router
 from nightfall.registry.routes import router as registry_router
 from nightfall.reports.routes import router as reports_router
 from nightfall.scope.routes import router as scope_router
+from nightfall.warroom.routes import router as warroom_router
 
 log = logging.getLogger("nightfall.api")
 
@@ -161,6 +162,7 @@ ROUTERS = (
     paths_router,
     reports_router,
     agents_router,
+    warroom_router,
     internal_router,
 )
 

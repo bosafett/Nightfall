@@ -383,6 +383,22 @@ test.describe("as the owner", () => {
     await expect(page.getByRole("link", { name: "All agents" })).toBeVisible();
   });
 
+  test("war room: waiting decisions, AI proposals to review and the decision log", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/war-room`);
+    await expect(page.getByRole("heading", { level: 1, name: "War Room" })).toBeVisible();
+    // Scout's low-risk proposal waits for someone other than the person who started Scout.
+    const op = page.getByTestId("awaiting-op").filter({ hasText: "www.acme.test" });
+    await expect(op.getByText("AI proposal")).toBeVisible();
+    await expect(op.getByText(/You requested this/)).toBeVisible();
+    await expect(op.getByRole("button", { name: "Approve" })).toHaveCount(0);
+    // Agent hypotheses wait for a person; the log shows who did what.
+    const review = page.locator("section").filter({ has: page.getByRole("heading", { name: /^AI proposals to review/ }) });
+    await expect(review.getByText("Hypothesis").first()).toBeVisible();
+    const log = page.locator("section").filter({ has: page.getByRole("heading", { name: "Decision log" }) });
+    await expect(log.getByText(/started an agent/).first()).toBeVisible();
+    await noHorizontalScroll(page);
+  });
+
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();
