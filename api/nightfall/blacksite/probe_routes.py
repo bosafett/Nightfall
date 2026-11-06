@@ -397,3 +397,70 @@ def lab_targets(
             )
         )
     return out
+
+
+class SubmittedFindingOut(Model):
+    id: uuid.UUID
+    title: str
+    severity: str
+    validation_status: str
+    check_id: str | None
+    change: str
+
+
+class SubmitOut(Model):
+    ruleset: str
+    findings: list[SubmittedFindingOut]
+
+
+@router.post("/{op_id}/submit", response_model=SubmitOut)
+def submit_probe(
+    op_id: uuid.UUID,
+    request: Request,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.FINDINGS_EDIT, fresh_mfa=True),
+) -> SubmitOut:
+    """Runs BLACK ICE's deterministic finding rules over a finished probe's stored result.
+    New findings start unverified; an existing finding for the same asset and check is
+    refreshed and linked to this evidence instead (re-submitting never duplicates)."""
+    from nightfall.blackice.finding_rules import RULESET
+    from nightfall.blackice.ingest import apply_finding_rules
+    from nightfall.blacksite.probes import observations
+    from nightfall.core.db.models import Finding
+
+    if not is_blacksite(request):
+        raise not_found()
+    op = _probe_op(db, ctx, op_id)
+    if op.status is not OperationStatus.SUCCEEDED:
+        raise api_error(409, "not_finished", "Only a finished probe can be submitted.")
+    ev = db.scalar(select(Evidence).where(Evidence.operation_id == op.id))
+    stored = ev.summary.get("probe") if ev is not None else None
+    result = observations(stored) if stored else None
+    if ev is None or ev.asset_id is None or result is None:
+        raise api_error(422, "nothing_to_submit", "BLACK ICE has no rules for this probe type.")
+    changes = apply_finding_rules(db, op, ev.asset_id, ev.id, result, utcnow())
+    record(
+        db,
+        "probe.submitted",
+        entity_type="operation",
+        entity_id=op.id,
+        data={"evidence_id": str(ev.id), "ruleset": RULESET, "findings": changes},
+        **ctx.audit_kwargs(),
+    )
+    db.flush()
+    by_id = {str(c["finding_id"]): str(c["change"]) for c in changes}
+    found = db.scalars(select(Finding).where(Finding.id.in_(list(by_id)))).all() if by_id else []
+    return SubmitOut(
+        ruleset=RULESET,
+        findings=[
+            SubmittedFindingOut(
+                id=f.id,
+                title=f.title,
+                severity=f.severity.value,
+                validation_status=f.validation_status.value,
+                check_id=f.check_id,
+                change=by_id[str(f.id)],
+            )
+            for f in found
+        ],
+    )

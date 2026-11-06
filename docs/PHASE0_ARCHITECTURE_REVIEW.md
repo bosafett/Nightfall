@@ -734,15 +734,16 @@ JS, strict CSP, text-only rendering; tests in `tests/test_blacksite_ui.py`, plus
 | Every refusal audited (`probe.denied`) | ✓ | ✓ | ✗ | ✗ |
 
 Known limits: operation params (not evidence) keep the header values the operator sent, readable through the database;
-"Submit to BLACK ICE" for probe results (finding drafts) and DNS probes (meaningless in a hostname-free lab) are not
-built.
+DNS probes (meaningless in a hostname-free lab) are not built.
 
 ### 17.3 Roadmap
 
 1. **Now:** owner review of this change; independent review of the BLACKSITE authorization model and of Phase 1
    (`docs/reviews/2026-11-blacksite-authorization-model.md` §9); record the reference.
-2. ~~**Phase 2 — BLACKSITE probe deck**~~ built (§17.2), lab only, with the operator console. Next for it:
-   "Submit to BLACK ICE".
+2. ~~**Phase 2 — BLACKSITE probe deck**~~ built (§17.2), lab only, with the operator console and "Submit to BLACK
+   ICE" (migration 0015: BLACK ICE's rules over a finished HTTP or TLS probe; findings start unverified and
+   correlate with existing ones). 0015 also fixes finding numbering for confined roles (lab worker, BLACKSITE),
+   which could reuse a number taken in a project they can't see.
 3. **BLACK OPS remainder:** Profile B design and review; playbooks 6–11 after validation.
 4. **Tools:** ZAP baseline (low risk), Amass engine, moderate-risk lab packs, each with its own review.
 5. **Platform:** local AI provider (no paid calls), audit export to append-only storage (F7), server-side PDF.

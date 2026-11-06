@@ -30,10 +30,17 @@ from pydantic import Field, StringConstraints, field_validator, model_validator
 from nightfall.core.db.models import Confidence, RiskClass, ScopeEntryKind
 from nightfall.core.schemas import Model
 from nightfall.recon.collectors import CollectorResult, RunContext
-from nightfall.recon.posture import Connect, MakeClient, _connect, _default_client, handshake
+from nightfall.recon.posture import (
+    Connect,
+    MakeClient,
+    _connect,
+    _default_client,
+    handshake,
+    key_summary,
+)
 from nightfall.recon.safe_http import TIMEOUT, Refused, certificate_summary
 
-PROBE_VERSION = "probe-deck/2026.11-1"
+PROBE_VERSION = "probe-deck/2026.11-2"  # -2: Set-Cookie attributes kept, key strength
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 STATE_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE"})
 # Fixed by the client, hop-by-hop, or framing: never taken from the operator.
@@ -155,7 +162,20 @@ def check_ports(spec: ProbeSpec, bounds: Bounds) -> None:
 
 
 def _redact(headers: Iterable[tuple[str, str]]) -> list[tuple[str, str]]:
-    return [(k, "<redacted>" if k.lower() in REDACTED_HEADERS else v[:2000]) for k, v in headers]
+    """Credential values are dropped. For Set-Cookie the cookie's name and attributes are
+    kept (Secure, HttpOnly, SameSite are what the header rules judge); only its value goes."""
+    out = []
+    for k, v in headers:
+        low = k.lower()
+        if low == "set-cookie":
+            name, _, rest = v.partition(";")
+            attrs = f";{rest}" if rest else ""
+            out.append((k, f"{name.split('=', 1)[0].strip()[:100]}=<redacted>{attrs[:500]}"))
+        elif low in REDACTED_HEADERS:
+            out.append((k, "<redacted>"))
+        else:
+            out.append((k, v[:2000]))
+    return out
 
 
 class Probe:
@@ -263,7 +283,7 @@ class Probe:
             "port": port,
             "validation": {k: v for k, v in validated.items() if k != "der"},
             "handshake": {k: v for k, v in raw.items() if k != "der"},
-            "certificate": certificate_summary(der) if der else None,
+            "certificate": {**certificate_summary(der), **key_summary(der)} if der else None,
         }
 
 
@@ -288,3 +308,74 @@ def diff(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
         out["tls"] = {k: {"a": ta.get(k), "b": tb.get(k)} for k in sorted(ta.keys() | tb.keys())
                       if ta.get(k) != tb.get(k)}  # fmt: skip
     return out
+
+
+def observations(record: dict[str, Any]) -> CollectorResult | None:
+    """A stored probe record as BLACK ICE observations, so the existing deterministic
+    finding rules can judge it ("Submit to BLACK ICE", review §16.6). None when the probe
+    type has nothing the rules judge (TCP connect)."""
+    from nightfall.recon.fingerprint import fingerprint
+    from nightfall.recon.posture import response_posture
+    from nightfall.recon.safe_http import Exchange
+
+    spec = record.get("spec") or {}
+    r = record.get("result") or {}
+
+    def make(**extra: Any) -> CollectorResult:
+        return CollectorResult(
+            raw=json.dumps(record, sort_keys=True).encode(),
+            content_type="application/json",
+            tool_name="nightfall-probe",
+            tool_version=str(record.get("version") or PROBE_VERSION),
+            source="probe",
+            confidence=Confidence.HIGH,
+            **extra,
+        )
+
+    if spec.get("type") == "http" and r.get("status") is not None:
+        headers = [(str(k), str(v)) for k, v in r.get("headers") or []]
+        try:
+            body = base64.b64decode(r.get("body_base64") or "")
+        except ValueError:
+            body = b""
+        ex = Exchange(
+            url=str((r.get("request") or {}).get("url") or ""),
+            connected_ip=str(record.get("connected_ip") or ""),
+            status=int(r["status"]),
+            headers=headers,
+            body=body,
+            body_truncated=bool(r.get("body_truncated")),
+            elapsed_ms=int(r.get("elapsed_ms") or 0),
+            tls=r.get("tls"),
+            location=r.get("location"),
+        )
+        page = response_posture(ex)
+        https = spec.get("scheme") == "https"
+        audit = {
+            "target": record.get("target"),
+            "https": page if https else None,
+            "http": None if https else page,
+            "http_redirects_to_https": False,
+        }
+        return make(
+            technologies=[t.as_dict() for t in fingerprint(headers, body)],
+            posture={"headers": audit},
+        )
+    if spec.get("type") == "tls" and r.get("certificate"):
+        validation = r.get("validation") or {}
+        handshake_ = r.get("handshake") or {}
+        accepted = [handshake_["version"]] if handshake_.get("result") == "accepted" else []
+        return make(
+            posture={
+                "tls": {
+                    "target": record.get("target"),
+                    "validation": {
+                        "result": validation.get("result"),
+                        "detail": validation.get("detail"),
+                    },
+                    "accepted": accepted,
+                    "certificate": r["certificate"],
+                }
+            },
+        )
+    return None

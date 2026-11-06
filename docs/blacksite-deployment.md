@@ -93,6 +93,9 @@ curl -s -b jar -c jar -H 'Origin: http://127.0.0.1:8443' -H 'Content-Type: appli
   `"confirm_state_change": true`.
 - History: `GET …/blacksite/probes`; replay: `POST …/blacksite/probes/<id>/replay`; compare:
   `GET …/blacksite/probes/compare?a=<id>&b=<id>`. Results are in the operation's evidence.
+- Submit to BLACK ICE: `POST …/blacksite/probes/<id>/submit` (or the button on a result) runs the deterministic
+  finding rules over a finished HTTP or TLS probe. Findings start unverified; re-submitting refreshes, never
+  duplicates.
 
 ## Rotation
 

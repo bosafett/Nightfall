@@ -309,6 +309,17 @@ async function showResult(id) {
       } else {
         parts.push(el("pre", {}, JSON.stringify(r, null, 2)));
       }
+      if (op.status === "succeeded" && ["http", "tls"].includes(spec.type)) {
+        const out = el("div");
+        const err = el("p", { class: "error", role: "alert" });
+        parts.push(el("h3", {}, "BLACK ICE"),
+          el("p", { class: "muted" }, "Runs the deterministic finding rules over this result. Findings start unverified; existing ones are linked, not duplicated."),
+          el("button", { onclick: () => act(err, async () => {
+            const res = await api(wsPath(`/blacksite/probes/${op.id}/submit`), { method: "POST" });
+            replace(out, res.findings.length === 0 ? el("p", { class: "muted" }, `No rule matched (${res.ruleset}).`)
+              : el("ul", {}, res.findings.map((f) => el("li", {}, tag(f.severity, f.severity === "high" || f.severity === "critical" ? "bad" : f.severity === "medium" ? "warn" : "info"), " ", f.title, " ", el("span", { class: "muted" }, `· ${f.validation_status} · ${f.change.replace("_", " ")}`)))));
+          }, false) }, "Submit to BLACK ICE"), err, out);
+      }
     } else if (["awaiting_approval", "queued", "running"].includes(op.status)) {
       parts.push(el("p", { class: "muted" }, "No result yet. The lab worker runs approved probes; this page refreshes while one is queued."));
     }

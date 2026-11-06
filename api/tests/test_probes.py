@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from nightfall.blacksite.probes import Probe, ProbeSpec, diff
 from nightfall.recon.safe_http import SafeHttp
 from tests.conftest import use
-from tests.phase3_helpers import make_worker
+from tests.phase3_helpers import make_worker, org_project
 from tests.test_agents import ai_on, env  # noqa: F401 - fixtures
 from tests.test_lab import APP, LAB, lab_worker
 
@@ -321,3 +321,91 @@ def test_spec_and_diff_units() -> None:
     a = {"result": {"status": 200, "headers": [["Server", "a"]]}}
     b = {"result": {"status": 200, "headers": [["Server", "b"]]}}
     assert diff(a, b) == {"headers": {"server": {"a": "a", "b": "b"}}}
+
+
+def page_probe() -> Probe:
+    """A lab web page with typical weaknesses, served over HTTPS (mock transport)."""
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            headers={
+                "Content-Type": "text/html",
+                "Server": "nginx/1.25.3",
+                "Set-Cookie": "sid=v4lue-secret; Path=/",
+            },
+            text="<html><title>Lab</title></html>",
+        )
+
+    def make(excluded: list[Any]) -> SafeHttp:
+        return SafeHttp(
+            excluded_networks=excluded, only_networks=[LAB], transport=httpx.MockTransport(handler)
+        )
+
+    return Probe(make_client=make)
+
+
+def test_submit_to_black_ice(blacksite: TestClient, env, lab: str, owner_db: Session) -> None:
+    # A finding already exists elsewhere in the workspace: numbering must continue from it
+    # even though BLACKSITE's role can't see it (migration 0015).
+    owner_db.execute(
+        text(
+            "INSERT INTO findings (workspace_id, project_id, title, severity, confidence, "
+            "validation_status, origin, discovery_source) SELECT p.workspace_id, p.id, "
+            "'Elsewhere', 'low', 'high', 'unverified', 'human', 'test' FROM projects p "
+            "WHERE p.id = :p"
+        ),
+        {"p": org_project(owner_db, env["ws"], "Real-world client")[1]},
+    )
+    owner_db.commit()
+    op = probe(blacksite, env, lab, {"type": "http", "scheme": "https"}, approve=True).json()
+    drain(lab_worker({"probe": page_probe()}))
+    url = f"/api/workspaces/{env['ws']}/blacksite/probes/{op['id']}/submit"
+    r = blacksite.post(url)
+    assert r.status_code == 200, r.text
+    got = {f["check_id"]: f for f in r.json()["findings"]}
+    assert set(got) == {
+        "http.version-disclosure.nginx",
+        "http.missing-hsts",
+        "http.missing-csp",
+        "http.no-framing-protection",
+        "http.cookie-not-secure.sid",
+        "http.cookie-not-httponly.sid",
+    }
+    assert {f["validation_status"] for f in got.values()} == {"unverified"}
+    assert {f["change"] for f in got.values()} == {"new"}
+    numbers = owner_db.execute(text("SELECT number FROM findings ORDER BY number")).scalars().all()
+    assert numbers == list(range(1, 8))
+    # The cookie's attributes were kept for the rules; its value was not.
+    stored = str(
+        owner_db.execute(
+            text("SELECT summary FROM evidence WHERE operation_id = :o"), {"o": op["id"]}
+        ).scalar_one()
+    )
+    assert "v4lue-secret" not in stored and "sid=<redacted>; Path=/" in stored
+    again = blacksite.post(url).json()["findings"]
+    assert {f["change"] for f in again} == {"seen_again"}
+    assert owner_db.execute(text("SELECT count(*) FROM findings")).scalar_one() == 7
+    actions = owner_db.execute(
+        text("SELECT count(*) FROM audit_events WHERE action = 'probe.submitted'")
+    ).scalar_one()
+    assert actions == 2
+
+
+def test_submit_refusals(client: TestClient, blacksite: TestClient, env, lab: str) -> None:
+    pending = probe(blacksite, env, lab, {"type": "tcp", "ports": [80]}).json()
+    url = f"/api/workspaces/{env['ws']}/blacksite/probes/{pending['id']}/submit"
+    assert blacksite.post(url).json()["detail"]["code"] == "not_finished"
+    blacksite.post(f"/api/workspaces/{env['ws']}/operations/{pending['id']}/approve", json={})
+
+    class Conn:
+        def close(self) -> None:
+            pass
+
+    tool = fake_lab()
+    tool.connect = lambda ip, port: Conn()
+    drain(lab_worker({"probe": tool}))
+    r = blacksite.post(url)
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "nothing_to_submit"
+    use(client, env["owner"])
+    assert client.post(url).status_code == 404  # not on the hosted app
