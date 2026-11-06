@@ -192,6 +192,14 @@ test.describe("as the owner", () => {
     expect(download.status()).toBe(200);
     expect(download.headers()["content-disposition"]).toContain("attachment");
 
+    // ATLAS: a collected asset starts unverified; a person verifies it and the history records who.
+    await expect(page.getByTestId("history-row")).toHaveCount(1);
+    await expect(page.getByTestId("history-row").first()).toContainText("automated");
+    await page.getByLabel("Status").selectOption("verified");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByTestId("history-row")).toHaveCount(2);
+    await expect(page.getByTestId("history-row").first()).toContainText("Unverified → Verified");
+
     await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reconnaissance" }).click();
     await expect(page.getByRole("heading", { name: "Discovery history" })).toBeVisible();
     await page.getByRole("link", { name: "acme.test", exact: true }).click();

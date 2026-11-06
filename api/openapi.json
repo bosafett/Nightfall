@@ -391,6 +391,13 @@
             "title": "First Seen At",
             "type": "string"
           },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AssetHistoryOut"
+            },
+            "title": "History",
+            "type": "array"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -431,6 +438,9 @@
             "title": "Source",
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/AssetStatus"
+          },
           "value": {
             "title": "Value",
             "type": "string"
@@ -445,12 +455,94 @@
           "ownership",
           "source",
           "notes",
+          "status",
           "first_seen_at",
           "last_seen_at",
           "relationships",
-          "evidence"
+          "evidence",
+          "history"
         ],
         "title": "AssetDetail",
+        "type": "object"
+      },
+      "AssetHistoryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "actor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor Name"
+          },
+          "actor_user_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Actor User Id"
+          },
+          "change": {
+            "title": "Change",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "new_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "New Value"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          },
+          "old_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Old Value"
+          },
+          "recorded_by": {
+            "title": "Recorded By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "change",
+          "old_value",
+          "new_value",
+          "actor_user_id",
+          "actor_name",
+          "recorded_by",
+          "occurred_at"
+        ],
+        "title": "AssetHistoryOut",
         "type": "object"
       },
       "AssetIn": {
@@ -568,6 +660,9 @@
             "title": "Source",
             "type": "string"
           },
+          "status": {
+            "$ref": "#/components/schemas/AssetStatus"
+          },
           "value": {
             "title": "Value",
             "type": "string"
@@ -582,6 +677,7 @@
           "ownership",
           "source",
           "notes",
+          "status",
           "first_seen_at",
           "last_seen_at"
         ],
@@ -621,10 +717,29 @@
                 "type": "null"
               }
             ]
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssetStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "title": "AssetPatch",
         "type": "object"
+      },
+      "AssetStatus": {
+        "enum": [
+          "unverified",
+          "verified",
+          "retired"
+        ],
+        "title": "AssetStatus",
+        "type": "string"
       },
       "AttackPathStatus": {
         "enum": [
@@ -7324,6 +7439,22 @@
                 }
               ],
               "title": "Kind"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AssetStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
             }
           }
         ],

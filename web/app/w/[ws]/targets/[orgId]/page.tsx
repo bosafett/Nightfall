@@ -3,12 +3,12 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
 import type { Asset, Organization, Project } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
-import { assessmentTypeLabel, assetKindLabel, can, ownershipLabel } from "@/lib/labels";
+import { assessmentTypeLabel, assetKindLabel, assetStatusLabel, assetStatusTone, can, ownershipLabel } from "@/lib/labels";
 import { NewAsset } from "@/components/assets/AssetForms";
 import { membership } from "@/lib/workspace";
 import { EditOrganization, NewProject } from "@/components/registry/Forms";
 import { ProjectStatusBadge } from "@/components/registry/StatusBadge";
-import { DataTable, EmptyState, PageHeader, Panel } from "@/components/ui/primitives";
+import { Badge, DataTable, EmptyState, PageHeader, Panel } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Organization" };
 
@@ -53,11 +53,12 @@ export default async function OrganizationPage({ params }: { params: Promise<{ w
             {assets.length === 0 ? (
               <p className="text-sm text-muted">No assets yet. Register them here, or run passive collection from a project with an authorized scope.</p>
             ) : (
-              <DataTable head={["Asset", "Type", "Ownership", "Source", "Last seen"]}>
+              <DataTable head={["Asset", "Type", "Status", "Ownership", "Source", "Last seen"]}>
                 {assets.map((a) => (
                   <tr key={a.id} className="hover:bg-surface-2">
                     <td className="px-4 py-2.5"><Link href={`/w/${ws}/targets/${org.id}/assets/${a.id}`} className="font-mono text-sm hover:text-crimson-text">{a.value}</Link></td>
                     <td className="px-4 py-2.5 text-muted">{assetKindLabel[a.kind]}</td>
+                    <td className="px-4 py-2.5"><Badge tone={assetStatusTone[a.status]}>{assetStatusLabel[a.status]}</Badge></td>
                     <td className="px-4 py-2.5 text-muted">{ownershipLabel[a.ownership]}</td>
                     <td className="px-4 py-2.5 text-xs text-muted">{a.source}</td>
                     <td className="px-4 py-2.5 font-mono text-xs text-muted tabular">{formatDateTime(a.last_seen_at)}</td>

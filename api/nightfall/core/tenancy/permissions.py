@@ -18,9 +18,7 @@ class Permission(enum.StrEnum):
     FINDINGS_VALIDATE = "findings.validate"  # Phase 4
     PLAYBOOKS_RUN = "playbooks.run"  # BLACK OPS (Addendum 4): BLACKSITE is owner-only
     PLAYBOOKS_MANAGE = "playbooks.manage"  # enable/disable playbooks in the workspace
-    AUDIT_READ = (
-        "audit.read"  # audit log, platform integrity (Addendum 5)
-    )
+    AUDIT_READ = "audit.read"  # audit log, platform integrity (Addendum 5)
 
 
 P = Permission

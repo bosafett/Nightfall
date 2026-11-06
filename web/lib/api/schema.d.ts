@@ -1530,6 +1530,8 @@ export interface components {
              * Format: date-time
              */
             first_seen_at: string;
+            /** History */
+            history: components["schemas"]["AssetHistoryOut"][];
             /**
              * Id
              * Format: uuid
@@ -1555,8 +1557,34 @@ export interface components {
             relationships: components["schemas"]["RelationshipOut"][];
             /** Source */
             source: string;
+            status: components["schemas"]["AssetStatus"];
             /** Value */
             value: string;
+        };
+        /** AssetHistoryOut */
+        AssetHistoryOut: {
+            /** Actor Name */
+            actor_name: string | null;
+            /** Actor User Id */
+            actor_user_id: string | null;
+            /** Change */
+            change: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** New Value */
+            new_value: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Old Value */
+            old_value: string | null;
+            /** Recorded By */
+            recorded_by: string;
         };
         /** AssetIn */
         AssetIn: {
@@ -1624,6 +1652,7 @@ export interface components {
             ownership: components["schemas"]["AssetOwnership"];
             /** Source */
             source: string;
+            status: components["schemas"]["AssetStatus"];
             /** Value */
             value: string;
         };
@@ -1637,7 +1666,13 @@ export interface components {
             /** Notes */
             notes?: string | null;
             ownership?: components["schemas"]["AssetOwnership"] | null;
+            status?: components["schemas"]["AssetStatus"] | null;
         };
+        /**
+         * AssetStatus
+         * @enum {string}
+         */
+        AssetStatus: "unverified" | "verified" | "retired";
         /**
          * AttackPathStatus
          * @enum {string}
@@ -4361,6 +4396,7 @@ export interface operations {
             query?: {
                 organization_id?: string | null;
                 kind?: components["schemas"]["AssetKind"] | null;
+                status?: components["schemas"]["AssetStatus"] | null;
             };
             header?: never;
             path: {

@@ -1,4 +1,4 @@
-import type { AssessmentType, AssetKind, AssetOwnership, OperationStatus, ProjectStatus, Role, ScopeEntryKind, Severity, ValidationStatus } from "./api/types";
+import type { AssessmentType, AssetKind, AssetOwnership, AssetStatus, OperationStatus, ProjectStatus, Role, ScopeEntryKind, Severity, ValidationStatus } from "./api/types";
 
 export const assessmentTypeLabel: Record<AssessmentType, string> = {
   reconnaissance: "Reconnaissance",
@@ -59,6 +59,12 @@ export const assetKindLabel: Record<AssetKind, string> = {
 export const ownershipLabel: Record<AssetOwnership, string> = {
   organization: "Owned by the organization", third_party: "Third party", unknown: "Unknown",
 };
+
+/** ATLAS (migration 0016): only a person sets anything but "unverified". */
+export const assetStatusLabel: Record<AssetStatus, string> = {
+  unverified: "Unverified", verified: "Verified", retired: "Retired",
+};
+export const assetStatusTone = { unverified: "gray", verified: "green", retired: "yellow" } as const;
 
 export const scopeKindLabel: Record<ScopeEntryKind, string> = {
   host: "Exact host", domain_tree: "Domain and all subdomains", ip: "IP address", cidr: "IP range (CIDR)",

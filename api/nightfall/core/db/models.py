@@ -201,6 +201,12 @@ class AssetOwnership(enum.StrEnum):
     UNKNOWN = "unknown"
 
 
+class AssetStatus(enum.StrEnum):
+    UNVERIFIED = "unverified"
+    VERIFIED = "verified"
+    RETIRED = "retired"
+
+
 class ScopeStatus(enum.StrEnum):
     DRAFT = "draft"
     ACTIVE = "active"
@@ -269,10 +275,28 @@ class Asset(Base):
     )
     source: Mapped[str]
     notes: Mapped[str] = mapped_column(server_default=text("''"))
+    status: Mapped[AssetStatus] = mapped_column(
+        _pg_enum(AssetStatus, "asset_status"), server_default=text("'unverified'")
+    )
     first_seen_at: Mapped[datetime] = _created()
     last_seen_at: Mapped[datetime] = _created()
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
+
+
+class AssetHistory(Base):
+    """Written only by the database trigger (migration 0016); read-only to every role."""
+
+    __tablename__ = "asset_history"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    asset_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("assets.id"))
+    change: Mapped[str]
+    old_value: Mapped[str | None]
+    new_value: Mapped[str | None]
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    recorded_by: Mapped[str]
+    occurred_at: Mapped[datetime] = _created()
 
 
 class Scope(Base):

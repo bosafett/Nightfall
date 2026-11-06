@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { api } from "@/lib/api/client";
-import type { Asset, AssetKind, AssetOwnership } from "@/lib/api/types";
-import { assetKindLabel, ownershipLabel } from "@/lib/labels";
+import type { Asset, AssetKind, AssetOwnership, AssetStatus } from "@/lib/api/types";
+import { assetKindLabel, assetStatusLabel, ownershipLabel } from "@/lib/labels";
 import { useAction } from "@/components/ui/useAction";
 import { Alert, Button, Field, Input, Select, Textarea } from "@/components/ui/primitives";
 
 const KINDS = Object.keys(assetKindLabel) as AssetKind[];
 const OWNERSHIP = Object.keys(ownershipLabel) as AssetOwnership[];
+const STATUSES = Object.keys(assetStatusLabel) as AssetStatus[];
 
 export function NewAsset({ ws, orgId }: { ws: string; orgId: string }) {
   const { busy, error, run } = useAction();
@@ -40,11 +41,12 @@ export function EditAsset({ ws, asset }: { ws: string; asset: Asset }) {
       setSaved(false);
       const f = new FormData(e.currentTarget);
       if (await run(() => api(`/workspaces/${ws}/assets/${asset.id}`, { method: "PATCH", body: {
-        ownership: String(f.get("ownership")), notes: String(f.get("notes")),
+        status: String(f.get("status")), ownership: String(f.get("ownership")), notes: String(f.get("notes")),
       } }))) setSaved(true);
     }}>
       {error && <Alert>{error}</Alert>}
       {saved && <Alert tone="green">Saved.</Alert>}
+      <Field label="Status" hint="Verified: you confirmed it belongs to the organization. Collectors never change this."><Select name="status" defaultValue={asset.status}>{STATUSES.map((s) => <option key={s} value={s}>{assetStatusLabel[s]}</option>)}</Select></Field>
       <Field label="Ownership"><Select name="ownership" defaultValue={asset.ownership}>{OWNERSHIP.map((o) => <option key={o} value={o}>{ownershipLabel[o]}</option>)}</Select></Field>
       <Field label="Notes"><Textarea name="notes" defaultValue={asset.notes} maxLength={10000} /></Field>
       <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Save changes"}</Button>

@@ -765,6 +765,15 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     hosted worker. The sidebar shows the lab line to owners and admins.
   - Audit log: `GET /api/workspaces/{ws}/audit` (owner and admin), paged, filterable by category, workspace-confined by
     row-level security, secret-looking fields redacted. Page: SYSTEM → Audit Log.
-- **Next:** ATLAS asset status and history, BLACK BOX integrity verification and retention, BLACK ICE contradiction
-  flagging. SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
+- **ATLAS v0 — asset status and history (done, migration 0016).**
+  - `assets.status`: unverified (every new asset), verified (a person confirmed it belongs to the organization) or
+    retired. Trigger `nf_asset_guard` allows a change only from the app role with a signed-in user; collectors, the
+    lab worker and BLACKSITE get an error even if they set `app.user_id`.
+  - `asset_history`: the trigger `nf_asset_history` writes it on creation and on every change of status, ownership or
+    notes, whichever role makes the change, recording the user (if any) and the database role. No role may update,
+    delete or insert into it directly. Existing assets got a backfilled "created" row (`recorded_by = 'migration'`).
+  - "Monitored" isn't a status: nothing monitors assets yet (that's AEGIS), and the label would imply it does.
+  - UI: a status badge and filter on the asset list, a status field on the asset form, and a History panel on each asset.
+    ATLAS stays a label in the sidebar ("In Targets").
+- **Next:** BLACK BOX integrity verification and retention, BLACK ICE contradiction flagging. SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).

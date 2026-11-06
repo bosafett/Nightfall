@@ -15,14 +15,17 @@ from sqlalchemy.orm import Session, aliased
 from nightfall.core.audit.writer import record
 from nightfall.core.db.models import (
     Asset,
+    AssetHistory,
     AssetKind,
     AssetOwnership,
     AssetRelationship,
+    AssetStatus,
     Confidence,
     Evidence,
     Organization,
     RelationshipStatus,
     RelationshipType,
+    User,
 )
 from nightfall.core.db.session import DB
 from nightfall.core.errors import api_error, not_found
@@ -34,6 +37,7 @@ from nightfall.scope.normalize import NormalizationError
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["assets"])
 LIST_LIMIT = 1000
+HISTORY_LIMIT = 200
 Notes = Annotated[str, StringConstraints(strip_whitespace=True, max_length=10000)]
 
 
@@ -61,6 +65,8 @@ class AssetIn(Model):
 class AssetPatch(Model):
     ownership: AssetOwnership | None = None
     notes: Notes | None = None
+    # A person's decision (ATLAS); collectors cannot set it (enforced by migration 0016).
+    status: AssetStatus | None = None
 
 
 class AssetOut(Model):
@@ -72,8 +78,20 @@ class AssetOut(Model):
     ownership: AssetOwnership
     source: str
     notes: str
+    status: AssetStatus
     first_seen_at: datetime
     last_seen_at: datetime
+
+
+class AssetHistoryOut(Model):
+    id: uuid.UUID
+    change: str  # created | status | ownership | notes
+    old_value: str | None
+    new_value: str | None
+    actor_user_id: uuid.UUID | None
+    actor_name: str | None
+    recorded_by: str  # database role that made the change, or "migration" for backfill
+    occurred_at: datetime
 
 
 class RelationshipOut(Model):
@@ -105,6 +123,7 @@ class EvidenceSummary(Model):
 class AssetDetail(AssetOut):
     relationships: list[RelationshipOut]
     evidence: list[EvidenceSummary]
+    history: list[AssetHistoryOut]
 
 
 def evidence_summary(e: Evidence) -> EvidenceSummary:
@@ -132,6 +151,7 @@ def _out(a: Asset, org_name: str) -> AssetOut:
         ownership=a.ownership,
         source=a.source,
         notes=a.notes,
+        status=a.status,
         first_seen_at=a.first_seen_at,
         last_seen_at=a.last_seen_at,
     )
@@ -154,6 +174,7 @@ def list_assets(
     ctx: WorkspaceContext = ws_permission(Permission.READ),
     organization_id: Annotated[uuid.UUID | None, Query()] = None,
     kind: Annotated[AssetKind | None, Query()] = None,
+    status: Annotated[AssetStatus | None, Query()] = None,
 ) -> list[AssetOut]:
     q = (
         select(Asset, Organization.name)
@@ -164,6 +185,8 @@ def list_assets(
         q = q.where(Asset.organization_id == organization_id)
     if kind is not None:
         q = q.where(Asset.kind == kind)
+    if status is not None:
+        q = q.where(Asset.status == status)
     rows = db.execute(q.order_by(Asset.kind, Asset.value).limit(LIST_LIMIT)).all()
     return [_out(a, n) for a, n in rows]
 
@@ -241,6 +264,13 @@ def get_asset(
         .order_by(Evidence.collected_at.desc())
         .limit(50)
     ).all()
+    history = db.execute(
+        select(AssetHistory, User.display_name)
+        .outerjoin(User, User.id == AssetHistory.actor_user_id)
+        .where(AssetHistory.asset_id == a.id)
+        .order_by(AssetHistory.occurred_at.desc(), AssetHistory.id)
+        .limit(HISTORY_LIMIT)
+    ).all()
     return AssetDetail(
         **_out(a, org_name).model_dump(),
         relationships=[
@@ -259,6 +289,19 @@ def get_asset(
             for r, oid, ov in rels
         ],
         evidence=[evidence_summary(e) for e in evidence],
+        history=[
+            AssetHistoryOut(
+                id=h.id,
+                change=h.change,
+                old_value=h.old_value,
+                new_value=h.new_value,
+                actor_user_id=h.actor_user_id,
+                actor_name=name,
+                recorded_by=h.recorded_by,
+                occurred_at=h.occurred_at,
+            )
+            for h, name in history
+        ],
     )
 
 
@@ -270,17 +313,26 @@ def update_asset(
     ctx: WorkspaceContext = ws_permission(Permission.REGISTRY_WRITE),
 ) -> AssetOut:
     a, org_name = _get(db, ctx, asset_id)
-    changes = body.model_dump(exclude_unset=True, exclude_none=True)
+    changes = {
+        k: v
+        for k, v in body.model_dump(exclude_unset=True, exclude_none=True).items()
+        if getattr(a, k) != v
+    }
+    old_status = a.status
     for k, v in changes.items():
         setattr(a, k, v)
     db.flush()
     db.refresh(a)
-    record(
-        db,
-        "asset.updated",
-        entity_type="asset",
-        entity_id=a.id,
-        data={"fields": sorted(changes)},
-        **ctx.audit_kwargs(),
-    )
+    if changes:
+        data: dict[str, object] = {"fields": sorted(changes)}
+        if "status" in changes:
+            data["status"] = {"from": old_status.value, "to": a.status.value}
+        record(
+            db,
+            "asset.updated",
+            entity_type="asset",
+            entity_id=a.id,
+            data=data,
+            **ctx.audit_kwargs(),
+        )
     return _out(a, org_name)
