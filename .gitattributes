@@ -1,2 +1,4 @@
-# Shell scripts run inside Linux containers: keep LF even on a Windows checkout.
-*.sh text eol=lf
+# Check every text file out with LF, on Windows too. Scripts run in Linux containers
+# (a CRLF #!/bin/sh line fails), and the Nuclei templates are pinned by the hash of their
+# exact bytes, so a CRLF checkout makes the worker refuse to scan.
+* text=auto eol=lf

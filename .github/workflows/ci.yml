@@ -138,6 +138,10 @@ jobs:
         run: >-
           ! docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1
           -s -m 5 https://example.com
+      - name: Pinned templates and scripts check out with LF everywhere (Windows too)
+        run: |
+          bad=$(git ls-files --eol api/nightfall/tools/nuclei/templates infra/tools/egress-lock.sh | grep -v 'eol=lf' || true)
+          test -z "$bad" || { echo "$bad"; exit 1; }
       - name: Build as from a Windows checkout (CRLF line endings in the entrypoint)
         run: |
           sed -i 's/$/\r/' infra/tools/egress-lock.sh
