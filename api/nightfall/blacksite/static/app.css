@@ -1,0 +1,48 @@
+:root {
+  --bg: #0a0a0c; --surface: #121216; --border: #24242a; --text: #e8e8ec; --muted: #9a9aa3;
+  --crimson: #e5192e; --crimson-text: #ff5a68; --orange: #ff7a1a; --yellow: #ffc21a; --blue: #2f7bff; --green: #22c55e;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, sans-serif; }
+.strip { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.brand { letter-spacing: .08em; }
+.session { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+main { padding: 16px; max-width: 1400px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 0 0 12px; } h2 { font-size: 16px; margin: 0 0 10px; } h3 { font-size: 14px; margin: 12px 0 6px; }
+.muted { color: var(--muted); } .crimson { color: var(--crimson-text); } .error { color: var(--crimson-text); min-height: 1em; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; min-width: 0; }
+.grid { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 1000px) { .grid.two { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); } }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; } .row.end { justify-content: flex-end; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+input, select, textarea { background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font: inherit; min-width: 0; }
+textarea { font-family: ui-monospace, monospace; min-height: 70px; }
+input[type=checkbox] { width: auto; }
+label.check { flex-direction: row; align-items: center; color: var(--text); font-size: 13px; }
+button { background: #1c1c22; color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; font: inherit; cursor: pointer; }
+button:hover { border-color: var(--muted); } button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--crimson); border-color: var(--crimson); color: #fff; }
+button.ghost { background: transparent; } button.small { padding: 3px 7px; font-size: 12px; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+.tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--border); }
+.tabs button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; }
+.tabs button[aria-selected=true] { border-bottom-color: var(--crimson); }
+.tag { display: inline-block; border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; font-size: 12px; white-space: nowrap; }
+.tag.lab { color: var(--orange); border-color: var(--orange); }
+.tag.ok { color: var(--green); border-color: var(--green); } .tag.warn { color: var(--yellow); border-color: var(--yellow); }
+.tag.bad { color: var(--crimson-text); border-color: var(--crimson); } .tag.info { color: var(--blue); border-color: var(--blue); }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; }
+tr.selected { background: #1a1a20; }
+pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px; overflow: auto; max-height: 360px; white-space: pre-wrap; word-break: break-all; font-size: 12px; margin: 6px 0; }
+.mono { font-family: ui-monospace, monospace; }
+ul.targets { list-style: none; padding: 0; margin: 0; }
+ul.targets li button { width: 100%; text-align: left; margin-bottom: 4px; }
+ul.targets li button[aria-pressed=true] { border-color: var(--crimson); }
+dialog { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; width: min(24rem, calc(100% - 2rem)); }
+dialog::backdrop { background: rgba(0, 0, 0, .7); }
+.checks li { margin: 2px 0; }

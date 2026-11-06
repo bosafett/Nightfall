@@ -21,6 +21,7 @@ from __future__ import annotations
 import ipaddress
 import logging
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, FastAPI, Request
@@ -143,9 +144,43 @@ def _curated() -> list[APIRouter]:
     for path, fn, methods, code in ws_routes:
         w.add_api_route(path, fn, methods=methods, status_code=code, response_model=None)
     from nightfall.blacksite.probe_routes import router as probes
+    from nightfall.blacksite.probe_routes import targets_router
 
-    # /compare is declared before /{op_id}/... paths; static path first is fine either way.
-    return [a, w, router, probes]
+    return [a, w, router, probes, targets_router, ui]
+
+
+STATIC = Path(__file__).parent / "static"
+# The only files served (no directory listing, no path parameters).
+_UI_FILES = {
+    "/": ("index.html", "text/html; charset=utf-8"),
+    "/app.js": ("app.js", "text/javascript; charset=utf-8"),
+    "/app.css": ("app.css", "text/css; charset=utf-8"),
+}
+UI_HEADERS = {
+    # Own files only, no inline script or style, nothing may frame it or be fetched elsewhere.
+    "Content-Security-Policy": (
+        "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; "
+        "connect-src 'self'; form-action 'none'; frame-ancestors 'none'; base-uri 'none'"
+    ),
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "Cache-Control": "no-store",
+}
+
+ui = APIRouter(tags=["blacksite"])
+
+
+def _ui_route(path: str, name: str, media: str) -> None:
+    def serve() -> Response:
+        return Response((STATIC / name).read_bytes(), media_type=media, headers=UI_HEADERS)
+
+    serve._nf_authz = True  # type: ignore[attr-defined]  # static and public within the tunnel
+    ui.add_api_route(path, serve, methods=["GET"], include_in_schema=False)
+
+
+for _path, (_name, _media) in _UI_FILES.items():
+    _ui_route(_path, _name, _media)
 
 
 def create_blacksite_app() -> FastAPI:

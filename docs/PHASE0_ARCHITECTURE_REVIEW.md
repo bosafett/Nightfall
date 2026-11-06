@@ -719,7 +719,8 @@ independent review is recorded.
 ### 17.2 Phase 2 (BLACKSITE probe deck) status
 
 Lab only (profile C): under D3 BLACKSITE acts on lab work only, so probing real targets from it would need a new
-owner decision and its own review. API only; a browser UI on the tunnel is still to come.
+owner decision and its own review. Operator console served by the listener at `/` (added after Phase 2: vanilla
+JS, strict CSP, text-only rendering; tests in `tests/test_blacksite_ui.py`, plus a manual browser check).
 
 | Item | Implemented | Tested | Independently reviewed | Deployed |
 |---|---|---|---|---|
@@ -740,8 +741,8 @@ built.
 
 1. **Now:** owner review of this change; independent review of the BLACKSITE authorization model and of Phase 1
    (`docs/reviews/2026-11-blacksite-authorization-model.md` §9); record the reference.
-2. ~~**Phase 2 — BLACKSITE probe deck**~~ built (§17.2), lab only, API only. Next for it: a local UI on the tunnel
-   and "Submit to BLACK ICE".
+2. ~~**Phase 2 — BLACKSITE probe deck**~~ built (§17.2), lab only, with the operator console. Next for it:
+   "Submit to BLACK ICE".
 3. **BLACK OPS remainder:** Profile B design and review; playbooks 6–11 after validation.
 4. **Tools:** ZAP baseline (low risk), Amass engine, moderate-risk lab packs, each with its own review.
 5. **Platform:** local AI provider (no paid calls), audit export to append-only storage (F7), server-side PDF.

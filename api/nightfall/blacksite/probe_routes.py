@@ -302,3 +302,98 @@ def compare_probes(
     return CompareOut(
         a=a, b=b, target=ops[0].target_value, differences=diff(records[0], records[1])
     )
+
+
+class ProbeResultOut(Model):
+    operation: OperationOut
+    record: dict[str, Any] | None
+
+
+@router.get("/{op_id}/result", response_model=ProbeResultOut)
+def probe_result(
+    op_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> ProbeResultOut:
+    """The stored probe record (credentials already redacted at capture)."""
+    op = _probe_op(db, ctx, op_id)
+    ev = db.scalar(select(Evidence).where(Evidence.operation_id == op.id))
+    return ProbeResultOut(
+        operation=_out(_get_op(db, ctx, op.id)),
+        record=ev.summary.get("probe") if ev is not None else None,
+    )
+
+
+targets_router = APIRouter(prefix="/api/workspaces/{workspace_id}/blacksite", tags=["blacksite"])
+
+
+class TargetAssetOut(Model):
+    id: uuid.UUID
+    value: str
+    in_scope: bool
+    reason: str
+    allowed_ports: list[int]
+    max_rps: int | None
+    daily_budget: int | None
+
+
+class LabProjectOut(Model):
+    id: uuid.UUID
+    name: str
+    organization_name: str
+    scope_version: int | None
+    assets: list[TargetAssetOut]
+
+
+@targets_router.get("/targets", response_model=list[LabProjectOut])
+def lab_targets(
+    db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> list[LabProjectOut]:
+    """Lab projects (visible to this role only if they have a lab scope) and their registered
+    lab assets, with whether each is in the active scope and its probe bounds."""
+    from nightfall.core.db.models import Organization
+
+    rows = db.execute(
+        select(Project, Organization.name)
+        .join(Organization, Organization.id == Project.organization_id)
+        .where(Project.workspace_id == ctx.workspace_id)
+        .order_by(Organization.name, Project.name)
+    ).all()
+    out: list[LabProjectOut] = []
+    now = utcnow()
+    for project, org_name in rows:
+        scope = active_scope(db, project.id)
+        snap = snapshot(db, scope) if scope is not None else None
+        entries = (
+            db.scalars(select(ScopeTarget).where(ScopeTarget.scope_id == scope.id)).all()
+            if scope is not None
+            else []
+        )
+        assets = db.scalars(
+            select(Asset)
+            .where(Asset.organization_id == project.organization_id)
+            .order_by(Asset.value)
+        ).all()
+        items = []
+        for a in assets:
+            decision = evaluate(snap, a.value, now)
+            bounds = target_bounds(entries, a.value) if decision.allowed else None
+            items.append(
+                TargetAssetOut(
+                    id=a.id,
+                    value=a.value,
+                    in_scope=decision.allowed and bounds is not None,
+                    reason=decision.reason,
+                    allowed_ports=bounds.allowed_ports if bounds else [],
+                    max_rps=bounds.max_rps if bounds else None,
+                    daily_budget=bounds.daily_budget if bounds else None,
+                )
+            )
+        out.append(
+            LabProjectOut(
+                id=project.id,
+                name=project.name,
+                organization_name=org_name,
+                scope_version=scope.version if scope is not None else None,
+                assets=items,
+            )
+        )
+    return out

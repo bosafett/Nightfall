@@ -67,7 +67,13 @@ ssh -N -L 8443:127.0.0.1:8443 you@lab-machine
 ```
 
 Then sign in at `http://127.0.0.1:8443/api/auth/login` (email, password, authenticator code) and check
-`GET /api/workspaces/<ws>/blacksite/status`. BLACKSITE is API only for now.
+`GET /api/workspaces/<ws>/blacksite/status`.
+
+**Operator console:** open `http://127.0.0.1:8443/` through the tunnel. It's served by the listener itself (no Node
+needed on the lab machine): sign-in, probe deck (targets from the registry, composer, history, result, replay,
+compare), approvals for lab operations and runs, and lab playbook preflight and launch. It prompts for a fresh
+two-factor code when needed. Strict Content-Security-Policy (own files only, no inline script, not frameable);
+everything from the API or a target is shown as text, never rendered as HTML.
 
 ### Probe deck (Phase 2, lab only)
 

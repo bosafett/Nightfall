@@ -212,7 +212,8 @@ the same scope checks, approvals, worker re-checks and BLACK ICE ingest as any o
 - **Probe deck (Phase 2, lab only).** `POST /api/workspaces/{ws}/blacksite/probes` on the BLACKSITE listener:
   HTTP, TCP-connect or TLS probes against a registered lab asset, within the scope entry's allowed ports, rate and
   daily budget; replay and compare. State-changing HTTP methods are moderate risk, lab only, and need an explicit
-  confirmation. See `docs/blacksite-deployment.md`.
+  confirmation. The operator console is at `http://127.0.0.1:8443/` through the tunnel. See
+  `docs/blacksite-deployment.md`.
 - **Review gate (D4).** BLACKSITE refuses lab execution until `NIGHTFALL_BLACKSITE_REVIEW_REF` names the recorded
   independent review. That is an attestation by the operator, not proof a review happened; tests and self-review
   don't count.

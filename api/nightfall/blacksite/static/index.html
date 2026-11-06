@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>BLACKSITE · JANUS</title>
+  <link rel="stylesheet" href="/app.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <header class="strip" aria-label="Session">
+    <div class="brand"><strong>JANUS</strong> <span class="muted">JNS.OS</span> · <strong class="crimson">BLACKSITE</strong></div>
+    <span class="tag lab">LAB · ISOLATED</span>
+    <div id="session" class="session"></div>
+  </header>
+  <main id="app" tabindex="-1"><p class="muted">Loading…</p></main>
+  <dialog id="stepup" aria-labelledby="stepup-title">
+    <form id="stepup-form" method="dialog">
+      <h2 id="stepup-title">Confirm it's you</h2>
+      <p class="muted">BLACKSITE needs a two-factor code from the last 15 minutes.</p>
+      <label>Authenticator code <input id="stepup-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required></label>
+      <p id="stepup-error" class="error" role="alert"></p>
+      <div class="row end">
+        <button type="button" id="stepup-cancel" class="ghost">Cancel</button>
+        <button type="submit" class="primary">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>

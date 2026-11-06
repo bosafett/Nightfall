@@ -66,3 +66,4 @@ addopts = "-q"
 
 [tool.setuptools.package-data]
 "nightfall.tools.nuclei" = ["templates/*.yaml"]
+"nightfall.blacksite" = ["static/*"]
