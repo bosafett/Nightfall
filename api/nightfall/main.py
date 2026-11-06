@@ -17,6 +17,7 @@ from nightfall.agents.routes import router as agents_router
 from nightfall.blackice.routes import router as blackice_router
 from nightfall.blackops.routes import router as blackops_router
 from nightfall.config import get_settings
+from nightfall.core.audit.routes import router as audit_router
 from nightfall.core.db.session import get_engine
 from nightfall.core.identity.routes import router as auth_router
 from nightfall.core.identity.throttle import mutations_by_ip
@@ -32,6 +33,7 @@ from nightfall.registry.routes import router as registry_router
 from nightfall.reports.routes import router as reports_router
 from nightfall.scope.routes import router as scope_router
 from nightfall.warroom.routes import router as warroom_router
+from nightfall.watchtower.routes import router as watchtower_router
 
 log = logging.getLogger("nightfall.api")
 
@@ -71,7 +73,8 @@ def health() -> HealthOut:
             fresh = conn.execute(
                 text(
                     "SELECT EXISTS (SELECT 1 FROM worker_heartbeats "
-                    "WHERE last_seen_at > now() - interval '30 seconds')"
+                    "WHERE last_seen_at > now() - interval '30 seconds' "
+                    "AND worker_id NOT LIKE 'lab:%')"
                 )
             ).scalar()
             worker_status = "ok" if fresh else "down"
@@ -176,6 +179,8 @@ ROUTERS = (
     blackice_router,
     blackops_router,
     warroom_router,
+    audit_router,
+    watchtower_router,
     internal_router,
 )
 

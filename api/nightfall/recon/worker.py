@@ -26,7 +26,6 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import timedelta
 
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.dialects.postgresql import insert
@@ -36,6 +35,7 @@ from nightfall.agents import runner as agent_runner
 from nightfall.agents.providers import Provider, get_provider
 from nightfall.blackice.ingest import apply_finding_rules, ingest
 from nightfall.config import get_settings
+from nightfall.control.approvals import approval_expired
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
@@ -63,7 +63,6 @@ from nightfall.recon.collectors import (
 )
 from nightfall.recon.safe_http import Refused
 from nightfall.scope.engine import evaluate
-from nightfall.scope.lab import LAB_APPROVAL_TTL_HOURS
 from nightfall.scope.repository import active_scope, snapshot
 from nightfall.tools.runner import Sandbox
 
@@ -90,6 +89,9 @@ UPDATE operations SET status = 'failed', finished_at = now(),
 WHERE status = 'running' AND started_at < now() - interval '10 minutes' AND attempts >= 3
   AND {lab}
 """
+# worker_heartbeats has no kind column; the id prefix is the marker (no migration needed).
+LAB_HEARTBEAT_PREFIX = "lab:"
+
 CLAIM = text(_CLAIM.format(lab="NOT is_lab"))
 EXPIRE = text(_EXPIRE.format(lab="NOT is_lab"))
 CLAIM_LAB = text(_CLAIM.format(lab="is_lab"))
@@ -139,12 +141,19 @@ class Worker:
     # Isolated lab worker (Phase 6b): only lab operations, never agent tasks.
     lab: bool = False
 
+    @property
+    def heartbeat_id(self) -> str:
+        """Lab workers are tagged so health can tell them apart (WATCHTOWER)."""
+        return f"{LAB_HEARTBEAT_PREFIX}{self.worker_id}" if self.lab else self.worker_id
+
     def heartbeat(self) -> None:
         with self.sessions() as db:
             db.execute(
                 insert(WorkerHeartbeat)
                 .values(
-                    worker_id=self.worker_id, version=get_settings().version, last_seen_at=utcnow()
+                    worker_id=self.heartbeat_id,
+                    version=get_settings().version,
+                    last_seen_at=utcnow(),
                 )
                 .on_conflict_do_update(
                     index_elements=["worker_id"], set_={"last_seen_at": utcnow()}
@@ -218,14 +227,8 @@ class Worker:
                 )
                 if approval is None:
                     decision_ok, reason = False, "No valid approval for this operation."
-                elif op.is_lab and approval.decided_at < now - timedelta(
-                    hours=LAB_APPROVAL_TTL_HOURS
-                ):
-                    decision_ok, reason = (
-                        False,
-                        f"The approval is more than {LAB_APPROVAL_TTL_HOURS} hours old "
-                        "(lab approvals expire). Request it again.",
-                    )
+                elif expired := approval_expired(approval.decided_at, op.is_lab, now):
+                    decision_ok, reason = False, expired
             pinned = db.get(Scope, op.scope_id)
             if decision_ok and (
                 pinned is None or pinned.is_lab != op.is_lab or op.is_lab != self.lab

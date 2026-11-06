@@ -51,7 +51,7 @@ describe("navigation", () => {
     expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, "SWORD", "SHIELD", "JANUS CORE", "SYSTEM"]);
     expect(NAV.map((n) => n.label)).toEqual([
       "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports",
-      "Agents", "War Room", "Settings",
+      "Agents", "War Room", "Audit Log", "Settings",
     ]);
   });
   it("never links an unbuilt module", () => {

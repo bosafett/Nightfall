@@ -635,6 +635,154 @@
         "title": "AttackPathStatus",
         "type": "string"
       },
+      "AuditEventOut": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "actor": {
+            "title": "Actor",
+            "type": "string"
+          },
+          "actor_type": {
+            "title": "Actor Type",
+            "type": "string"
+          },
+          "data": {
+            "additionalProperties": true,
+            "title": "Data",
+            "type": "object"
+          },
+          "entity_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Id"
+          },
+          "entity_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entity Type"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "action",
+          "actor",
+          "actor_type",
+          "entity_type",
+          "entity_id",
+          "data",
+          "ip",
+          "occurred_at"
+        ],
+        "title": "AuditEventOut",
+        "type": "object"
+      },
+      "AuditPage": {
+        "additionalProperties": false,
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Categories",
+            "type": "array"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventOut"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "next_before": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Before"
+          }
+        },
+        "required": [
+          "events",
+          "categories",
+          "next_before"
+        ],
+        "title": "AuditPage",
+        "type": "object"
+      },
+      "AuditPipeline": {
+        "additionalProperties": false,
+        "properties": {
+          "last_event_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Event At"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "down"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "last_event_at"
+        ],
+        "title": "AuditPipeline",
+        "type": "object"
+      },
       "AwaitingOp": {
         "additionalProperties": false,
         "properties": {
@@ -2189,6 +2337,39 @@
           "components"
         ],
         "title": "HealthOut",
+        "type": "object"
+      },
+      "Heartbeat": {
+        "additionalProperties": false,
+        "properties": {
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "status": {
+            "enum": [
+              "online",
+              "offline",
+              "never",
+              "on_demand"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "last_seen_at"
+        ],
+        "title": "Heartbeat",
         "type": "object"
       },
       "InFlight": {
@@ -6298,6 +6479,38 @@
         "title": "WarRoomSummary",
         "type": "object"
       },
+      "WatchtowerOut": {
+        "additionalProperties": false,
+        "properties": {
+          "audit": {
+            "$ref": "#/components/schemas/AuditPipeline"
+          },
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "failed_operations_24h": {
+            "title": "Failed Operations 24H",
+            "type": "integer"
+          },
+          "lab": {
+            "$ref": "#/components/schemas/Heartbeat"
+          },
+          "worker": {
+            "$ref": "#/components/schemas/Heartbeat"
+          }
+        },
+        "required": [
+          "checked_at",
+          "worker",
+          "lab",
+          "audit",
+          "failed_operations_24h"
+        ],
+        "title": "WatchtowerOut",
+        "type": "object"
+      },
       "Window": {
         "enum": [
           "1h",
@@ -7485,6 +7698,84 @@
         "summary": "Review Path",
         "tags": [
           "attack-paths"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/audit": {
+      "get": {
+        "operationId": "audit_log_api_workspaces__workspace_id__audit_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 40,
+                  "pattern": "^[a-z_]+$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "before",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Before"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Audit Log",
+        "tags": [
+          "audit"
         ]
       }
     },
@@ -11286,6 +11577,49 @@
         "summary": "War Room Summary",
         "tags": [
           "war-room"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/watchtower": {
+      "get": {
+        "operationId": "watchtower_api_workspaces__workspace_id__watchtower_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WatchtowerOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Watchtower",
+        "tags": [
+          "watchtower"
         ]
       }
     },

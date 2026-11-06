@@ -747,3 +747,24 @@ DNS probes (meaningless in a hostname-free lab) are not built.
 3. **BLACK OPS remainder:** Profile B design and review; playbooks 6–11 after validation.
 4. **Tools:** ZAP baseline (low risk), Amass engine, moderate-risk lab packs, each with its own review.
 5. **Platform:** local AI provider (no paid calls), audit export to append-only storage (F7), server-side PDF.
+
+### 17.4 Addendum 5 (SWORD / SHIELD / JANUS CORE) status
+
+Addendum 5 is architectural guidance; it's built in small phases on top of what exists, never as parallel systems.
+
+- **Phase A — navigation (done).** The sidebar is grouped as Command Center, SWORD, SHIELD, JANUS CORE and SYSTEM
+  (`web/lib/nav.ts`). Existing pages were regrouped, not duplicated. Modules without a page are text labels tagged
+  "Planned" (BLACK ICE is tagged "In Findings"), never links.
+- **Phase B — CONTROL, WATCHTOWER, audit log (done, no migration).**
+  - CONTROL: `nightfall/control/approvals.py` is the one approval-lifetime rule. Every approval now expires (lab 24 h,
+    live 72 h); the worker refuses older work, which must be approved again. Route-level checks stay where they are
+    (`core/tenancy/deps.py`, `blacksite/boundary.py`, the scope evaluator); moving them is a later, reviewed change.
+  - WATCHTOWER: `GET /api/workspaces/{ws}/watchtower` (owner and admin, new `audit.read` permission) reports the worker
+    and lab worker heartbeats, whether this deployment can write audit events, and failed work in the last 24 h. Lab
+    workers heartbeat as `lab:<host>:<pid>`; `/api/health` stays public and no longer counts a lab heartbeat as the
+    hosted worker. The sidebar shows the lab line to owners and admins.
+  - Audit log: `GET /api/workspaces/{ws}/audit` (owner and admin), paged, filterable by category, workspace-confined by
+    row-level security, secret-looking fields redacted. Page: SYSTEM → Audit Log.
+- **Next:** ATLAS asset status and history, BLACK BOX integrity verification and retention, BLACK ICE contradiction
+  flagging. SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
+  unattended activity against targets, and the hosted free tier has no background runner).

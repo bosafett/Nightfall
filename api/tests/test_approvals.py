@@ -180,3 +180,26 @@ def test_requester_can_cancel_while_waiting(client: TestClient, env) -> None:
     use(client, env["analyst"])
     assert client.post(f"/api/workspaces/{env['ws']}/operations/{op_id}/cancel").status_code == 200
     assert act(client, env, "operator", op_id, "approve").status_code == 409
+
+
+@pytest.mark.parametrize(("age_hours", "status"), [(71, "succeeded"), (73, "denied")])
+def test_live_approvals_expire(
+    client: TestClient, env, owner_db: Session, age_hours: int, status: str
+) -> None:
+    """CONTROL: an approval is only good for 72 hours; older work is refused at run time."""
+    op_id = request_http(client, env).json()["id"]
+    assert act(client, env, "operator", op_id, "approve").status_code == 200
+    owner_db.execute(
+        text(
+            "UPDATE approvals SET decided_at = now() - make_interval(hours => :h) "
+            "WHERE operation_id = :o"
+        ),
+        {"h": age_hours, "o": op_id},
+    )
+    owner_db.commit()
+    make_worker().run_once()
+    use(client, env["analyst"])
+    detail = client.get(f"/api/workspaces/{env['ws']}/operations/{op_id}").json()
+    assert detail["status"] == status
+    if status == "denied":
+        assert "approvals expire" in detail["denial_reason"]

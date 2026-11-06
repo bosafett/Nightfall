@@ -4,13 +4,16 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import type { Health } from "@/lib/api/types";
+import type { Health, Watchtower } from "@/lib/api/types";
 import { NAV_GROUPS, groupHasActive, isActive, isPlanned, type NavEntry, type NavGroup } from "@/lib/nav";
 import { Icon } from "@/components/ui/Icon";
 import { StatusDot, cx } from "@/components/ui/primitives";
 
-export function SidebarContent({ ws, health, version, onNavigate }: {
-  ws: string; health: Health | null; version: string; onNavigate?: () => void;
+/** `lab` comes from WATCHTOWER (owner and admin only); null means this viewer isn't shown it. */
+export type LabStatus = Watchtower["lab"] | null;
+
+export function SidebarContent({ ws, health, lab, version, onNavigate }: {
+  ws: string; health: Health | null; lab: LabStatus; version: string; onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   return (
@@ -29,7 +32,7 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
         ))}
       </nav>
 
-      <SystemStatus health={health} />
+      <SystemStatus health={health} lab={lab} />
       <p className="px-5 pb-4 text-xs text-muted tabular">v{version}</p>
     </div>
   );
@@ -106,7 +109,11 @@ function NavRow({ item, ws, pathname, onNavigate }: {
 const componentLabel: Record<string, string> = { api: "API", database: "Database", worker: "Worker", ai: "AI provider" };
 const componentStatus: Record<string, string> = { ok: "Online", on_demand: "On demand", off: "Off", down: "Down" };
 
-function SystemStatus({ health }: { health: Health | null }) {
+const labText: Record<string, [string, string]> = {
+  online: ["Online", "text-green"], offline: ["Offline", "text-orange"], never: ["Never connected", "text-muted"],
+};
+
+function SystemStatus({ health, lab }: { health: Health | null; lab: LabStatus }) {
   const components = health?.components ?? [];
   const allOk = health?.status === "ok";
   return (
@@ -126,10 +133,17 @@ function SystemStatus({ health }: { health: Health | null }) {
                 <span className={c.status === "down" ? "text-crimson-text" : c.status === "off" ? "text-muted" : "text-green"}>{componentStatus[c.status] ?? c.status}</span>
               </li>
             ))}
-            {/* /api/health does not report the lab machine; never imply it is online. */}
-            <li className="flex items-center justify-between text-xs text-muted" title="The lab worker does not report health to the API yet">
-              <span>Lab</span><span className="text-muted">Not reported</span>
-            </li>
+            {/* /api/health is public and never reports the lab; owners and admins get it from WATCHTOWER. */}
+            {lab && labText[lab.status] ? (
+              <li className="flex items-center justify-between text-xs text-muted"
+                title={lab.last_seen_at ? `Last heartbeat ${new Date(lab.last_seen_at).toLocaleString()}` : "No heartbeat recorded"}>
+                <span>Lab</span><span className={labText[lab.status]![1]}>{labText[lab.status]![0]}</span>
+              </li>
+            ) : (
+              <li className="flex items-center justify-between text-xs text-muted" title="Lab status is shown to owners and admins">
+                <span>Lab</span><span className="text-muted">Not reported</span>
+              </li>
+            )}
           </ul>
         </>
       )}

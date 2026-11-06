@@ -3,9 +3,9 @@
 import { useState } from "react";
 import type { Health } from "@/lib/api/types";
 import { Icon } from "@/components/ui/Icon";
-import { SidebarContent } from "./SidebarContent";
+import { SidebarContent, type LabStatus } from "./SidebarContent";
 
-export function MobileNav(props: { ws: string; health: Health | null; version: string }) {
+export function MobileNav(props: { ws: string; health: Health | null; lab: LabStatus; version: string }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="lg:hidden">

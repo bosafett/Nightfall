@@ -62,3 +62,6 @@ export type Preflight = S["PreflightOut"];
 export type PlaybookRun = S["RunOut"];
 export type PlaybookRunDetail = S["RunDetail"];
 export type PlaybookRunStatus = PlaybookRun["status"];
+export type AuditPage = S["AuditPage"];
+export type AuditEvent = S["AuditEventOut"];
+export type Watchtower = S["WatchtowerOut"];

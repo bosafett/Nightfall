@@ -63,8 +63,8 @@ test("owner signs in, is required to enrol two-factor, then reaches the workspac
     await expect(agents.getByText(name, { exact: true })).toBeVisible();
   }
   await expect(agents.getByText("No runs yet")).toHaveCount(7);
-  // The lab does not report health; it must never read as online.
-  await expect(page.getByText("Not reported")).toBeVisible();
+  // Lab status comes from heartbeats (WATCHTOWER); with no lab worker it must never read as online.
+  await expect(page.locator("aside").getByText("Never connected")).toBeVisible();
   await expect(page.getByTestId("environment")).toContainText("DRE Lab");
   workspaceUrl = new URL(page.url()).pathname;
   await page.context().storageState({ path: STATE });
@@ -79,13 +79,17 @@ test.describe("as the owner", () => {
     for (const [link, heading] of [
       ["Target Registry", "Target Registry"], ["Reconnaissance", "Reconnaissance"], ["Findings", "Findings"],
       ["Attack Graph", "Attack Graph"], ["War Room", "War Room"], ["BLACKSITE", "BLACKSITE"], ["Reports", "Reports"],
-      ["Agents", "AI agents"], ["Settings", "Settings"], ["Command Center", "Command Center"],
+      ["Agents", "AI agents"], ["Audit Log", "Audit Log"], ["Settings", "Settings"], ["Command Center", "Command Center"],
     ]) {
       await nav.getByRole("link", { name: link }).click();
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
       await expect(nav.getByRole("link", { name: link })).toHaveAttribute("aria-current", "page");
     }
     await expect(page.getByText("All systems online")).toBeVisible();
+    await nav.getByRole("link", { name: "Audit Log" }).click();
+    await expect(page.getByTestId("integrity")).toContainText("Audit writes");
+    await expect(page.getByTestId("integrity")).toContainText("Never connected");
+    await expect(page.locator("main").getByRole("navigation", { name: "Filter by category" })).toBeVisible();
     // Unbuilt divisions are collapsible labels, never links.
     const shield = nav.getByRole("button", { name: /SHIELD/ });
     await expect(shield).toHaveAttribute("aria-expanded", "false");

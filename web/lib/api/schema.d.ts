@@ -369,6 +369,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Audit Log */
+        get: operations["audit_log_api_workspaces__workspace_id__audit_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/blackops/playbooks": {
         parameters: {
             query?: never;
@@ -1307,6 +1324,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/watchtower": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Watchtower */
+        get: operations["watchtower_api_workspaces__workspace_id__watchtower_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/worker/run": {
         parameters: {
             query?: never;
@@ -1609,6 +1643,54 @@ export interface components {
          * @enum {string}
          */
         AttackPathStatus: "hypothesis" | "validated" | "rejected";
+        /** AuditEventOut */
+        AuditEventOut: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string;
+            /** Actor Type */
+            actor_type: string;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ip */
+            ip: string | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+        };
+        /** AuditPage */
+        AuditPage: {
+            /** Categories */
+            categories: string[];
+            /** Events */
+            events: components["schemas"]["AuditEventOut"][];
+            /** Next Before */
+            next_before: string | null;
+        };
+        /** AuditPipeline */
+        AuditPipeline: {
+            /** Last Event At */
+            last_event_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "down";
+        };
         /** AwaitingOp */
         AwaitingOp: {
             /** Can Decide */
@@ -2205,6 +2287,16 @@ export interface components {
             status: "ok" | "degraded";
             /** Version */
             version: string;
+        };
+        /** Heartbeat */
+        Heartbeat: {
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "online" | "offline" | "never" | "on_demand";
         };
         /** InFlight */
         InFlight: {
@@ -3688,6 +3780,19 @@ export interface components {
             /** Awaiting You */
             awaiting_you: number;
         };
+        /** WatchtowerOut */
+        WatchtowerOut: {
+            audit: components["schemas"]["AuditPipeline"];
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Failed Operations 24H */
+            failed_operations_24h: number;
+            lab: components["schemas"]["Heartbeat"];
+            worker: components["schemas"]["Heartbeat"];
+        };
         /**
          * Window
          * @enum {string}
@@ -4479,6 +4584,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audit_log_api_workspaces__workspace_id__audit_get: {
+        parameters: {
+            query?: {
+                category?: string | null;
+                before?: string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
                 };
             };
             /** @description Validation Error */
@@ -6661,6 +6800,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarRoomSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    watchtower_api_workspaces__workspace_id__watchtower_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WatchtowerOut"];
                 };
             };
             /** @description Validation Error */

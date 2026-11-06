@@ -13,7 +13,7 @@ export type NavGroup = {
   collapsible?: { open: boolean };
 };
 export type IconName =
-  | "command" | "target" | "recon" | "findings" | "graph" | "warroom" | "blacksite" | "reports" | "settings" | "agents";
+  | "command" | "target" | "recon" | "findings" | "graph" | "warroom" | "blacksite" | "reports" | "settings" | "agents" | "audit";
 
 const planned = (key: string, label: string): PlannedItem =>
   ({ key, label, planned: true, tag: "Planned", title: "Not built yet" });
@@ -54,6 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
   { key: "system", label: "SYSTEM", items: [
     { key: "agents", label: "Agents", href: (ws) => `/w/${ws}/agents`, icon: "agents" },
     { key: "warroom", label: "War Room", href: (ws) => `/w/${ws}/war-room`, icon: "warroom", phase: 6 },
+    { key: "audit", label: "Audit Log", href: (ws) => `/w/${ws}/audit`, icon: "audit" },
     { key: "settings", label: "Settings", href: (ws) => `/w/${ws}/settings`, icon: "settings" },
   ] },
 ];
