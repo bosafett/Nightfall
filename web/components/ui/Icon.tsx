@@ -1,6 +1,6 @@
 import type { IconName } from "@/lib/nav";
 
-type Name = IconName | "menu" | "close" | "plus" | "logout" | "shield" | "alert" | "copy" | "check" | "lock";
+type Name = IconName | "menu" | "close" | "plus" | "logout" | "shield" | "alert" | "copy" | "check" | "lock" | "chevron";
 
 const paths: Record<Name, React.ReactNode> = {
   command: <path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -12,6 +12,7 @@ const paths: Record<Name, React.ReactNode> = {
   reports: (<><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5M10 13h6M10 17h6" /></>),
   settings: (<><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1L7 17M17 7l2.1-2.1" /></>),
   blacksite: (<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h10M7 12h10M7 16h6" /></>),
+  agents: (<><rect x="5" y="8" width="14" height="11" rx="2" /><path d="M12 4v4M9 13h.01M15 13h.01M9 16h6" /></>),
   lock: (<><rect x="5" y="11" width="14" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>),
   menu: <path d="M4 7h16M4 12h16M4 17h16" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,
@@ -20,6 +21,7 @@ const paths: Record<Name, React.ReactNode> = {
   shield: (<><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /><path d="M9 12l2 2 4-4" /></>),
   alert: (<><path d="M12 3l10 18H2z" /><path d="M12 10v4M12 17h.01" /></>),
   copy: (<><rect x="9" y="9" width="11" height="11" rx="1" /><path d="M5 15V5a1 1 0 0 1 1-1h10" /></>),
+  chevron: <path d="M9 6l6 6-6 6" />,
   check: <path d="M5 12l5 5 9-10" />,
 };
 

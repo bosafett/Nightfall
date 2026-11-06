@@ -79,13 +79,19 @@ test.describe("as the owner", () => {
     for (const [link, heading] of [
       ["Target Registry", "Target Registry"], ["Reconnaissance", "Reconnaissance"], ["Findings", "Findings"],
       ["Attack Graph", "Attack Graph"], ["War Room", "War Room"], ["BLACKSITE", "BLACKSITE"], ["Reports", "Reports"],
-      ["Settings", "Settings"], ["Command Center", "Command Center"],
+      ["Agents", "AI agents"], ["Settings", "Settings"], ["Command Center", "Command Center"],
     ]) {
       await nav.getByRole("link", { name: link }).click();
       await expect(page.getByRole("heading", { level: 1, name: heading })).toBeVisible();
       await expect(nav.getByRole("link", { name: link })).toHaveAttribute("aria-current", "page");
     }
     await expect(page.getByText("All systems online")).toBeVisible();
+    // Unbuilt divisions are collapsible labels, never links.
+    const shield = nav.getByRole("button", { name: /SHIELD/ });
+    await expect(shield).toHaveAttribute("aria-expanded", "false");
+    await shield.click();
+    await expect(nav.getByText("AEGIS Overview")).toBeVisible();
+    await expect(nav.getByRole("link", { name: /AEGIS/ })).toHaveCount(0);
   });
 
   test("BLACKSITE shows a restricted, not-configured state with no execution controls", async ({ page }) => {

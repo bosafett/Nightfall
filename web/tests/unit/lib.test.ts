@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseError } from "@/lib/api/errors";
 import { formatDateTime, formatRelative, groupSecret } from "@/lib/format";
 import { can, mfaRequired } from "@/lib/labels";
-import { NAV, isActive } from "@/lib/nav";
+import { NAV, NAV_GROUPS, isActive, isPlanned } from "@/lib/nav";
 import { initialsOf } from "@/components/shell/UserMenu";
 
 describe("parseError", () => {
@@ -47,17 +47,24 @@ describe("permissions mirror the API", () => {
 });
 
 describe("navigation", () => {
-  it("has the nine spec sections in order", () => {
+  it("groups pages into the Addendum 5 divisions", () => {
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, "SWORD", "SHIELD", "JANUS CORE", "SYSTEM"]);
     expect(NAV.map((n) => n.label)).toEqual([
-      "Command Center", "Target Registry", "Reconnaissance", "Findings",
-      "Attack Graph", "War Room", "BLACKSITE", "Reports", "Settings",
+      "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports",
+      "Agents", "War Room", "Settings",
     ]);
+  });
+  it("never links an unbuilt module", () => {
+    const shield = NAV_GROUPS.find((g) => g.key === "shield")!;
+    expect(shield.items.every(isPlanned)).toBe(true);
+    expect(NAV.some((n) => n.key === "warpath" || n.key === "aegis")).toBe(false);
+    expect(new Set(NAV.map((n) => n.href("w"))).size).toBe(NAV.length);
   });
   it("marks only BLACKSITE as restricted", () => {
     expect(NAV.filter((n) => n.restricted).map((n) => n.key)).toEqual(["blacksite"]);
   });
   it("marks the active section", () => {
-    const targets = NAV[1]!;
+    const targets = NAV.find((n) => n.key === "targets")!;
     expect(isActive(targets, "w1", "/w/w1/targets/abc")).toBe(true);
     expect(isActive(NAV[0]!, "w1", "/w/w1/targets")).toBe(false);
     expect(isActive(NAV[0]!, "w1", "/w/w1")).toBe(true);

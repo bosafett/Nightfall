@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { Health } from "@/lib/api/types";
-import { NAV, isActive } from "@/lib/nav";
+import { NAV_GROUPS, groupHasActive, isActive, isPlanned, type NavEntry, type NavGroup } from "@/lib/nav";
 import { Icon } from "@/components/ui/Icon";
 import { StatusDot, cx } from "@/components/ui/primitives";
 
@@ -23,37 +24,82 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
       </Link>
 
       <nav aria-label="Primary" className="flex-1 overflow-y-auto py-3">
-        <ul>
-          {NAV.map((item) => {
-            const active = isActive(item, ws, pathname);
-            return (
-              <li key={item.key}>
-                <Link
-                  href={item.href(ws)}
-                  onClick={onNavigate}
-                  aria-current={active ? "page" : undefined}
-                  className={cx(
-                    "flex items-center gap-3 border-l-2 px-5 py-2.5 text-sm transition-colors",
-                    active ? "border-crimson bg-crimson/10 text-text" : "border-transparent text-muted hover:text-text",
-                  )}
-                >
-                  <Icon name={item.icon} className={cx("size-5", active && "text-crimson-text")} />
-                  <span className={cx(item.restricted && "font-mono tracking-wider")}>{item.label}</span>
-                  {item.restricted && (
-                    <span className="ml-auto flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted" title="Restricted: owner access only">
-                      <Icon name="lock" className="size-3.5" /><span className="sr-only">Restricted</span>
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+        {NAV_GROUPS.map((group) => (
+          <NavSection key={group.key} group={group} ws={ws} pathname={pathname} onNavigate={onNavigate} />
+        ))}
       </nav>
 
       <SystemStatus health={health} />
       <p className="px-5 pb-4 text-xs text-muted tabular">v{version}</p>
     </div>
+  );
+}
+
+function NavSection({ group, ws, pathname, onNavigate }: {
+  group: NavGroup; ws: string; pathname: string; onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(() => !group.collapsible || group.collapsible.open || groupHasActive(group, ws, pathname));
+  const listId = `nav-${group.key}`;
+  const list = (
+    <ul id={listId} hidden={!open}>
+      {group.items.map((item) => <NavRow key={item.key} item={item} ws={ws} pathname={pathname} onNavigate={onNavigate} />)}
+    </ul>
+  );
+  if (group.label === null) return list;
+  const heading = (
+    <>
+      <span className="font-mono text-xs font-semibold tracking-[0.2em] text-crimson-text">{group.label}</span>
+      {group.description && <span className="truncate text-[11px] text-muted">{group.description}</span>}
+    </>
+  );
+  return (
+    <div className="mt-3 border-t border-border pt-2">
+      {group.collapsible ? (
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-controls={listId}
+          className="flex w-full items-center gap-2 px-5 py-1.5 text-left hover:bg-white/5">
+          <Icon name="chevron" className={cx("size-3.5 shrink-0 text-muted transition-transform", open && "rotate-90")} />
+          {heading}
+        </button>
+      ) : (
+        <p className="flex items-center gap-2 px-5 py-1.5 pl-[2.375rem]">{heading}</p>
+      )}
+      {list}
+    </div>
+  );
+}
+
+function NavRow({ item, ws, pathname, onNavigate }: {
+  item: NavEntry; ws: string; pathname: string; onNavigate?: () => void;
+}) {
+  if (isPlanned(item)) {
+    return (
+      <li className="flex items-center gap-3 px-5 py-2 pl-[3.25rem] text-sm text-muted/70" title={item.title}>
+        <span>{item.label}</span>
+        <span className="ml-auto rounded border border-border px-1.5 text-[10px] uppercase tracking-wider text-muted">{item.tag}</span>
+      </li>
+    );
+  }
+  const active = isActive(item, ws, pathname);
+  return (
+    <li>
+      <Link
+        href={item.href(ws)}
+        onClick={onNavigate}
+        aria-current={active ? "page" : undefined}
+        className={cx(
+          "flex items-center gap-3 border-l-2 px-5 py-2.5 text-sm transition-colors",
+          active ? "border-crimson bg-crimson/10 text-text" : "border-transparent text-muted hover:text-text",
+        )}
+      >
+        <Icon name={item.icon} className={cx("size-5", active && "text-crimson-text")} />
+        <span className={cx(item.restricted && "font-mono tracking-wider")}>{item.label}</span>
+        {item.restricted && (
+          <span className="ml-auto flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted" title="Restricted: owner access only">
+            <Icon name="lock" className="size-3.5" /><span className="sr-only">Restricted</span>
+          </span>
+        )}
+      </Link>
+    </li>
   );
 }
 
