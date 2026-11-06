@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import hmac
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
@@ -107,16 +107,25 @@ def _error(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse({"detail": {"code": code, "message": message}}, status_code=status)
 
 
+def _public_origins() -> set[str]:
+    return {get_settings().public_origin}
+
+
 class RequestGuard(BaseHTTPMiddleware):
     """CSRF origin check + per-IP mutation rate limit + no caching of API responses."""
 
+    def __init__(self, app: Any, origins: Callable[[], set[str]] = _public_origins) -> None:
+        super().__init__(app)
+        self.origins = origins
+
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.method in MUTATING and request.url.path.startswith("/api/"):
-            if request.headers.get("origin") != get_settings().public_origin:
+            allowed = self.origins()
+            if request.headers.get("origin") not in allowed:
                 log.warning(
                     "rejected mutating request from origin %r (allowed: %r)",
                     request.headers.get("origin"),
-                    get_settings().public_origin,
+                    sorted(allowed),
                 )
                 return _error(403, "bad_origin", "Request origin not allowed.")
             if mutations_by_ip.hit_and_check(client_ip(request)):
@@ -196,7 +205,7 @@ def create_app(*, check_settings: bool = True) -> FastAPI:
         get_settings()  # fail fast on bad configuration
     app = FastAPI(
         lifespan=_lifespan if check_settings else None,
-        title="NIGHTFALL API",
+        title="JANUS API",
         version="0.1.0",
         docs_url=None,
         redoc_url=None,

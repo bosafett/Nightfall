@@ -7,7 +7,7 @@ const plex = IBM_Plex_Sans_Condensed({ subsets: ["latin"], weight: ["400", "500"
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" });
 
 export const metadata: Metadata = {
-  title: { default: "NIGHTFALL", template: "%s · NIGHTFALL" },
+  title: { default: "JANUS", template: "%s · JANUS" },
   description: "Adversarial intelligence & operations platform",
   icons: { icon: "/nightfall-mark.svg" },
   robots: { index: false, follow: false },

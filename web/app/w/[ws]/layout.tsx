@@ -7,6 +7,7 @@ import { MobileNav } from "@/components/shell/MobileNav";
 import { SidebarContent } from "@/components/shell/SidebarContent";
 import { UserMenu } from "@/components/shell/UserMenu";
 import { ApprovalsBell } from "@/components/shell/ApprovalsBell";
+import { StepUpDialog } from "@/components/shell/StepUpDialog";
 import { Badge } from "@/components/ui/primitives";
 import pkg from "@/package.json";
 
@@ -34,7 +35,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
           <MobileNav ws={ws} health={health} version={pkg.version} />
           <span className="flex items-center gap-2 lg:hidden">
             <Image src="/nightfall-mark.svg" alt="" width={28} height={25} />
-            <span className="font-bold tracking-[0.12em] text-crimson-text">NIGHTFALL</span>
+            <span className="font-bold tracking-[0.12em] text-crimson-text">JANUS</span>
           </span>
           <p className="hidden flex-1 truncate text-lg tracking-wide text-muted md:block">
             Understand. Investigate. Validate. Defend.
@@ -49,6 +50,7 @@ export default async function WorkspaceLayout({ children, params }: { children: 
           </div>
         </header>
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <StepUpDialog />
       </div>
     </div>
   );

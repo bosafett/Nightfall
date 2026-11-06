@@ -146,7 +146,16 @@ def _me(db: Session, user: User, mfa_verified: bool) -> MeOut:
         user=UserOut.model_validate(user),
         session=SessionInfo(mfa_verified=mfa_verified),
         workspaces=[
-            WorkspaceSummary(id=w.id, name=w.name, slug=w.slug, role=role) for w, role in rows
+            WorkspaceSummary(
+                id=w.id,
+                name=w.name,
+                slug=w.slug,
+                role=role,
+                approval_policy="two_person"
+                if w.approval_policy == "two_person"
+                else "single_operator",
+            )
+            for w, role in rows
         ],
     )
 
@@ -273,6 +282,37 @@ def mfa_confirm(body: MfaConfirmIn, auth: Auth, db: DB) -> MeOut:
     user.totp_last_step = step
     auth.session.mfa_verified_at = utcnow()
     record(db, "auth.mfa_enabled", actor_id=user.id, ip=auth.ip, user_agent=auth.user_agent)
+    return _me(db, user, mfa_verified=True)
+
+
+@router.post("/mfa/verify", response_model=MeOut)
+def mfa_verify(body: MfaConfirmIn, auth: Auth, db: DB) -> MeOut:
+    """Step-up: a fresh authenticator code renews the session's two-factor time, which
+    sensitive actions and BLACKSITE require to be under 15 minutes old (D1)."""
+    user = auth.user
+    if not user.mfa_enabled:
+        raise api_error(400, "mfa_not_enabled", "Set up two-factor first.")
+    key = f"stepup:{user.id}"
+    if login_failures_by_account.blocked(key):
+        record_detached(
+            "auth.mfa_throttled", actor_id=user.id, ip=auth.ip, user_agent=auth.user_agent
+        )
+        raise api_error(429, "too_many_attempts", "Too many attempts. Try again in 15 minutes.")
+    step = security.verify_totp(_decrypt_totp(user), body.code, user.totp_last_step)
+    if step is None:
+        login_failures_by_account.hit(key)
+        record_detached(
+            "auth.mfa_failed",
+            actor_id=user.id,
+            data={"purpose": "step_up"},
+            ip=auth.ip,
+            user_agent=auth.user_agent,
+        )
+        raise api_error(400, "invalid_mfa_code", "That code didn't work. Try the next one.")
+    login_failures_by_account.reset(key)
+    user.totp_last_step = step
+    auth.session.mfa_verified_at = utcnow()
+    record(db, "auth.mfa_step_up", actor_id=user.id, ip=auth.ip, user_agent=auth.user_agent)
     return _me(db, user, mfa_verified=True)
 
 

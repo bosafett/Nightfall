@@ -407,7 +407,7 @@ class NucleiScan:
     key = "nuclei"
     label = "Web exposure checks (Nuclei, curated)"
     risk_class = RiskClass.LOW
-    method = "Nuclei with NIGHTFALL's pinned GET-only templates, through the scope proxy"
+    method = "Nuclei with JANUS's pinned GET-only templates, through the scope proxy"
 
     def __init__(
         self,

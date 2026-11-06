@@ -234,14 +234,16 @@ test.describe("as the owner", () => {
     await expect(g.getByTestId("blacksite-restricted")).not.toContainText("not configured");
     await expect(g.getByText("Ana Lyst")).toBeVisible();
 
-    // The analyst requests a low-risk probe; it waits for someone else to approve.
+    // The analyst requests a low-risk probe; it waits for an explicit approval.
     await g.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Target Registry" }).click();
     await g.getByRole("link", { name: "Acme Corporation" }).click();
     await g.getByRole("link", { name: "External reconnaissance" }).click();
     await g.getByLabel("Collector").selectOption("http");
     await g.getByLabel("Target", { exact: true }).fill("www.acme.test");
     await g.getByRole("button", { name: "Request collection" }).click();
-    await expect(g.getByText(/runs once an operator, admin or owner other than you approves it/)).toBeVisible();
+    await expect(g.getByText(/runs once it is explicitly approved/)).toBeVisible();
+    // An analyst can't approve, not even their own request.
+    await expect(g.getByRole("button", { name: "Approve", exact: true })).toHaveCount(0);
 
     await page.goto(`${workspaceUrl}/recon`);
     await page.getByRole("region").or(page.locator("section")).filter({ hasText: "Awaiting approval" }).first()
@@ -430,11 +432,11 @@ test.describe("as the owner", () => {
     await page.getByRole("link", { name: /waiting for someone else's decision|waiting for your decision/ }).click();
     await expect(page).toHaveURL(/\/war-room$/);
     await expect(page.getByRole("heading", { level: 1, name: "War Room" })).toBeVisible();
-    // Scout's low-risk proposal waits for someone other than the person who started Scout.
+    // Single operator (D1): the owner explicitly decides Scout's low-risk proposal themselves.
     const op = page.getByTestId("awaiting-op").filter({ hasText: "www.acme.test" });
     await expect(op.getByText("AI proposal")).toBeVisible();
-    await expect(op.getByText(/You requested this/)).toBeVisible();
-    await expect(op.getByRole("button", { name: "Approve" })).toHaveCount(0);
+    await expect(op.getByText(/You requested this/)).toHaveCount(0);
+    await expect(op.getByRole("button", { name: "Approve" })).toHaveCount(1);
     // Agent hypotheses wait for a person; the log shows who did what.
     const review = page.locator("section").filter({ has: page.getByRole("heading", { name: /^AI proposals to review/ }) });
     await expect(review.getByText("Hypothesis").first()).toBeVisible();

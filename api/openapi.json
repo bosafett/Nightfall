@@ -6291,6 +6291,15 @@
       "WorkspaceSummary": {
         "additionalProperties": false,
         "properties": {
+          "approval_policy": {
+            "default": "single_operator",
+            "enum": [
+              "single_operator",
+              "two_person"
+            ],
+            "title": "Approval Policy",
+            "type": "string"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -6320,7 +6329,7 @@
     }
   },
   "info": {
-    "title": "NIGHTFALL API",
+    "title": "JANUS API",
     "version": "0.1.0"
   },
   "openapi": "3.1.0",
@@ -6568,6 +6577,48 @@
           }
         },
         "summary": "Mfa Setup",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/verify": {
+      "post": {
+        "description": "Step-up: a fresh authenticator code renews the session's two-factor time, which\nsensitive actions and BLACKSITE require to be under 15 minutes old (D1).",
+        "operationId": "mfa_verify_api_auth_mfa_verify_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaConfirmIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mfa Verify",
         "tags": [
           "auth"
         ]

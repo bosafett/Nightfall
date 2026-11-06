@@ -8,7 +8,8 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
         <div className="mb-6 flex flex-col items-center text-center">
           <Image src="/nightfall-mark.svg" alt="" width={72} height={65} priority />
           <p className="mt-2 text-xs font-semibold tracking-[0.3em] text-crimson-text">DRE</p>
-          <p className="text-2xl font-bold tracking-[0.12em] text-crimson-text">NIGHTFALL</p>
+          <p className="text-2xl font-bold tracking-[0.12em] text-crimson-text">JANUS</p>
+          <p className="font-mono text-xs tracking-[0.3em] text-muted">JNS.OS</p>
         </div>
         <div className="rounded-lg border border-border bg-surface p-6">
           <h1 className="text-xl font-semibold">{title}</h1>

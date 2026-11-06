@@ -25,7 +25,7 @@ from nightfall.tools.egress import canonical_host
 
 TEMPLATE_DIR = Path(__file__).parent / "templates"
 CATALOG_VERSION = "nuclei-catalog/2026.11-1"
-USER_AGENT = "NIGHTFALL/0.1 (authorized security assessment)"
+USER_AGENT = "JANUS/0.1 (authorized security assessment)"
 MAX_MATCHES = 200
 
 

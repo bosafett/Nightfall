@@ -35,7 +35,7 @@ export function CollectionForm({ ws, projectId, suggestions }: { ws: string; pro
         </Field>
       </div>
       {error && <Alert>{error}</Alert>}
-      {queued && <Alert tone="green">{queued.status === "awaiting_approval" ? `Requested ${queued.tool_label} for ${queued.target}. It runs once an operator, admin or owner other than you approves it.` : `Queued ${queued.tool_label} for ${queued.target}.`}</Alert>}
+      {queued && <Alert tone="green">{queued.status === "awaiting_approval" ? `Requested ${queued.tool_label} for ${queued.target}. It runs once it is explicitly approved.` : `Queued ${queued.tool_label} for ${queued.target}.`}</Alert>}
       <Button type="submit" variant="primary" disabled={busy}>{busy ? "Checking scope…" : "Request collection"}</Button>
     </form>
   );

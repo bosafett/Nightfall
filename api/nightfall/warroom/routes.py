@@ -1,6 +1,8 @@
 """War Room (Phase 6a): everything waiting on a person, in one place.
 
-  * awaiting: operations that need an approval. can_decide is false for the requester
+  * awaiting: operations that need an approval. can_decide is false for lab work (decided in
+    BLACKSITE) and for the requester, unless the single-operator policy lets the owner decide
+    their own (D1). Otherwise it is false for the requester
     (no self-approval) and for roles without the approve permission; the decision itself
     still goes through the operation's approve/reject routes, which re-check both.
   * in_flight: operations and agent tasks that are queued or running.
@@ -46,7 +48,7 @@ from nightfall.core.db.models import (
 )
 from nightfall.core.db.session import DB
 from nightfall.core.schemas import Model
-from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
+from nightfall.core.tenancy.deps import WorkspaceContext, may_approve_own, ws_permission
 from nightfall.core.tenancy.permissions import ROLE_PERMISSIONS, Permission
 from nightfall.findings.routes import ref
 
@@ -167,10 +169,14 @@ def war_room(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> 
     ).all()
     names = _names(db, {o.requested_by_user_id for o, *_ in rows if o.requested_by_user_id})
 
+    own_ok = may_approve_own(db, ctx)
+
     def why_not(op: Operation) -> str | None:
         if not can_approve:
             return "Your role can't approve operations."
-        if op.requested_by_user_id == ctx.user_id:
+        if op.is_lab:
+            return "Lab work is decided in BLACKSITE on the lab machine."
+        if op.requested_by_user_id == ctx.user_id and not own_ok:
             return "You requested this (or started the agent that proposed it)."
         return None
 
@@ -366,17 +372,21 @@ def war_room_summary(
     total = db.scalar(select(func.count()).select_from(Operation).where(*waiting)) or 0
     yours = 0
     if Permission.OPERATIONS_APPROVE in ROLE_PERMISSIONS[ctx.member.role]:
+        own = (
+            []
+            if may_approve_own(db, ctx)
+            else [
+                or_(
+                    Operation.requested_by_user_id.is_(None),
+                    Operation.requested_by_user_id != ctx.user_id,
+                )
+            ]
+        )
         yours = (
             db.scalar(
                 select(func.count())
                 .select_from(Operation)
-                .where(
-                    *waiting,
-                    or_(
-                        Operation.requested_by_user_id.is_(None),
-                        Operation.requested_by_user_id != ctx.user_id,
-                    ),
-                )
+                .where(*waiting, Operation.is_lab.is_(False), *own)
             )
             or 0
         )

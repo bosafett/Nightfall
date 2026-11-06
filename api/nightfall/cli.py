@@ -140,34 +140,37 @@ ROLES = {
 }
 
 
-LAB_ROLE = "nightfall_lab_worker"
-LAB_PASSWORD_VAR = "NIGHTFALL_LAB_WORKER_DB_PASSWORD"  # noqa: S105 - env var name
+# Optional roles (migrations 0010, 0013): they can only log in when their password is
+# configured; without it the role exists but is NOLOGIN.
+OPTIONAL_ROLES = {
+    "nightfall_lab_worker": ("NIGHTFALL_LAB_WORKER_DB_PASSWORD", "lab worker role"),  # noqa: S105
+    "nightfall_blacksite": ("NIGHTFALL_BLACKSITE_DB_PASSWORD", "BLACKSITE role"),  # noqa: S105
+}
 
 
-def _lab_worker_role(db: Session, conn: Any) -> None:
-    """The isolated lab machine's role (migration 0010). It can only log in when its
-    password is configured; without it the role exists but is NOLOGIN."""
+def _optional_role(db: Session, conn: Any, role: str) -> None:
     from psycopg import sql
 
-    pw = os.environ.get(LAB_PASSWORD_VAR, "")
+    var, label = OPTIONAL_ROLES[role]
+    pw = os.environ.get(var, "")
     if pw and len(pw) < 24:
-        sys.exit(f"{LAB_PASSWORD_VAR} must be a random value of at least 24 characters.")
-    exists = db.scalar(text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": LAB_ROLE})
+        sys.exit(f"{var} must be a random value of at least 24 characters.")
+    exists = db.scalar(text("SELECT 1 FROM pg_roles WHERE rolname = :r"), {"r": role})
     if pw:
         stmt = sql.SQL(
             "ALTER ROLE {} LOGIN PASSWORD {}"
             if exists
             else "CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE"
-        ).format(sql.Identifier(LAB_ROLE), sql.Literal(pw))
+        ).format(sql.Identifier(role), sql.Literal(pw))
     else:
         stmt = sql.SQL(
             "ALTER ROLE {} NOLOGIN"
             if exists
             else "CREATE ROLE {} NOLOGIN NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE"
-        ).format(sql.Identifier(LAB_ROLE))
+        ).format(sql.Identifier(role))
     with conn.cursor() as cur:
         cur.execute(stmt)
-    print(f"lab worker role: {'login enabled' if pw else 'no login (not configured)'}")
+    print(f"{label}: {'login enabled' if pw else 'no login (not configured)'}")
 
 
 def bootstrap_roles(a: argparse.Namespace) -> None:
@@ -198,14 +201,15 @@ def bootstrap_roles(a: argparse.Namespace) -> None:
             with conn.cursor() as cur:
                 cur.execute(stmt)
             print(f"{'updated' if exists else 'created'} role {role}")
-        _lab_worker_role(db, conn)
+        for role in OPTIONAL_ROLES:
+            _optional_role(db, conn, role)
         # Isolation depends on these roles being unable to bypass row-level security.
         unsafe = db.scalars(
             text(
                 "SELECT rolname FROM pg_roles WHERE rolname = ANY(:r) "
                 "AND (rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb)"
             ),
-            {"r": [*ROLES, LAB_ROLE]},
+            {"r": [*ROLES, *OPTIONAL_ROLES]},
         ).all()
         if unsafe:
             sys.exit(f"Refusing to start: {', '.join(unsafe)} can bypass isolation.")

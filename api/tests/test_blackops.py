@@ -241,19 +241,23 @@ def test_passive_playbook_runs_without_approval(client: TestClient, env, owner_d
     assert "playbook.requested" in audit_actions(owner_db)
 
 
-def test_low_risk_run_needs_a_second_person(client: TestClient, env, owner_db: Session) -> None:
+def test_low_risk_run_needs_explicit_approval(client: TestClient, env, owner_db: Session) -> None:
     run = launch(client, env, "owner", "tls-configuration-audit", "www.example.com").json()
     assert run["status"] == "awaiting_approval"
     worker = make_worker()
     assert worker.run_once() is False  # nothing claimable before approval
 
+    use(client, env["analyst"])  # can't approve at all
+    assert client.post(f"{base(env)}/runs/{run['id']}/approve", json={}).status_code == 403
+    # Two-person policy: the launcher can't decide their own run.
+    owner_db.execute(text("UPDATE workspaces SET approval_policy = 'two_person'"))
+    owner_db.commit()
     use(client, env["owner"])
     r = client.post(f"{base(env)}/runs/{run['id']}/approve", json={})
     assert r.status_code == 409 and r.json()["detail"]["code"] == "self_approval"
-    use(client, env["analyst"])  # can't approve at all
-    assert client.post(f"{base(env)}/runs/{run['id']}/approve", json={}).status_code == 403
-
-    use(client, env["operator"])
+    # Single operator (D1, the default): the owner approves explicitly.
+    owner_db.execute(text("UPDATE workspaces SET approval_policy = 'single_operator'"))
+    owner_db.commit()
     r = client.post(f"{base(env)}/runs/{run['id']}/approve", json={"reason": "Ticket 7"})
     assert r.status_code == 200 and r.json()["status"] == "running"
     drain(worker)
@@ -341,17 +345,24 @@ def lab_headers() -> HeaderAudit:
     return HeaderAudit(make_client=make)
 
 
-def test_lab_profile_routes_to_the_lab_worker(client: TestClient, env, owner_db: Session) -> None:
+def test_lab_profile_routes_to_the_lab_worker(
+    client: TestClient, blacksite: TestClient, env, owner_db: Session
+) -> None:
     _active_lab_scope(client, env)
-    pre = preflight(client, env, "owner", "surface-mapper", APP)
-    assert pre["profile"] == "lab" and "profile" in failed(pre)  # live-only playbook
+    # D3: the hosted app can't launch lab runs; preflight says so and launch is refused.
     pre = preflight(client, env, "owner", "web-exposure-audit", APP)
-    assert pre["allowed"] and pre["profile"] == "lab" and pre["needs_approval"]
+    assert pre["profile"] == "lab" and failed(pre) == {"profile"}
+    assert launch(client, env, "owner", "web-exposure-audit", APP).status_code == 422
 
-    run = launch(client, env, "owner", "http-security-assessment", APP).json()
+    pre = preflight(blacksite, env, "owner", "surface-mapper", APP)
+    assert pre["profile"] == "lab" and "profile" in failed(pre)  # live-only playbook
+    pre = preflight(blacksite, env, "owner", "web-exposure-audit", APP)
+    assert pre["allowed"] and pre["profile"] == "lab" and pre["needs_approval"]
+    assert {c["key"]: c["status"] for c in pre["checks"]}["review"] == "pass"
+
+    run = launch(blacksite, env, "owner", "http-security-assessment", APP).json()
     assert run["profile"] == "lab" and run["status"] == "awaiting_approval"
-    use(client, env["operator"])
-    client.post(f"{base(env)}/runs/{run['id']}/approve", json={})
+    blacksite.post(f"{base(env)}/runs/{run['id']}/approve", json={})
     assert make_worker().run_once() is False  # the normal worker never sees lab work
     drain(lab_worker({"headers": lab_headers()}))
     use(client, env["owner"])

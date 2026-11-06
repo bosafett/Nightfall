@@ -29,7 +29,7 @@ from cryptography.x509.oid import NameOID
 from nightfall.scope import normalize
 from nightfall.scope.normalize import IPAddress
 
-USER_AGENT = "NIGHTFALL/0.1 (authorized security assessment)"
+USER_AGENT = "JANUS/0.1 (authorized security assessment)"
 TIMEOUT = 10.0
 MAX_BODY = 512 * 1024
 METADATA = {ipaddress.ip_address("169.254.169.254"), ipaddress.ip_address("fd00:ec2::254")}

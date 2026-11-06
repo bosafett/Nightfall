@@ -64,15 +64,64 @@ def test_low_risk_waits_for_a_second_person(client: TestClient, env, owner_db: S
     )
 
 
-def test_requester_cannot_approve_their_own(client: TestClient, env) -> None:
+def test_single_operator_owner_approves_their_own(client: TestClient, env, owner_db) -> None:
+    """D1: one operator. The owner explicitly approves their own request, recorded as theirs."""
+    op_id = request_http(client, env, who="owner").json()["id"]
+    r = act(client, env, "owner", op_id, "approve", "Owner approval")
+    assert r.status_code == 200 and r.json()["status"] == "queued"
+    approver = owner_db.execute(
+        text("SELECT approver_user_id FROM approvals WHERE operation_id = :o"), {"o": op_id}
+    ).scalar_one()
+    assert approver == env["owner"].user.id
+
+
+def test_only_the_owner_may_approve_their_own(client: TestClient, env) -> None:
+    op_id = request_http(client, env, who="operator").json()["id"]
+    r = act(client, env, "operator", op_id, "approve")
+    assert r.status_code == 409 and r.json()["detail"]["code"] == "self_approval"
+
+
+def test_two_person_policy_still_available(client: TestClient, env, owner_db) -> None:
+    owner_db.execute(
+        text("UPDATE workspaces SET approval_policy = 'two_person' WHERE id = :w"),
+        {"w": env["ws"]},
+    )
+    owner_db.commit()
     op_id = request_http(client, env, who="owner").json()["id"]
     r = act(client, env, "owner", op_id, "approve")
     assert r.status_code == 409 and r.json()["detail"]["code"] == "self_approval"
     assert act(client, env, "operator", op_id, "approve").status_code == 200
 
 
-def test_database_also_blocks_self_approval(client: TestClient, env, owner_db: Session) -> None:
-    op_id = request_http(client, env, who="operator").json()["id"]
+def test_approval_needs_fresh_two_factor(client: TestClient, env, owner_db) -> None:
+    op_id = request_http(client, env, who="owner").json()["id"]
+    owner_db.execute(text("UPDATE sessions SET mfa_verified_at = now() - interval '16 minutes'"))
+    owner_db.commit()
+    r = act(client, env, "owner", op_id, "approve")
+    assert r.status_code == 403 and r.json()["detail"]["code"] == "step_up_required"
+    reasons = (
+        owner_db.execute(
+            text("SELECT data->>'reason' FROM audit_events WHERE action = 'authz.denied'")
+        )
+        .scalars()
+        .all()
+    )
+    assert "mfa_stale" in reasons
+
+
+@pytest.mark.parametrize("policy", ["single_operator", "two_person"])
+def test_database_also_blocks_self_approval(
+    client: TestClient, env, owner_db: Session, policy: str
+) -> None:
+    """The trigger enforces the policy too: a non-owner never approves their own request,
+    and under two_person nobody does."""
+    owner_db.execute(
+        text("UPDATE workspaces SET approval_policy = :p WHERE id = :w"),
+        {"p": policy, "w": env["ws"]},
+    )
+    owner_db.commit()
+    who = "operator" if policy == "single_operator" else "owner"
+    op_id = request_http(client, env, who=who).json()["id"]
     with pytest.raises(DBAPIError, match="cannot be approved by the person who requested it"):
         owner_db.execute(
             text(

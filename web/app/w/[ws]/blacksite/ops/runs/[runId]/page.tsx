@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
 import type { Me, PlaybookRunDetail } from "@/lib/api/types";
-import { can } from "@/lib/labels";
+import { can, decidesOwn } from "@/lib/labels";
 import { formatDateTime } from "@/lib/format";
 import { profileLabel, riskLabel, riskTone, runStatusLabel, runStatusTone } from "@/lib/blackops";
 import { EvidenceList } from "@/components/assets/EvidenceList";
@@ -20,8 +20,9 @@ const changeLabel: Record<string, string> = { new: "New", seen_again: "Seen agai
 export default async function RunPage({ params }: { params: Promise<{ ws: string; runId: string }> }) {
   const { ws, runId } = await params;
   const [r, me] = await Promise.all([apiGet<PlaybookRunDetail>(`/workspaces/${ws}/blackops/runs/${runId}`), apiGet<Me>("/auth/me")]);
-  const role = me.workspaces.find((w) => w.id === ws)?.role ?? "viewer";
-  const mine = r.requested_by_user_id === me.user.id;
+  const membership = me.workspaces.find((w) => w.id === ws);
+  const role = membership?.role ?? "viewer";
+  const mine = r.requested_by_user_id === me.user.id && !decidesOwn(role, membership?.approval_policy);
   const open = r.steps.some((s) => s.status === "queued" || s.status === "awaiting_approval");
   const facts: [string, string][] = [
     ["Project", r.project_name],
@@ -42,7 +43,9 @@ export default async function RunPage({ params }: { params: Promise<{ ws: string
       {!r.definition_current && <Alert tone="yellow">This run used a definition that has since changed (now a newer version). Its record keeps the original hash.</Alert>}
       {r.status === "awaiting_approval" && (
         <Panel title="Awaiting approval" className="mb-4">
-          {mine ? (
+          {r.profile === "lab" ? (
+            <p className="text-sm text-muted">Lab runs are approved in BLACKSITE on the lab machine, not from the hosted app.</p>
+          ) : mine ? (
             <div className="space-y-3"><p className="text-sm text-muted">You launched this run, so an operator, admin or owner other than you has to approve it.</p><CancelRun ws={ws} runId={r.id} /></div>
           ) : can.approveOperations(role) ? <RunDecision ws={ws} run={r} />
             : <p className="text-sm text-muted">An operator, admin or owner has to approve this.</p>}

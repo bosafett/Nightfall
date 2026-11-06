@@ -27,7 +27,7 @@ export default async function Blacksite({ params }: { params: Promise<{ ws: stri
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="blackops-entry">
             <p className="text-sm text-muted">
               Reviewed, versioned assessment playbooks. Each step is an ordinary scope-checked operation: preflight first,
-              approval by someone else above passive, results into BLACK ICE.
+              explicit approval above passive, results into BLACK ICE.
             </p>
             <LinkButton href={`/w/${ws}/blacksite/ops`} variant="primary">Open playbook library</LinkButton>
           </div>

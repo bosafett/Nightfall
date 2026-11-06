@@ -7,7 +7,7 @@ import { OperationStatusBadge } from "./OperationStatusBadge";
 
 function outcome(op: Operation): string {
   if (op.status === "denied") return op.denial_reason ?? "Denied";
-  if (op.status === "awaiting_approval") return "Needs approval from someone other than the requester";
+  if (op.status === "awaiting_approval") return "Needs an explicit approval";
   if (op.status === "rejected") return "Rejected";
   if (op.status === "failed") return op.error ?? "Failed";
   if (op.status !== "succeeded") return "—";

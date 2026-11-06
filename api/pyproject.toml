@@ -33,6 +33,7 @@ dev = [
 [project.scripts]
 nightfall-admin = "nightfall.cli:main"
 nightfall-worker = "nightfall.recon.worker:main"
+nightfall-blacksite = "nightfall.blacksite.app:main"
 
 [tool.setuptools.packages.find]
 include = ["nightfall*"]

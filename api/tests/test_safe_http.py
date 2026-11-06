@@ -107,7 +107,7 @@ def test_resolves_once_connects_to_pinned_ip_with_host_header(server) -> None:
     assert SEEN == [
         {
             "host": "www.example.com",
-            "ua": "NIGHTFALL/0.1 (authorized security assessment)",
+            "ua": "JANUS/0.1 (authorized security assessment)",
             "method": "GET",
         }
     ]

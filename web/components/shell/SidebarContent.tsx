@@ -17,7 +17,8 @@ export function SidebarContent({ ws, health, version, onNavigate }: {
       <Link href={`/w/${ws}`} onClick={onNavigate} className="flex flex-col items-center border-b border-border px-4 py-6 text-center">
         <Image src="/nightfall-mark.svg" alt="" width={64} height={58} priority />
         <span className="mt-2 text-xs font-semibold tracking-[0.3em] text-crimson-text">DRE</span>
-        <span className="text-xl font-bold tracking-[0.12em] text-crimson-text">NIGHTFALL</span>
+        <span className="text-xl font-bold tracking-[0.12em] text-crimson-text">JANUS</span>
+        <span className="font-mono text-[10px] tracking-[0.3em] text-muted">JNS.OS</span>
         <span className="mt-1 text-xs leading-snug text-muted">Adversarial Intelligence<br />&amp; Operations Platform</span>
       </Link>
 

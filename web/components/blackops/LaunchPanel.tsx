@@ -72,7 +72,7 @@ export function LaunchPanel({ ws, playbook, projects, canRun }: { ws: string; pl
             : (
               <ConfirmButton variant="secondary" label="Launch playbook"
                 title={`Launch ${playbook.name} v${pre.version}?`}
-                body={`${pre.steps.length} operation(s) against ${pre.target}, pinned to scope v${pre.scope_version}. ${pre.needs_approval ? "They wait for approval by someone other than you." : "Passive steps run immediately."} Your name and the definition hash are recorded.`}
+                body={`${pre.steps.length} operation(s) against ${pre.target}, pinned to scope v${pre.scope_version}. ${pre.needs_approval ? "They wait for an explicit approval (with a fresh two-factor check)." : "Passive steps run immediately."} Your name and the definition hash are recorded.`}
                 confirmLabel="Launch"
                 onConfirm={async () => {
                   setError(null);

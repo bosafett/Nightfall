@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints
 
@@ -41,6 +41,7 @@ class WorkspaceSummary(Model):
     name: str
     slug: str
     role: Role
+    approval_policy: Literal["single_operator", "two_person"] = "single_operator"
 
 
 class SessionInfo(Model):

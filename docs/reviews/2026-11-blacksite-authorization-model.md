@@ -179,6 +179,11 @@ projects. Real-world assets aren't exposed, since only private IPv4 assets are v
 
 ### F2 (Medium): the two-person rule counts accounts, not people
 
+> **Resolved by owner decision D1 (2026-11-06):** JANUS is single-operator. The two-person rule is no longer
+> required; the default policy is `single_operator` (owner approves their own requests explicitly, with two-factor
+> from the last 15 minutes). Two accounts held by one person are not treated as independent authorization. The
+> `two_person` policy remains available for a future multi-person setup. The analysis below is kept for history.
+
 **What:** "someone other than the requester" means another *account*. One person with two accounts, each with
 its own email and authenticator, satisfies it. The live walkthrough does exactly this. For an owner-only
 BLACKSITE in a one-person workspace, the second "person" will usually be the same human.
@@ -276,18 +281,20 @@ All of these have automated tests that pass on `main` (`e31642d`). See §2 for t
 2. ~~F4: the lab worker refuses a lab network that doesn't match its interface.~~ Done, pending verification.
 3. ~~F5: approval expiry for lab operations.~~ Done for lab operations, pending verification. BLACKSITE must
    adopt it.
-4. **F2 decision recorded** in §8.
-5. BLACKSITE built per §16.2–16.5, including its own confined database role, and every §16.10 test passing.
+4. ~~**F2 decision recorded** in §8.~~ Recorded: D1 (single operator).
+5. BLACKSITE access layer built (JANUS Phase 1, migration 0013, `tests/test_blacksite.py`): flag, host-only
+   listener, owner + fresh two-factor, confined `nightfall_blacksite` role, lab boundary, review gate.
+   **Pending independent verification.** The probe deck (§16.3–16.4) and its §16.10 probe tests are Phase 2.
 6. **Independent sign-off** of this document (§9).
 
 ## 8. Decisions for the owner
 
 | # | Decision | Recorded answer |
 |---|---|---|
-| D1 | F2: accept account-based two-person rule for lab-only work? | _pending_ |
+| D1 | F2: accept account-based two-person rule for lab-only work? | **Superseded (2026-11-06):** single-operator authorization; no second account required. Owner approves explicitly with fresh two-factor. |
 | D2 | F5: approval expiry for lab/BLACKSITE operations (proposed 24 h)? | 24 h, implemented as requested by the owner (2026-11-05) |
-| D3 | F8: host BLACKSITE on the lab machine, loopback only? | _pending_ |
-| D4 | Who performs the independent review? | _pending_ |
+| D3 | F8: host BLACKSITE on the lab machine, loopback only? | **Yes (2026-11-06):** host-only, SSH tunnel, no public interface; the hosted app may not act on lab work. |
+| D4 | Who performs the independent review? | **Required, reviewer not yet named (2026-11-06):** must be someone (person or agent) who didn't implement it. Tests and self-review don't count. BLACKSITE refuses lab execution until `NIGHTFALL_BLACKSITE_REVIEW_REF` is set. |
 
 ## 9. Independent sign-off
 

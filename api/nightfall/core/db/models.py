@@ -103,6 +103,8 @@ class Workspace(Base):
     id: Mapped[uuid.UUID] = _uuid_pk_col()
     name: Mapped[str]
     slug: Mapped[str]
+    # 'single_operator' (default, D1) or 'two_person' (migration 0013).
+    approval_policy: Mapped[str] = mapped_column(server_default=text("'single_operator'"))
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
 

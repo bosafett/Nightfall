@@ -74,7 +74,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
             <div className="space-y-4">
               <p className="text-sm text-muted">
                 Agents only propose. Collections they suggest are checked against the scope, and anything that contacts a target still needs
-                someone other than you to approve it. Findings, relationships and attack paths they suggest are recorded as hypotheses
+                an explicit approval. Findings, relationships and attack paths they suggest are recorded as hypotheses
                 (findings each reviewed by Guardian) until a person decides.
                 Model: <span className="font-mono">{ai.model}</span>. Project data is sent to the model provider.
               </p>

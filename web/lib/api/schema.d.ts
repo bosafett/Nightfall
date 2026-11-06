@@ -140,6 +140,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/mfa/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mfa Verify
+         * @description Step-up: a fresh authenticator code renews the session's two-factor time, which
+         *     sensitive actions and BLACKSITE require to be under 15 minutes old (D1).
+         */
+        post: operations["mfa_verify_api_auth_mfa_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/password-reset": {
         parameters: {
             query?: never;
@@ -3669,6 +3690,12 @@ export interface components {
         /** WorkspaceSummary */
         WorkspaceSummary: {
             /**
+             * Approval Policy
+             * @default single_operator
+             * @enum {string}
+             */
+            approval_policy: "single_operator" | "two_person";
+            /**
              * Id
              * Format: uuid
              */
@@ -3896,6 +3923,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MfaSetupOut"];
+                };
+            };
+        };
+    };
+    mfa_verify_api_auth_mfa_verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MfaConfirmIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

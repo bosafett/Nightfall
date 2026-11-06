@@ -1,14 +1,16 @@
-# NIGHTFALL
+# JANUS (JNS.OS)
 
-Adversarial intelligence workbench by Digital Raccoon Engineering (DRE).
+Single-operator security operations platform by Digital Raccoon Engineering (DRE), part of Zuse Holdings.
+Formerly NIGHTFALL: the product name changed, internal names did not. The `nightfall` Python package, the
+`NIGHTFALL_*` environment variables, the `nightfall_*` database roles and the repository name stay as they are, so
+the running Vercel/Neon deployment and the lab's `lab.env` keep working.
 
 Use is limited to targets you are explicitly authorized to assess.
 
-**Status:** Phase 4a (findings, attack graph, reports) — sign-in with two-factor, workspaces and roles,
-organizations, projects and assets, versioned scopes with authorization, passive collection (certificate
-transparency, DNS), approved technology identification, stored evidence, findings with human validation, attack paths
-and graph, hashed report snapshots, audit log, Command Center. See
-[`docs/PHASE0_ARCHITECTURE_REVIEW.md`](docs/PHASE0_ARCHITECTURE_REVIEW.md) for the approved architecture and roadmap.
+**Status:** original Phases 1–6, BLACK ICE and BLACK OPS (first five playbooks) are delivered. JANUS Phase 1, the
+BLACKSITE security foundation, is implemented and tested but **not independently reviewed or deployed**. See
+[`docs/PHASE0_ARCHITECTURE_REVIEW.md`](docs/PHASE0_ARCHITECTURE_REVIEW.md) §17 for the owner decisions (D1, D3, D4)
+and the roadmap, and [`docs/blacksite-deployment.md`](docs/blacksite-deployment.md) for BLACKSITE.
 
 ## Layout
 
@@ -150,7 +152,7 @@ prompts is then sent to Anthropic.
   - Analyst writes a labelled summary beside counts taken from the records.
 - Agents are started from a project page. `/w/{ws}/agents` shows each agent's usage and recent tasks.
 - Agents never run anything. The Tool Gateway (`api/nightfall/agents/gateway.py`) checks every proposal against
-  the allowlist, scope and risk class. Low-risk collections still need someone other than the requester to approve
+  the allowlist, scope and risk class. Low-risk collections still need an explicit human approval
   them, and agent findings are always hypotheses until a person decides.
 - Collected content is passed only inside delimited, size-capped data blocks, never in system prompts.
 - Every task records its model, prompt version, tokens and latency.
@@ -174,8 +176,9 @@ the same scope checks, approvals, worker re-checks and BLACK ICE ingest as any o
     availability, hourly budget, overlapping work.
   - Launch runs the preflight again on the server and is refused, with an audit event, if any check fails or the
     definition changed in between.
-  - Approval is required above passive and for every lab run. It must come from someone other than the person who
-    launched the run.
+  - Approval is required above passive and for every lab run: an explicit decision with a two-factor check from
+    the last 15 minutes. Under the single-operator policy (D1) the owner approves their own runs; under the
+    two-person policy someone else must.
 - **Profiles:**
   - A, live assessment: passive and read-only steps on authorized targets.
   - C, isolated lab: lab scopes only, run by the lab worker.
@@ -191,3 +194,21 @@ the same scope checks, approvals, worker re-checks and BLACK ICE ingest as any o
   0012).
 - **Not yet built:** the BLACKSITE probe deck's loopback-only listener and step-up MFA (review §16.2). Lab
   exploitation and simulation playbooks (Addendum 4 §10, items 6–11) wait for validation and a security review.
+
+## BLACKSITE security foundation (JANUS Phase 1)
+
+- **Single operator (D1).** Each workspace has an approval policy. The default, `single_operator`, lets the workspace
+  owner explicitly approve their own requests; nobody else may approve their own. `two_person` (the earlier rule) is
+  kept for later. Both are enforced by the API and by a database trigger. Approving or rejecting an operation or
+  run, launching a playbook and authorizing a scope need two-factor verified in the last 15 minutes
+  (`POST /api/auth/mfa/verify` renews it; the web app prompts for the code).
+- **Host-only BLACKSITE (D3).** `nightfall-blacksite` is a separate listener for the lab machine. It is off unless
+  `NIGHTFALL_BLACKSITE_ENABLED=true`, refuses to start on the hosted platform, binds `127.0.0.1`, checks every
+  request's socket peer and `Host`, and is reached through an SSH tunnel. It connects as `nightfall_blacksite`,
+  a database role confined to lab records that can add audit events but never change them. Every workspace
+  request needs the owner, fresh two-factor, and is audited.
+- **Lab boundary.** Lab operations and lab playbook runs are created, approved and cancelled only through BLACKSITE.
+  The hosted app (Vercel) can still read lab results; the database refuses it anything more.
+- **Review gate (D4).** BLACKSITE refuses lab execution until `NIGHTFALL_BLACKSITE_REVIEW_REF` names the recorded
+  independent review. That is an attestation by the operator, not proof a review happened; tests and self-review
+  don't count.

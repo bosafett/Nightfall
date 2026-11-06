@@ -421,7 +421,9 @@ def discard_draft(
 
 @router.post("/scopes/{scope_id}/authorize", response_model=ScopeOut)
 def authorize(
-    scope_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.SCOPE_AUTHORIZE)
+    scope_id: uuid.UUID,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.SCOPE_AUTHORIZE, fresh_mfa=True),
 ) -> ScopeOut:
     s = _draft(db, ctx, scope_id)
     if not s.authorization_reference.strip():

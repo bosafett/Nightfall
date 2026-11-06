@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
 import type { Me, OperationDetail } from "@/lib/api/types";
-import { can } from "@/lib/labels";
+import { can, decidesOwn } from "@/lib/labels";
 import { CancelRequest, DecisionPanel } from "@/components/recon/DecisionPanel";
 import { formatDateTime } from "@/lib/format";
 import { EvidenceList } from "@/components/assets/EvidenceList";
@@ -16,8 +16,9 @@ export const metadata: Metadata = { title: "Operation" };
 export default async function OperationPage({ params }: { params: Promise<{ ws: string; opId: string }> }) {
   const { ws, opId } = await params;
   const [op, me] = await Promise.all([apiGet<OperationDetail>(`/workspaces/${ws}/operations/${opId}`), apiGet<Me>("/auth/me")]);
-  const role = me.workspaces.find((w) => w.id === ws)?.role ?? "viewer";
-  const mine = op.requested_by_user_id === me.user.id;
+  const membership = me.workspaces.find((w) => w.id === ws);
+  const role = membership?.role ?? "viewer";
+  const mine = op.requested_by_user_id === me.user.id && !decidesOwn(role, membership?.approval_policy);
   const techs = (op.result_summary.technologies ?? []) as { name: string; version: string | null; rule_id: string; confidence: string; evidence: string }[];
   const http = ((op.result_summary as { http?: unknown }).http ?? []) as { status?: number; title?: string | null; location?: string | null; tls?: { version?: string; subject_cn?: string; issuer_cn?: string; not_after?: string } | null }[];
   const s = op.result_summary as Record<string, number | string | undefined>;
@@ -44,7 +45,9 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
       {op.status === "failed" && <Alert>Failed: {op.error}</Alert>}
       {op.status === "awaiting_approval" && (
         <Panel title="Awaiting approval" className="mb-4">
-          {mine ? (
+          {op.is_lab ? (
+            <p className="text-sm text-muted">Lab work is approved in BLACKSITE on the lab machine, not from the hosted app.</p>
+          ) : mine ? (
             <div className="space-y-3"><p className="text-sm text-muted">You requested this, so an operator, admin or owner other than you has to approve it.</p><CancelRequest ws={ws} opId={op.id} /></div>
           ) : can.approveOperations(role) ? <DecisionPanel ws={ws} op={op} />
             : <p className="text-sm text-muted">An operator, admin or owner has to approve this.</p>}

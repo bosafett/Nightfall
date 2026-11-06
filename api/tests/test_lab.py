@@ -113,25 +113,34 @@ def _active_lab_scope(client: TestClient, env) -> None:
     assert client.post(f"{base}/scopes/{sid}/authorize").status_code == 200
 
 
-def _request(client: TestClient, env, who: str, tool: str) -> httpx.Response:
-    use(client, env[who])
-    return client.post(
+def _request(bs: TestClient, env, tool: str, target: str = APP) -> httpx.Response:
+    """Lab work is requested through BLACKSITE (D3), by the owner (single operator, D1)."""
+    use(bs, env["owner"])
+    return bs.post(
         f"/api/workspaces/{env['ws']}/projects/{env['pid']}/collections",
-        json={"tool": tool, "target": APP},
+        json={"tool": tool, "target": target},
     )
 
 
-def test_lab_run_end_to_end_and_kept_apart(client: TestClient, env, owner_db: Session) -> None:
+def test_lab_run_end_to_end_and_kept_apart(
+    client: TestClient, blacksite: TestClient, env, owner_db: Session
+) -> None:
     _active_lab_scope(client, env)
-    assert _request(client, env, "operator", "ct").json()["detail"]["code"] == "not_in_lab"
-    op = _request(client, env, "operator", "http").json()
-    assert op["status"] == "awaiting_approval"
-    # The requester can't approve; someone else can.
-    use(client, env["operator"])
-    self_ok = client.post(f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={})
-    assert self_ok.status_code == 409
+    # The hosted app can't request lab work (D3); BLACKSITE can.
     use(client, env["owner"])
-    ok = client.post(
+    hosted = client.post(
+        f"/api/workspaces/{env['ws']}/projects/{env['pid']}/collections",
+        json={"tool": "http", "target": APP},
+    )
+    assert hosted.status_code == 403 and hosted.json()["detail"]["code"] == "lab_from_blacksite"
+    assert _request(blacksite, env, "ct").json()["detail"]["code"] == "not_in_lab"
+    op = _request(blacksite, env, "http").json()
+    assert op["status"] == "awaiting_approval"
+    # The hosted app can't approve it either; the owner approves it in BLACKSITE (D1).
+    use(client, env["owner"])
+    r = client.post(f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={})
+    assert r.status_code == 403
+    ok = blacksite.post(
         f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={"reason": "lab"}
     )
     assert ok.status_code == 200 and ok.json()["status"] == "queued"
@@ -210,7 +219,9 @@ def test_agents_cannot_propose_lab_operations(
     assert owner_db.execute(text("SELECT count(*) FROM operations")).scalar() == 0
 
 
-def test_lab_role_sees_and_writes_only_lab_data(client: TestClient, env, owner_db: Session) -> None:
+def test_lab_role_sees_and_writes_only_lab_data(
+    client: TestClient, blacksite: TestClient, env, owner_db: Session
+) -> None:
     """Review finding F1: the lab credential can't reach real-world data, even in the same
     workspace, and can't plant data anywhere else."""
     from tests.phase3_helpers import org_project
@@ -229,12 +240,11 @@ def test_lab_role_sees_and_writes_only_lab_data(client: TestClient, env, owner_d
     client.patch(f"{base}/scopes/{sid}", json={"is_lab": True, "authorization_reference": "Lab"})
     assert add_target(client, env, sid, "ip", APP).status_code == 201
     assert client.post(f"{base}/scopes/{sid}/authorize").status_code == 200
-    use(client, env["operator"])
-    op = client.post(
+    use(blacksite, env["owner"])
+    op = blacksite.post(
         f"{base}/projects/{lab_pid}/collections", json={"tool": "http", "target": APP}
     ).json()
-    use(client, env["owner"])
-    client.post(f"{base}/operations/{op['id']}/approve", json={"reason": "lab"})
+    blacksite.post(f"{base}/operations/{op['id']}/approve", json={"reason": "lab"})
     assert lab_worker({"http": fake_app()}).run_once() is True
 
     real_org = owner_db.execute(
@@ -321,13 +331,17 @@ def test_lab_worker_refuses_a_lab_network_it_isnt_attached_to(
 
 @pytest.mark.parametrize(("age_hours", "status"), [(23, "succeeded"), (25, "denied")])
 def test_lab_approvals_expire(
-    client: TestClient, env, owner_db: Session, age_hours: int, status: str
+    client: TestClient,
+    blacksite: TestClient,
+    env,
+    owner_db: Session,
+    age_hours: int,
+    status: str,
 ) -> None:
     """Review finding F5: a lab job that waited too long after approval doesn't run."""
     _active_lab_scope(client, env)
-    op = _request(client, env, "operator", "http").json()
-    use(client, env["owner"])
-    client.post(f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={})
+    op = _request(blacksite, env, "http").json()
+    blacksite.post(f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={})
     owner_db.execute(
         text(
             "UPDATE approvals SET decided_at = now() - make_interval(hours => :h) "

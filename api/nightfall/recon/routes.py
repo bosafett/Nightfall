@@ -11,11 +11,12 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, BackgroundTasks, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Query, Request, Response
 from pydantic import StringConstraints
 from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
+from nightfall.blacksite.boundary import lab_boundary
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record, record_detached
 from nightfall.core.clock import utcnow
@@ -35,7 +36,7 @@ from nightfall.core.db.session import DB
 from nightfall.core.errors import api_error, not_found
 from nightfall.core.evidence_store import EvidenceStore, IntegrityError, read_from
 from nightfall.core.schemas import Model, OkOut
-from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
+from nightfall.core.tenancy.deps import WorkspaceContext, may_approve_own, ws_permission
 from nightfall.core.tenancy.permissions import Permission
 from nightfall.recon.collectors import LAB_TOOLS, TOOLS
 from nightfall.registry.assets import EvidenceSummary, evidence_summary
@@ -194,6 +195,7 @@ def run_queued_jobs(ctx: WorkspaceContext = ws_permission(Permission.READ)) -> D
 def request_collection(
     project_id: uuid.UUID,
     body: CollectionIn,
+    request: Request,
     response: Response,
     background: BackgroundTasks,
     db: DB,
@@ -207,6 +209,7 @@ def request_collection(
     label, risk = TOOLS[body.tool]
     scope = active_scope(db, project_id)
     is_lab = scope is not None and scope.is_lab
+    lab_boundary(request, ctx, is_lab, "operation.request", executes=True)
     # High risk never; moderate only against the isolated lab (DB CHECK too, migration 0010).
     if risk is RiskClass.HIGH or (risk is RiskClass.MODERATE and not is_lab):
         raise api_error(403, "not_available", "This tool isn't available.")
@@ -326,15 +329,12 @@ def get_operation(
 
 @router.post("/operations/{op_id}/cancel", response_model=OkOut)
 def cancel_operation(
-    op_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE)
+    op_id: uuid.UUID,
+    request: Request,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE),
 ) -> OkOut:
-    op = db.scalar(
-        select(Operation)
-        .where(Operation.id == op_id, Operation.workspace_id == ctx.workspace_id)
-        .with_for_update()
-    )
-    if op is None:
-        raise not_found("Operation not found.")
+    op = _locked(db, ctx, op_id, request, "operation.cancel", executes=False)
     if op.status not in (OperationStatus.QUEUED, OperationStatus.AWAITING_APPROVAL):
         raise api_error(409, "not_queued", "Only queued or unapproved operations can be cancelled.")
     op.status = OperationStatus.CANCELLED
@@ -419,21 +419,41 @@ def _approval(db: Session, op_id: uuid.UUID) -> ApprovalOut | None:
     )
 
 
-def _awaiting(db: Session, ctx: WorkspaceContext, op_id: uuid.UUID) -> Operation:
-    op = db.scalar(
-        select(Operation)
-        .where(Operation.id == op_id, Operation.workspace_id == ctx.workspace_id)
-        .with_for_update()
+def _locked(
+    db: Session,
+    ctx: WorkspaceContext,
+    op_id: uuid.UUID,
+    request: Request,
+    action: str,
+    executes: bool,
+) -> Operation:
+    """The lab boundary is checked on the readable row first (so a refusal is audited),
+    then the row is locked."""
+    lab = db.scalar(
+        select(Operation.is_lab).where(
+            Operation.id == op_id, Operation.workspace_id == ctx.workspace_id
+        )
     )
+    if lab is None:
+        raise not_found("Operation not found.")
+    lab_boundary(request, ctx, lab, action, executes=executes)
+    op = db.scalar(select(Operation).where(Operation.id == op_id).with_for_update())
     if op is None:
         raise not_found("Operation not found.")
+    return op
+
+
+def _awaiting(
+    db: Session, ctx: WorkspaceContext, op_id: uuid.UUID, request: Request, executes: bool
+) -> Operation:
+    op = _locked(db, ctx, op_id, request, "operation.decide", executes)
     if op.status is not OperationStatus.AWAITING_APPROVAL:
         raise api_error(409, "not_awaiting", "This operation isn't waiting for a decision.")
-    if op.requested_by_user_id == ctx.user_id:
+    if op.requested_by_user_id == ctx.user_id and not may_approve_own(db, ctx):
         raise api_error(
             409,
             "self_approval",
-            "You requested this operation, so someone else has to decide on it.",
+            "You requested this operation, and the approval policy doesn't let you decide it.",
         )
     return op
 
@@ -520,11 +540,12 @@ def reject_locked(db: Session, ctx: WorkspaceContext, op: Operation, reason: str
 def approve_operation(
     op_id: uuid.UUID,
     body: DecisionIn,
+    request: Request,
     background: BackgroundTasks,
     db: DB,
-    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE, fresh_mfa=True),
 ) -> OperationDetail:
-    op = _awaiting(db, ctx, op_id)
+    op = _awaiting(db, ctx, op_id, request, executes=True)
     approved = approve_locked(db, ctx, op, body.reason)
     db.flush()
     if approved:
@@ -536,10 +557,11 @@ def approve_operation(
 def reject_operation(
     op_id: uuid.UUID,
     body: DecisionIn,
+    request: Request,
     db: DB,
-    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE, fresh_mfa=True),
 ) -> OperationDetail:
-    op = _awaiting(db, ctx, op_id)
+    op = _awaiting(db, ctx, op_id, request, executes=False)
     reject_locked(db, ctx, op, body.reason)
     db.flush()
     return get_operation(op_id, db, ctx)

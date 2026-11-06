@@ -33,6 +33,13 @@ class AuthContext:
     def mfa_satisfied(self) -> bool:
         return self.user.mfa_enabled and self.session.mfa_verified_at is not None
 
+    @property
+    def mfa_fresh(self) -> bool:
+        """Two-factor verified within the step-up window (server clock, server-stored time)."""
+        at = self.session.mfa_verified_at
+        window = timedelta(seconds=get_settings().step_up_seconds)
+        return self.mfa_satisfied and at is not None and at > utcnow() - window
+
 
 def _unauthenticated() -> Exception:
     return api_error(401, "not_authenticated", "Sign in to continue.")

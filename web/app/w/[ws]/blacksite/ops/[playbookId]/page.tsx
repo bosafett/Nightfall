@@ -29,7 +29,7 @@ export default async function PlaybookPage({ params }: { params: Promise<{ ws: s
     ["Category", categoryLabel[p.category]],
     ["Target types", p.target_types.join(", ")],
     ["Expected duration", p.expected_duration],
-    ["Approval (live)", p.needs_approval_live ? "Someone other than you" : "None (passive)"],
+    ["Approval (live)", p.needs_approval_live ? "Explicit approval" : "None (passive)"],
     ["Runs in this workspace", String(p.runs)],
   ];
   return (

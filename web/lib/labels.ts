@@ -44,6 +44,10 @@ export const can = {
   manage: (actor: Role, target: Role) => actor === "owner" || rank[target] < rank[actor],
 };
 
+/** D1: under the single-operator policy the owner decides their own requests (the API and
+ * the database enforce this; the UI only mirrors it). */
+export const decidesOwn = (r: Role, policy: string | undefined) => policy !== "two_person" && r === "owner";
+
 export const mfaRequired = (r: Role) => r === "owner" || r === "admin" || r === "operator";
 
 

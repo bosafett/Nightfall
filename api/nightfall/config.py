@@ -41,6 +41,18 @@ Optional:
                                     which only claims lab operations and only contacts
                                     addresses inside NIGHTFALL_LAB_NETWORKS.
   NIGHTFALL_LAB_WORKER_DB_PASSWORD  (bootstrap-roles only) enables the lab worker's login.
+  NIGHTFALL_BLACKSITE_ENABLED       "true" to allow the host-only BLACKSITE listener
+                                    (nightfall-blacksite) to start. Off by default; refused
+                                    together with NIGHTFALL_ON_DEMAND_WORKER (hosted platform).
+  NIGHTFALL_BLACKSITE_PORT          its loopback port (default 8443). It always binds 127.0.0.1.
+  NIGHTFALL_BLACKSITE_BIND          its bind address (default 127.0.0.1). Inside a container,
+                                    0.0.0.0 with the port published to the host's 127.0.0.1 only.
+  NIGHTFALL_BLACKSITE_ALLOWED_PEERS comma-separated CIDRs whose connections it accepts (default
+                                    127.0.0.1/32,::1/128). Its NIGHTFALL_DATABASE_URL must be
+                                    role nightfall_blacksite (checked at start-up).
+  NIGHTFALL_BLACKSITE_REVIEW_REF    reference of the recorded independent review (D4). Without
+                                    it BLACKSITE refuses to create or approve lab execution.
+  NIGHTFALL_BLACKSITE_DB_PASSWORD   (bootstrap-roles only) enables the BLACKSITE role's login.
 """
 
 from __future__ import annotations
@@ -87,6 +99,16 @@ class Settings:
     worker_mode: Literal["standard", "lab"] = "standard"
     session_idle_seconds: int = 12 * 3600
     session_absolute_seconds: int = 7 * 86400
+    # Two-factor must have been verified this recently for sensitive actions (D1).
+    step_up_seconds: int = 15 * 60
+    blacksite_enabled: bool = False
+    blacksite_port: int = 8443
+    blacksite_bind: str = "127.0.0.1"
+    blacksite_allowed_peers: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...] = (
+        ipaddress.ip_network("127.0.0.1/32"),
+        ipaddress.ip_network("::1/128"),
+    )
+    blacksite_review_ref: str | None = None
     version: str = "0.1.0"
 
 
@@ -168,6 +190,20 @@ def load_settings() -> Settings:
     worker_mode = os.environ.get("NIGHTFALL_WORKER_MODE", "standard").strip() or "standard"
     if worker_mode not in ("standard", "lab"):
         raise ConfigError("NIGHTFALL_WORKER_MODE must be 'standard' or 'lab'")
+    blacksite = os.environ.get("NIGHTFALL_BLACKSITE_ENABLED", "false").strip().lower() == "true"
+    if blacksite and on_demand:
+        raise ConfigError("BLACKSITE never runs on the hosted platform (on-demand worker).")
+    blacksite_port = int(os.environ.get("NIGHTFALL_BLACKSITE_PORT", "8443"))
+    if not 0 < blacksite_port < 65536:
+        raise ConfigError("NIGHTFALL_BLACKSITE_PORT must be a TCP port")
+    raw_peers = os.environ.get("NIGHTFALL_BLACKSITE_ALLOWED_PEERS", "").strip()
+    try:
+        peers = tuple(ipaddress.ip_network(n.strip()) for n in raw_peers.split(",") if n.strip())
+    except ValueError as exc:
+        raise ConfigError(f"NIGHTFALL_BLACKSITE_ALLOWED_PEERS: {exc}") from exc
+    if any(not (n.is_private or n.is_loopback) for n in peers):
+        raise ConfigError("NIGHTFALL_BLACKSITE_ALLOWED_PEERS must be loopback or private ranges")
+    review_ref = os.environ.get("NIGHTFALL_BLACKSITE_REVIEW_REF", "").strip()[:200]
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:
         raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
@@ -195,6 +231,11 @@ def load_settings() -> Settings:
         ai_model=ai_model,
         lab_networks=lab_networks,
         worker_mode="lab" if worker_mode == "lab" else "standard",
+        blacksite_enabled=blacksite,
+        blacksite_port=blacksite_port,
+        blacksite_bind=os.environ.get("NIGHTFALL_BLACKSITE_BIND", "").strip() or "127.0.0.1",
+        blacksite_allowed_peers=peers or Settings.blacksite_allowed_peers,
+        blacksite_review_ref=review_ref or None,
     )
 
 

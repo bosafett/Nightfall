@@ -18,7 +18,7 @@ export function DecisionPanel({ ws, op }: { ws: string; op: OperationDetail }) {
         {op.is_lab
           ? <>Approving lets your isolated lab machine run {op.tool_label} against <span className="font-mono text-text">{op.target}</span>, inside the lab network only. Results are recorded as lab results.</>
           : op.tool === "nuclei"
-          ? <>Approving runs NIGHTFALL&apos;s reviewed GET-only checks against <span className="font-mono text-text">{op.target}</span> through the scope proxy (ports 443 and 80).</>
+          ? <>Approving runs JANUS&apos;s reviewed GET-only checks against <span className="font-mono text-text">{op.target}</span> through the scope proxy (ports 443 and 80).</>
           : <>Approving sends up to 3 GET requests to <span className="font-mono text-text">{op.target}</span> (ports 443 and 80).</>}
         {!op.is_lab && <>{" "}It runs only if the target still resolves to a public address that the scope doesn&apos;t exclude. </>}{" "}Approval is tied to scope v{op.scope_version}.
       </p>

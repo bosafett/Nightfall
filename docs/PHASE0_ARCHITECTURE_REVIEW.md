@@ -1,5 +1,8 @@
 # NIGHTFALL — Phase 0 Architecture Review
 
+> **Renamed:** the product is now **JANUS (JNS.OS)**. This document keeps its original name and history; current
+> owner decisions and the roadmap are in §17, which supersedes earlier sections where they disagree.
+
 Status: **Approved 2026-11-04 — all decisions in §11 accepted as proposed.** Nothing has been installed, deployed, or tested against any external system.
 Revision 3: adds **Addendum 3 — BLACKSITE** (§16).
 Revision 2: incorporates **Addendum A** (local-first AI, open-source integrations, BLACK ICE, offline operation) and the **command-center mockup** (§13–§15).
@@ -363,7 +366,7 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
 - **5a (done):** provider interface (structured outputs validated against each agent's schema, server-side refusal
   fallback), `agent_tasks` (migration 0008), deterministic Tool Gateway, and three agents:
   - *Scout:* proposes collections. Each one is checked against the allowlist, scope, exclusions and risk class:
-    passive is queued, low waits for someone other than the requester, and anything else is refused and audited.
+    passive is queued, low waits for an explicit approval (see §17, D1), and anything else is refused and audited.
   - *Hunter:* proposes findings. They are recorded only as `hypothesis` / low confidence, and only with evidence
     the agent was shown from this project.
   - *Guardian:* reviews each Hunter finding against the cited raw evidence, without Hunter's reasoning. The verdict
@@ -421,7 +424,7 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
     (default `172.30.99.0/24`), and no hostnames, because the API can't check what a lab name resolves to.
     Normal scopes can't name lab addresses. Checked when a target is added, when a draft is switched, at
     authorization, and at run time by the lab worker (`SafeHttp.only_networks`).
-  - *Operations* copy `is_lab` from their scope. Every lab run needs a second person's approval. Moderate risk is
+  - *Operations* copy `is_lab` from their scope. Every lab run needs an explicit approval (§17: by the owner under the single-operator policy, and only through BLACKSITE). Moderate risk is
     allowed only in a lab (DB CHECK), but no moderate tool is registered yet. Agents can't propose lab runs.
   - *Two workers, disjoint queues:* the restrictive RLS policy limits `nightfall_worker` to `NOT is_lab` and
     `nightfall_lab_worker` to `is_lab`, and the claim queries filter the same way. The lab role has no access to
@@ -447,7 +450,7 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
 
 **All approved as proposed (2026-11-04).**
 
-1. **Repository visibility:** `bosafett/nightfall` is currently **public**. Recommend private before Phase 1, because scope definitions, lab configs, and client names will follow. Also confirm that the first commit goes to `main`.
+1. **Repository visibility:** *superseded 2026-11-06: the repository stays public (owner decision, §17).* `bosafett/nightfall` is currently **public**. Recommend private before Phase 1, because scope definitions, lab configs, and client names will follow. Also confirm that the first commit goes to `main`.
 2. **Tenant naming:** `workspaces` = tenant, `organizations` = investigated targets (§4.1).
 3. **Auth (rev 2):** API-owned sessions + argon2id + TOTP, invite-only, offline password reset (§5). This replaces Supabase Auth.
 4. **Queue:** Postgres-backed in MVP. Redis deferred (§3).
@@ -462,7 +465,7 @@ Phase 3 shipped in two parts so the scope engine could be reviewed on its own:
 
 ## 12. Blockers
 
-- **Repository visibility:** approved to switch to private. The owner has to change it in GitHub settings.
+- ~~**Repository visibility:**~~ not a blocker: the owner decided to keep it public (§17).
 - **Logo:** received as `brand/nightfall-mark.svg`.
 - **Host hardware** (decision 9): needed by Phase 5 only.
 - Nothing else blocks Phase 1.
@@ -678,3 +681,47 @@ Each of these is a required test, run against a local test server:
   - request via the public listener
 - **Budget and rate exhaustion.**
 - **Every denial produces an audit event.**
+
+## 17. JANUS decisions and roadmap (2026-11-06)
+
+Owner decisions, final. Where earlier sections disagree, this section wins.
+
+| # | Decision | Effect |
+|---|---|---|
+| D1 | **Single-operator authorization.** One operator, the owner. No second person or second account is required. | `workspaces.approval_policy` = `single_operator` (default) or `two_person`. Under `single_operator` only a workspace **owner** may approve their own request; others never may. Approvals, rejections, playbook launches and scope authorization need two-factor verified in the last 15 minutes. Every approval records the authenticated approver. Two accounts held by one person are never presented as independent authorization. `two_person` stays available for later. |
+| D3 | **BLACKSITE runs on the lab machine, host-only.** Remote administration through an authenticated SSH tunnel. Nothing public. The hosted (Vercel) app must not become an execution gateway into the lab. | `nightfall-blacksite` listener (separate app, loopback only, peer and `Host` checks, feature flag off by default, refused on the hosted platform). Lab operations and lab playbook runs are created, approved and cancelled only through it; the hosted app's database role can read lab records but not act on them. See `docs/blacksite-deployment.md`. |
+| D4 | **Independent review** of sensitive security functionality, by someone other than its implementer (person or agent). Tests and self-review are not sign-off. | BLACKSITE refuses lab execution until `NIGHTFALL_BLACKSITE_REVIEW_REF` is set. The software can't verify a review happened; the reference is the owner's attestation and should name a signed document in `docs/reviews/`. |
+| — | **Repository stays public.** Vercel free tier stays; no hosting migration or paid services. | §11.1 and §12 superseded. No paid AI calls during development. |
+| — | **Rename to JANUS / JNS.OS**, display level. | Product name in UI, reports, API title, User-Agent and docs. Internal identifiers unchanged (package, `NIGHTFALL_*` variables, `nightfall_*` roles, cookie name), so deployments keep working. Agent prompt text still says NIGHTFALL; changing it means a prompt-version bump and is deferred. |
+
+**Lab boundary (recommended and adopted for D3).** The lab worker already pulls jobs from the database; previously the
+hosted app could create and approve those jobs, which made it a gateway into the lab. Now only BLACKSITE can (API
+check plus restrictive database policies, migration 0013). Consequence: lab collections and lab playbook runs can no
+longer be started or approved from the hosted UI; it shows them read-only.
+
+### 17.1 Phase 1 (BLACKSITE security foundation) status
+
+| Item | Implemented | Unit / integration tested | Security tested | Independently reviewed | Deployed |
+|---|---|---|---|---|---|
+| Feature flag, off by default, fails closed | ✓ | ✓ | ✓ (`tests/test_blacksite.py`) | ✗ | ✗ |
+| Host-only listener (loopback bind, peer + Host check, no forwarded headers) | ✓ | ✓ | ✓ | ✗ | ✗ |
+| SSH tunnel for remote administration | documented | — | — | ✗ | ✗ |
+| Owner only + two-factor within 15 minutes, server-side; step-up endpoint | ✓ | ✓ | ✓ | ✗ | ✗ (hosted app: on next deploy) |
+| Session revocation (`/auth/logout`, `/auth/logout-all`) | ✓ (existing) | ✓ | ✓ | ✗ | ✓ (existing) |
+| Confined database role `nightfall_blacksite` | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Lab boundary for the hosted app | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Audit: access, refusals (network, role, two-factor, boundary, review), approvals, operations | ✓ | ✓ | ✓ | ✗ | ✗ |
+| Review gate (D4) | ✓ | ✓ | ✓ | ✗ | ✗ |
+
+Nothing is deployed until the owner approves a push and a Vercel redeploy, and BLACKSITE stays off until the
+independent review is recorded.
+
+### 17.2 Roadmap
+
+1. **Now:** owner review of this change; independent review of the BLACKSITE authorization model and of Phase 1
+   (`docs/reviews/2026-11-blacksite-authorization-model.md` §9); record the reference.
+2. **Phase 2 — BLACKSITE probe deck** (§16.3–16.6): targets by asset id, HTTP/DNS/TCP/TLS probes with per-target
+   ports, rate and daily budget, compare and replay. A local UI served on the tunnel.
+3. **BLACK OPS remainder:** Profile B design and review; playbooks 6–11 after validation.
+4. **Tools:** ZAP baseline (low risk), Amass engine, moderate-risk lab packs, each with its own review.
+5. **Platform:** local AI provider (no paid calls), audit export to append-only storage (F7), server-side PDF.

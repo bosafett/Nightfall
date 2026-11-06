@@ -28,6 +28,12 @@ WORKER_URL = os.environ.get(
     "postgresql://nightfall_worker:worker_dev_only@127.0.0.1:5432/nightfall_test",
 )
 ORIGIN = "http://nightfall.test"
+BLACKSITE_URL = os.environ.get(
+    "NIGHTFALL_TEST_BLACKSITE_DATABASE_URL",
+    "postgresql://nightfall_blacksite:blacksite_dev_only@127.0.0.1:5432/nightfall_test",
+)
+BLACKSITE_ORIGIN = "http://127.0.0.1:8443"
+BLACKSITE_REVIEW = "REV-TEST-1"
 EVIDENCE_DIR = tempfile.mkdtemp(prefix="nightfall-evidence-")
 
 os.environ.update(
@@ -118,6 +124,50 @@ def owner_db(owner_engine: Engine) -> Iterator[Session]:
 @pytest.fixture
 def client() -> Iterator[TestClient]:
     with TestClient(create_app(), base_url=ORIGIN, headers={"Origin": ORIGIN}) as c:
+        yield c
+
+
+@pytest.fixture
+def blacksite_on(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
+    monkeypatch.setenv("NIGHTFALL_BLACKSITE_ENABLED", "true")
+    monkeypatch.setenv("NIGHTFALL_BLACKSITE_REVIEW_REF", BLACKSITE_REVIEW)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
+_blacksite_engine = None
+
+
+def blacksite_client(peer: str = "127.0.0.1", base_url: str = BLACKSITE_ORIGIN) -> TestClient:
+    """The host-only BLACKSITE app, connected as nightfall_blacksite, seen from `peer`."""
+    global _blacksite_engine
+    from nightfall.blacksite.app import create_blacksite_app
+    from nightfall.core.db.session import get_db
+
+    if _blacksite_engine is None:
+        _blacksite_engine = create_engine(_sqlalchemy_url(BLACKSITE_URL))
+    engine = _blacksite_engine
+
+    def db() -> Iterator[Session]:
+        with Session(engine, expire_on_commit=False) as s:
+            try:
+                yield s
+                s.commit()
+            except BaseException:
+                s.rollback()
+                raise
+
+    app = create_blacksite_app()
+    app.dependency_overrides[get_db] = db
+    return TestClient(
+        app, base_url=base_url, headers={"Origin": BLACKSITE_ORIGIN}, client=(peer, 50123)
+    )
+
+
+@pytest.fixture
+def blacksite(blacksite_on: None) -> Iterator[TestClient]:
+    with blacksite_client() as c:
         yield c
 
 

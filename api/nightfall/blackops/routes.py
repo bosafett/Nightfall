@@ -23,7 +23,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Annotated, Any, Literal, NoReturn
 
-from fastapi import APIRouter, BackgroundTasks, Query
+from fastapi import APIRouter, BackgroundTasks, Query, Request
 from pydantic import StringConstraints
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -37,6 +37,7 @@ from nightfall.blackops.catalog import (
     Profile,
     TargetType,
 )
+from nightfall.blacksite.boundary import lab_boundary
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record, record_detached
 from nightfall.core.clock import utcnow
@@ -58,7 +59,12 @@ from nightfall.core.db.models import (
 from nightfall.core.db.session import DB
 from nightfall.core.errors import api_error, not_found
 from nightfall.core.schemas import Model
-from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
+from nightfall.core.tenancy.deps import (
+    WorkspaceContext,
+    is_blacksite,
+    may_approve_own,
+    ws_permission,
+)
 from nightfall.core.tenancy.permissions import Permission, has_permission
 from nightfall.recon.collectors import LAB_TOOLS, TOOLS
 from nightfall.recon.routes import (
@@ -376,7 +382,12 @@ def _target_type(value: str) -> TargetType | None:
 
 
 def preflight(
-    db: Session, ctx: WorkspaceContext, project_id: uuid.UUID, p: Playbook, raw_target: str
+    db: Session,
+    ctx: WorkspaceContext,
+    project_id: uuid.UUID,
+    p: Playbook,
+    raw_target: str,
+    blacksite: bool = False,
 ) -> _Preflight:
     """The checks a launch must pass. Read-only; the launch route runs it again itself."""
     checks: list[PreflightCheckOut] = []
@@ -424,15 +435,28 @@ def preflight(
         profile = Profile.LAB if scope.is_lab else Profile.LIVE
         info = PROFILES[profile]
         ok = info.available and profile in p.profiles
+        where_ok = (profile is Profile.LAB) == blacksite  # D3: lab work only via BLACKSITE
         add(
             "profile",
             "Execution profile",
-            ok,
+            ok and where_ok,
             f"Profile {info.code} · {info.label}."
-            if ok
+            if ok and where_ok
             else f"This playbook doesn't support profile {info.code} ({info.label}); it "
-            f"supports {', '.join(PROFILES[x].code for x in p.profiles)}.",
+            f"supports {', '.join(PROFILES[x].code for x in p.profiles)}."
+            if not ok
+            else "Lab runs are launched from BLACKSITE on the lab machine (host-only)."
+            if profile is Profile.LAB
+            else "BLACKSITE runs lab work only.",
         )
+        if blacksite:
+            ref = get_settings().blacksite_review_ref
+            add(
+                "review",
+                "Independent review recorded",
+                bool(ref),
+                f"Recorded: {ref}." if ref else "Lab execution stays off until it is recorded.",
+            )
 
     ttype = _target_type(target)
     if ttype is TargetType.HOSTNAME and TargetType.DOMAIN in p.target_types:
@@ -543,11 +567,13 @@ def _project(db: Session, ctx: WorkspaceContext, project_id: uuid.UUID) -> Proje
 def run_preflight(
     project_id: uuid.UUID,
     body: PreflightIn,
+    request: Request,
     db: DB,
     ctx: WorkspaceContext = ws_permission(Permission.READ),
 ) -> PreflightOut:
     _project(db, ctx, project_id)
-    return preflight(db, ctx, project_id, _playbook(body.playbook_id), body.target).out
+    p = _playbook(body.playbook_id)
+    return preflight(db, ctx, project_id, p, body.target, is_blacksite(request)).out
 
 
 # --- Runs ----------------------------------------------------------------------------
@@ -750,9 +776,10 @@ def get_run(
 def launch_run(
     project_id: uuid.UUID,
     body: LaunchIn,
+    request: Request,
     background: BackgroundTasks,
     db: DB,
-    ctx: WorkspaceContext = ws_permission(Permission.PLAYBOOKS_RUN),
+    ctx: WorkspaceContext = ws_permission(Permission.PLAYBOOKS_RUN, fresh_mfa=True),
 ) -> RunDetail:
     _project(db, ctx, project_id)
     p = _playbook(body.playbook_id)
@@ -778,7 +805,7 @@ def launch_run(
             "definition_changed",
             f"The playbook is now version {p.version}; run the preflight again.",
         )
-    pre = preflight(db, ctx, project_id, p, body.target)
+    pre = preflight(db, ctx, project_id, p, body.target, is_blacksite(request))
     failure = pre.first_failure
     scope, profile, target = pre.scope, pre.out.profile, pre.out.target
     if failure is not None or scope is None or profile is None:
@@ -866,13 +893,14 @@ def _run_ops(
 
 
 def _awaiting_ops(
-    db: Session, ctx: WorkspaceContext, run_id: uuid.UUID
+    db: Session, ctx: WorkspaceContext, run_id: uuid.UUID, request: Request, executes: bool
 ) -> tuple[PlaybookRun, list[Operation]]:
     run, ops = _run_ops(db, ctx, run_id)
+    lab_boundary(request, ctx, run.profile == "lab", "playbook.decide", executes=executes)
     waiting = [o for o in ops if o.status is OperationStatus.AWAITING_APPROVAL]
     if not waiting:
         raise api_error(409, "not_awaiting", "This run isn't waiting for a decision.")
-    if run.requested_by_user_id == ctx.user_id:
+    if run.requested_by_user_id == ctx.user_id and not may_approve_own(db, ctx):
         record_detached(
             "playbook.denied",
             entity_type="playbook_run",
@@ -881,7 +909,9 @@ def _awaiting_ops(
             **ctx.audit_kwargs(),
         )
         raise api_error(
-            409, "self_approval", "You launched this run, so someone else has to decide on it."
+            409,
+            "self_approval",
+            "You launched this run, and the approval policy doesn't let you decide it.",
         )
     return run, waiting
 
@@ -890,13 +920,14 @@ def _awaiting_ops(
 def approve_run(
     run_id: uuid.UUID,
     body: DecisionIn,
+    request: Request,
     background: BackgroundTasks,
     db: DB,
-    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE, fresh_mfa=True),
 ) -> RunDetail:
     """Approves every step still waiting, each against the run's pinned scope (a step whose
     target fell out of scope is denied instead, with the reason)."""
-    run, waiting = _awaiting_ops(db, ctx, run_id)
+    run, waiting = _awaiting_ops(db, ctx, run_id, request, executes=True)
     approved = [o.id for o in waiting if approve_locked(db, ctx, o, body.reason)]
     record(
         db,
@@ -916,10 +947,11 @@ def approve_run(
 def reject_run(
     run_id: uuid.UUID,
     body: DecisionIn,
+    request: Request,
     db: DB,
-    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE, fresh_mfa=True),
 ) -> RunDetail:
-    run, waiting = _awaiting_ops(db, ctx, run_id)
+    run, waiting = _awaiting_ops(db, ctx, run_id, request, executes=False)
     for o in waiting:
         reject_locked(db, ctx, o, body.reason)
     record(
@@ -936,9 +968,13 @@ def reject_run(
 
 @router.post("/runs/{run_id}/cancel", response_model=RunDetail)
 def cancel_run(
-    run_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE)
+    run_id: uuid.UUID,
+    request: Request,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_PROPOSE),
 ) -> RunDetail:
     run, ops = _run_ops(db, ctx, run_id)
+    lab_boundary(request, ctx, run.profile == "lab", "playbook.cancel")
     open_ops = [
         o for o in ops if o.status in (OperationStatus.QUEUED, OperationStatus.AWAITING_APPROVAL)
     ]

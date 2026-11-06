@@ -232,7 +232,7 @@ PLAYBOOKS: dict[str, Playbook] = {
             ),
             outputs=("Technologies with versions", "Findings R1-R5"),
             cleanup=_READ_ONLY,
-            tests=("tests/test_blackops.py::test_low_risk_run_needs_a_second_person",),
+            tests=("tests/test_blackops.py::test_low_risk_run_needs_explicit_approval",),
             changelog=_V1,
         ),
         Playbook(
@@ -279,7 +279,7 @@ PLAYBOOKS: dict[str, Playbook] = {
             cleanup=_READ_ONLY,
             tests=(
                 "tests/test_posture.py::test_tls_audit_against_a_local_server",
-                "tests/test_blackops.py::test_low_risk_run_needs_a_second_person",
+                "tests/test_blackops.py::test_low_risk_run_needs_explicit_approval",
             ),
             changelog=_V1,
         ),
