@@ -738,6 +738,40 @@
         "title": "AwaitingOp",
         "type": "object"
       },
+      "Category": {
+        "enum": [
+          "reconnaissance",
+          "vulnerability_assessment",
+          "controlled_validation",
+          "adversary_simulation"
+        ],
+        "title": "Category",
+        "type": "string"
+      },
+      "ChangeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version",
+          "date",
+          "note"
+        ],
+        "title": "ChangeOut",
+        "type": "object"
+      },
       "CheckIn": {
         "additionalProperties": false,
         "properties": {
@@ -927,6 +961,30 @@
           }
         },
         "title": "DecisionIn",
+        "type": "object"
+      },
+      "DependencyOut": {
+        "additionalProperties": false,
+        "properties": {
+          "license": {
+            "title": "License",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "pinned": {
+            "title": "Pinned",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "license",
+          "pinned"
+        ],
+        "title": "DependencyOut",
         "type": "object"
       },
       "DrainOut": {
@@ -2229,6 +2287,74 @@
         "title": "InviteOut",
         "type": "object"
       },
+      "LaunchIn": {
+        "additionalProperties": false,
+        "properties": {
+          "definition_sha256": {
+            "maxLength": 64,
+            "title": "Definition Sha256",
+            "type": "string"
+          },
+          "playbook_id": {
+            "maxLength": 64,
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 300,
+            "title": "Target",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 32,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook_id",
+          "target",
+          "version",
+          "definition_sha256"
+        ],
+        "title": "LaunchIn",
+        "type": "object"
+      },
+      "LibraryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "can_manage": {
+            "title": "Can Manage",
+            "type": "boolean"
+          },
+          "can_run": {
+            "title": "Can Run",
+            "type": "boolean"
+          },
+          "playbooks": {
+            "items": {
+              "$ref": "#/components/schemas/PlaybookOut"
+            },
+            "title": "Playbooks",
+            "type": "array"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileOut"
+            },
+            "title": "Profiles",
+            "type": "array"
+          }
+        },
+        "required": [
+          "profiles",
+          "playbooks",
+          "can_run",
+          "can_manage"
+        ],
+        "title": "LibraryOut",
+        "type": "object"
+      },
       "LinkIn": {
         "additionalProperties": false,
         "properties": {
@@ -3250,6 +3376,500 @@
         "title": "PathRef",
         "type": "object"
       },
+      "PlaybookDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "enum": [
+              "available",
+              "disabled",
+              "blocked"
+            ],
+            "title": "Availability",
+            "type": "string"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "changelog": {
+            "items": {
+              "$ref": "#/components/schemas/ChangeOut"
+            },
+            "title": "Changelog",
+            "type": "array"
+          },
+          "cleanup": {
+            "title": "Cleanup",
+            "type": "string"
+          },
+          "definition_sha256": {
+            "title": "Definition Sha256",
+            "type": "string"
+          },
+          "dependencies": {
+            "items": {
+              "$ref": "#/components/schemas/DependencyOut"
+            },
+            "title": "Dependencies",
+            "type": "array"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "expected_duration": {
+            "title": "Expected Duration",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "lab_only": {
+            "title": "Lab Only",
+            "type": "boolean"
+          },
+          "limits": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limits",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "needs_approval_live": {
+            "title": "Needs Approval Live",
+            "type": "boolean"
+          },
+          "outputs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Outputs",
+            "type": "array"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/Profile"
+            },
+            "title": "Profiles",
+            "type": "array"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          },
+          "setting_history": {
+            "items": {
+              "$ref": "#/components/schemas/SettingChangeOut"
+            },
+            "title": "Setting History",
+            "type": "array"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlaybookStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "target_types": {
+            "items": {
+              "$ref": "#/components/schemas/TargetType"
+            },
+            "title": "Target Types",
+            "type": "array"
+          },
+          "tests": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tests",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "definition_sha256",
+          "category",
+          "summary",
+          "risk_class",
+          "profiles",
+          "lab_only",
+          "target_types",
+          "steps",
+          "needs_approval_live",
+          "enabled",
+          "availability",
+          "blocked_reason",
+          "description",
+          "expected_duration",
+          "limits",
+          "outputs",
+          "cleanup",
+          "dependencies",
+          "tests",
+          "changelog",
+          "setting_history",
+          "runs"
+        ],
+        "title": "PlaybookDetail",
+        "type": "object"
+      },
+      "PlaybookOut": {
+        "additionalProperties": false,
+        "properties": {
+          "availability": {
+            "enum": [
+              "available",
+              "disabled",
+              "blocked"
+            ],
+            "title": "Availability",
+            "type": "string"
+          },
+          "blocked_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked Reason"
+          },
+          "category": {
+            "$ref": "#/components/schemas/Category"
+          },
+          "definition_sha256": {
+            "title": "Definition Sha256",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "lab_only": {
+            "title": "Lab Only",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "needs_approval_live": {
+            "title": "Needs Approval Live",
+            "type": "boolean"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/Profile"
+            },
+            "title": "Profiles",
+            "type": "array"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlaybookStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "target_types": {
+            "items": {
+              "$ref": "#/components/schemas/TargetType"
+            },
+            "title": "Target Types",
+            "type": "array"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "version",
+          "definition_sha256",
+          "category",
+          "summary",
+          "risk_class",
+          "profiles",
+          "lab_only",
+          "target_types",
+          "steps",
+          "needs_approval_live",
+          "enabled",
+          "availability",
+          "blocked_reason"
+        ],
+        "title": "PlaybookOut",
+        "type": "object"
+      },
+      "PlaybookStepOut": {
+        "additionalProperties": false,
+        "properties": {
+          "lab_capable": {
+            "title": "Lab Capable",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "purpose": {
+            "title": "Purpose",
+            "type": "string"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tool",
+          "label",
+          "risk_class",
+          "purpose",
+          "lab_capable"
+        ],
+        "title": "PlaybookStepOut",
+        "type": "object"
+      },
+      "PreflightCheckOut": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pass",
+              "fail",
+              "info"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "status",
+          "detail"
+        ],
+        "title": "PreflightCheckOut",
+        "type": "object"
+      },
+      "PreflightIn": {
+        "additionalProperties": false,
+        "properties": {
+          "playbook_id": {
+            "maxLength": 64,
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 300,
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook_id",
+          "target"
+        ],
+        "title": "PreflightIn",
+        "type": "object"
+      },
+      "PreflightOut": {
+        "additionalProperties": false,
+        "properties": {
+          "allowed": {
+            "title": "Allowed",
+            "type": "boolean"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/PreflightCheckOut"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "definition_sha256": {
+            "title": "Definition Sha256",
+            "type": "string"
+          },
+          "needs_approval": {
+            "title": "Needs Approval",
+            "type": "boolean"
+          },
+          "playbook_id": {
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Profile"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scope_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scope Version"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/ProposedStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook_id",
+          "version",
+          "definition_sha256",
+          "target",
+          "profile",
+          "scope_version",
+          "allowed",
+          "needs_approval",
+          "checks",
+          "steps"
+        ],
+        "title": "PreflightOut",
+        "type": "object"
+      },
+      "Profile": {
+        "enum": [
+          "live",
+          "validation",
+          "lab"
+        ],
+        "title": "Profile",
+        "type": "string"
+      },
+      "ProfileOut": {
+        "additionalProperties": false,
+        "properties": {
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "key": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          }
+        },
+        "required": [
+          "key",
+          "code",
+          "label",
+          "description",
+          "available",
+          "unavailable_reason"
+        ],
+        "title": "ProfileOut",
+        "type": "object"
+      },
       "ProjectGraph": {
         "additionalProperties": false,
         "properties": {
@@ -3473,6 +4093,39 @@
         ],
         "title": "ProjectStatus",
         "type": "string"
+      },
+      "ProposedStep": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "needs_approval": {
+            "title": "Needs Approval",
+            "type": "boolean"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "tool",
+          "label",
+          "risk_class",
+          "needs_approval"
+        ],
+        "title": "ProposedStep",
+        "type": "object"
       },
       "RecentFinding": {
         "additionalProperties": false,
@@ -4035,6 +4688,179 @@
         "title": "Role",
         "type": "string"
       },
+      "RunDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "definition_current": {
+            "title": "Definition Current",
+            "type": "boolean"
+          },
+          "definition_sha256": {
+            "title": "Definition Sha256",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceSummary"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/RunFindingOut"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "playbook_id": {
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "playbook_name": {
+            "title": "Playbook Name",
+            "type": "string"
+          },
+          "playbook_version": {
+            "title": "Playbook Version",
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "requested_by_user_id": {
+            "format": "uuid",
+            "title": "Requested By User Id",
+            "type": "string"
+          },
+          "scope_version": {
+            "title": "Scope Version",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "awaiting_approval",
+              "running",
+              "succeeded",
+              "partial",
+              "failed",
+              "denied",
+              "rejected",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/RunStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "playbook_id",
+          "playbook_name",
+          "playbook_version",
+          "definition_sha256",
+          "definition_current",
+          "profile",
+          "project_id",
+          "project_name",
+          "scope_version",
+          "target",
+          "requested_by",
+          "requested_by_user_id",
+          "created_at",
+          "status",
+          "steps",
+          "findings",
+          "evidence"
+        ],
+        "title": "RunDetail",
+        "type": "object"
+      },
+      "RunFindingOut": {
+        "additionalProperties": false,
+        "properties": {
+          "change": {
+            "title": "Change",
+            "type": "string"
+          },
+          "check_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Check Id"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "validation_status": {
+            "$ref": "#/components/schemas/ValidationStatus"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "severity",
+          "validation_status",
+          "check_id",
+          "change"
+        ],
+        "title": "RunFindingOut",
+        "type": "object"
+      },
       "RunIn": {
         "additionalProperties": false,
         "properties": {
@@ -4073,6 +4899,212 @@
           "agent"
         ],
         "title": "RunIn",
+        "type": "object"
+      },
+      "RunOut": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "definition_current": {
+            "title": "Definition Current",
+            "type": "boolean"
+          },
+          "definition_sha256": {
+            "title": "Definition Sha256",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "playbook_id": {
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "playbook_name": {
+            "title": "Playbook Name",
+            "type": "string"
+          },
+          "playbook_version": {
+            "title": "Playbook Version",
+            "type": "string"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/Profile"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
+          },
+          "requested_by_user_id": {
+            "format": "uuid",
+            "title": "Requested By User Id",
+            "type": "string"
+          },
+          "scope_version": {
+            "title": "Scope Version",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "awaiting_approval",
+              "running",
+              "succeeded",
+              "partial",
+              "failed",
+              "denied",
+              "rejected",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/RunStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "playbook_id",
+          "playbook_name",
+          "playbook_version",
+          "definition_sha256",
+          "definition_current",
+          "profile",
+          "project_id",
+          "project_name",
+          "scope_version",
+          "target",
+          "requested_by",
+          "requested_by_user_id",
+          "created_at",
+          "status",
+          "steps"
+        ],
+        "title": "RunOut",
+        "type": "object"
+      },
+      "RunStepOut": {
+        "additionalProperties": false,
+        "properties": {
+          "denial_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Denial Reason"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "result_summary": {
+            "additionalProperties": true,
+            "title": "Result Summary",
+            "type": "object"
+          },
+          "risk_class": {
+            "$ref": "#/components/schemas/RiskClass"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OperationStatus"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "operation_id",
+          "tool",
+          "label",
+          "risk_class",
+          "status",
+          "denial_reason",
+          "error",
+          "started_at",
+          "finished_at",
+          "result_summary"
+        ],
+        "title": "RunStepOut",
         "type": "object"
       },
       "ScopeEntryKind": {
@@ -4291,6 +5323,52 @@
           "mfa_verified"
         ],
         "title": "SessionInfo",
+        "type": "object"
+      },
+      "SettingChangeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_at": {
+            "format": "date-time",
+            "title": "Changed At",
+            "type": "string"
+          },
+          "changed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed By"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "changed_by",
+          "changed_at"
+        ],
+        "title": "SettingChangeOut",
+        "type": "object"
+      },
+      "SettingIn": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "SettingIn",
         "type": "object"
       },
       "Severity": {
@@ -4569,6 +5647,15 @@
         ],
         "title": "StepOut",
         "type": "object"
+      },
+      "TargetType": {
+        "enum": [
+          "domain",
+          "hostname",
+          "ip"
+        ],
+        "title": "TargetType",
+        "type": "string"
       },
       "TaskDetail": {
         "additionalProperties": false,
@@ -6282,6 +7369,615 @@
         "summary": "Review Path",
         "tags": [
           "attack-paths"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/playbooks": {
+      "get": {
+        "operationId": "list_playbooks_api_workspaces__workspace_id__blackops_playbooks_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LibraryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Playbooks",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/playbooks/{playbook_id}": {
+      "get": {
+        "operationId": "get_playbook_api_workspaces__workspace_id__blackops_playbooks__playbook_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playbook_id",
+            "required": true,
+            "schema": {
+              "title": "Playbook Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybookDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Playbook",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/playbooks/{playbook_id}/setting": {
+      "put": {
+        "operationId": "set_playbook_enabled_api_workspaces__workspace_id__blackops_playbooks__playbook_id__setting_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "playbook_id",
+            "required": true,
+            "schema": {
+              "title": "Playbook Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybookDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Playbook Enabled",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/projects/{project_id}/preflight": {
+      "post": {
+        "operationId": "run_preflight_api_workspaces__workspace_id__blackops_projects__project_id__preflight_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreflightIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreflightOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run Preflight",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/projects/{project_id}/runs": {
+      "post": {
+        "operationId": "launch_run_api_workspaces__workspace_id__blackops_projects__project_id__runs_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LaunchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Launch Run",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/runs": {
+      "get": {
+        "operationId": "list_runs_api_workspaces__workspace_id__blackops_runs_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "playbook_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Playbook Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunOut"
+                  },
+                  "title": "Response List Runs Api Workspaces  Workspace Id  Blackops Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Runs",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_workspaces__workspace_id__blackops_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Run",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}/approve": {
+      "post": {
+        "description": "Approves every step still waiting, each against the run's pinned scope (a step whose\ntarget fell out of scope is denied instead, with the reason).",
+        "operationId": "approve_run_api_workspaces__workspace_id__blackops_runs__run_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Run",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run_api_workspaces__workspace_id__blackops_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Run",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}/reject": {
+      "post": {
+        "operationId": "reject_run_api_workspaces__workspace_id__blackops_runs__run_id__reject_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reject Run",
+        "tags": [
+          "blackops"
         ]
       }
     },

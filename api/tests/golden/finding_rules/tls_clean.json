@@ -1,0 +1,34 @@
+{
+  "description": "TLS audit: trusted certificate, TLS 1.2 and 1.3 only; an untestable protocol is not a finding.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [],
+    "checks": [],
+    "posture": {
+      "tls": {
+        "target": "www.lab.test",
+        "validation": {
+          "result": "accepted"
+        },
+        "accepted": [
+          "TLSv1.2",
+          "TLSv1.3"
+        ],
+        "protocols": {
+          "TLSv1": {
+            "result": "untestable"
+          }
+        },
+        "certificate": {
+          "not_after": "2027-06-01T00:00:00+00:00",
+          "key_type": "RSA",
+          "key_bits": 2048,
+          "signature_hash": "sha256"
+        }
+      }
+    }
+  },
+  "ruleset": "findings/2026.11-3",
+  "expected": []
+}

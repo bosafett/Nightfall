@@ -348,6 +348,180 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/blackops/playbooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Playbooks */
+        get: operations["list_playbooks_api_workspaces__workspace_id__blackops_playbooks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/playbooks/{playbook_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Playbook */
+        get: operations["get_playbook_api_workspaces__workspace_id__blackops_playbooks__playbook_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/playbooks/{playbook_id}/setting": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Playbook Enabled */
+        put: operations["set_playbook_enabled_api_workspaces__workspace_id__blackops_playbooks__playbook_id__setting_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/projects/{project_id}/preflight": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run Preflight */
+        post: operations["run_preflight_api_workspaces__workspace_id__blackops_projects__project_id__preflight_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/projects/{project_id}/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Launch Run */
+        post: operations["launch_run_api_workspaces__workspace_id__blackops_projects__project_id__runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_workspaces__workspace_id__blackops_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_api_workspaces__workspace_id__blackops_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Run
+         * @description Approves every step still waiting, each against the run's pinned scope (a step whose
+         *     target fell out of scope is denied instead, with the reason).
+         */
+        post: operations["approve_run_api_workspaces__workspace_id__blackops_runs__run_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Run */
+        post: operations["cancel_run_api_workspaces__workspace_id__blackops_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackops/runs/{run_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject Run */
+        post: operations["reject_run_api_workspaces__workspace_id__blackops_runs__run_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/evidence/{evidence_id}": {
         parameters: {
             query?: never;
@@ -1453,6 +1627,20 @@ export interface components {
             /** Why Not */
             why_not: string | null;
         };
+        /**
+         * Category
+         * @enum {string}
+         */
+        Category: "reconnaissance" | "vulnerability_assessment" | "controlled_validation" | "adversary_simulation";
+        /** ChangeOut */
+        ChangeOut: {
+            /** Date */
+            date: string;
+            /** Note */
+            note: string;
+            /** Version */
+            version: string;
+        };
         /** CheckIn */
         CheckIn: {
             /** Value */
@@ -1528,6 +1716,15 @@ export interface components {
              * @default
              */
             reason: string;
+        };
+        /** DependencyOut */
+        DependencyOut: {
+            /** License */
+            license: string;
+            /** Name */
+            name: string;
+            /** Pinned */
+            pinned: string;
         };
         /** DrainOut */
         DrainOut: {
@@ -2036,6 +2233,28 @@ export interface components {
             id: string;
             role: components["schemas"]["Role"];
         };
+        /** LaunchIn */
+        LaunchIn: {
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /** Playbook Id */
+            playbook_id: string;
+            /** Target */
+            target: string;
+            /** Version */
+            version: string;
+        };
+        /** LibraryOut */
+        LibraryOut: {
+            /** Can Manage */
+            can_manage: boolean;
+            /** Can Run */
+            can_run: boolean;
+            /** Playbooks */
+            playbooks: components["schemas"]["PlaybookOut"][];
+            /** Profiles */
+            profiles: components["schemas"]["ProfileOut"][];
+        };
         /** LinkIn */
         LinkIn: {
             /**
@@ -2424,6 +2643,168 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** PlaybookDetail */
+        PlaybookDetail: {
+            /**
+             * Availability
+             * @enum {string}
+             */
+            availability: "available" | "disabled" | "blocked";
+            /** Blocked Reason */
+            blocked_reason: string | null;
+            category: components["schemas"]["Category"];
+            /** Changelog */
+            changelog: components["schemas"]["ChangeOut"][];
+            /** Cleanup */
+            cleanup: string;
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /** Dependencies */
+            dependencies: components["schemas"]["DependencyOut"][];
+            /** Description */
+            description: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Expected Duration */
+            expected_duration: string;
+            /** Id */
+            id: string;
+            /** Lab Only */
+            lab_only: boolean;
+            /** Limits */
+            limits: string[];
+            /** Name */
+            name: string;
+            /** Needs Approval Live */
+            needs_approval_live: boolean;
+            /** Outputs */
+            outputs: string[];
+            /** Profiles */
+            profiles: components["schemas"]["Profile"][];
+            risk_class: components["schemas"]["RiskClass"];
+            /** Runs */
+            runs: number;
+            /** Setting History */
+            setting_history: components["schemas"]["SettingChangeOut"][];
+            /** Steps */
+            steps: components["schemas"]["PlaybookStepOut"][];
+            /** Summary */
+            summary: string;
+            /** Target Types */
+            target_types: components["schemas"]["TargetType"][];
+            /** Tests */
+            tests: string[];
+            /** Version */
+            version: string;
+        };
+        /** PlaybookOut */
+        PlaybookOut: {
+            /**
+             * Availability
+             * @enum {string}
+             */
+            availability: "available" | "disabled" | "blocked";
+            /** Blocked Reason */
+            blocked_reason: string | null;
+            category: components["schemas"]["Category"];
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /** Lab Only */
+            lab_only: boolean;
+            /** Name */
+            name: string;
+            /** Needs Approval Live */
+            needs_approval_live: boolean;
+            /** Profiles */
+            profiles: components["schemas"]["Profile"][];
+            risk_class: components["schemas"]["RiskClass"];
+            /** Steps */
+            steps: components["schemas"]["PlaybookStepOut"][];
+            /** Summary */
+            summary: string;
+            /** Target Types */
+            target_types: components["schemas"]["TargetType"][];
+            /** Version */
+            version: string;
+        };
+        /** PlaybookStepOut */
+        PlaybookStepOut: {
+            /** Lab Capable */
+            lab_capable: boolean;
+            /** Label */
+            label: string;
+            /** Purpose */
+            purpose: string;
+            risk_class: components["schemas"]["RiskClass"];
+            /** Tool */
+            tool: string;
+        };
+        /** PreflightCheckOut */
+        PreflightCheckOut: {
+            /** Detail */
+            detail: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pass" | "fail" | "info";
+        };
+        /** PreflightIn */
+        PreflightIn: {
+            /** Playbook Id */
+            playbook_id: string;
+            /** Target */
+            target: string;
+        };
+        /** PreflightOut */
+        PreflightOut: {
+            /** Allowed */
+            allowed: boolean;
+            /** Checks */
+            checks: components["schemas"]["PreflightCheckOut"][];
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /** Needs Approval */
+            needs_approval: boolean;
+            /** Playbook Id */
+            playbook_id: string;
+            profile: components["schemas"]["Profile"] | null;
+            /** Scope Version */
+            scope_version: number | null;
+            /** Steps */
+            steps: components["schemas"]["ProposedStep"][];
+            /** Target */
+            target: string;
+            /** Version */
+            version: string;
+        };
+        /**
+         * Profile
+         * @enum {string}
+         */
+        Profile: "live" | "validation" | "lab";
+        /** ProfileOut */
+        ProfileOut: {
+            /** Available */
+            available: boolean;
+            /** Code */
+            code: string;
+            /** Description */
+            description: string;
+            key: components["schemas"]["Profile"];
+            /** Label */
+            label: string;
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+        };
         /** ProjectGraph */
         ProjectGraph: {
             /** Edges */
@@ -2511,6 +2892,18 @@ export interface components {
          * @enum {string}
          */
         ProjectStatus: "planning" | "active" | "paused" | "completed" | "archived";
+        /** ProposedStep */
+        ProposedStep: {
+            /** Label */
+            label: string;
+            /** Needs Approval */
+            needs_approval: boolean;
+            risk_class: components["schemas"]["RiskClass"];
+            /** Step */
+            step: number;
+            /** Tool */
+            tool: string;
+        };
         /** RecentFinding */
         RecentFinding: {
             /** Asset Value */
@@ -2759,6 +3152,75 @@ export interface components {
          * @enum {string}
          */
         Role: "owner" | "admin" | "operator" | "analyst" | "viewer";
+        /** RunDetail */
+        RunDetail: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Definition Current */
+            definition_current: boolean;
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceSummary"][];
+            /** Findings */
+            findings: components["schemas"]["RunFindingOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Playbook Id */
+            playbook_id: string;
+            /** Playbook Name */
+            playbook_name: string;
+            /** Playbook Version */
+            playbook_version: string;
+            profile: components["schemas"]["Profile"];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /** Requested By */
+            requested_by: string | null;
+            /**
+             * Requested By User Id
+             * Format: uuid
+             */
+            requested_by_user_id: string;
+            /** Scope Version */
+            scope_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "awaiting_approval" | "running" | "succeeded" | "partial" | "failed" | "denied" | "rejected" | "cancelled";
+            /** Steps */
+            steps: components["schemas"]["RunStepOut"][];
+            /** Target */
+            target: string;
+        };
+        /** RunFindingOut */
+        RunFindingOut: {
+            /** Change */
+            change: string;
+            /** Check Id */
+            check_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            severity: components["schemas"]["Severity"];
+            /** Title */
+            title: string;
+            validation_status: components["schemas"]["ValidationStatus"];
+        };
         /** RunIn */
         RunIn: {
             /**
@@ -2773,6 +3235,83 @@ export interface components {
              * @default
              */
             objective: string;
+        };
+        /** RunOut */
+        RunOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Definition Current */
+            definition_current: boolean;
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Playbook Id */
+            playbook_id: string;
+            /** Playbook Name */
+            playbook_name: string;
+            /** Playbook Version */
+            playbook_version: string;
+            profile: components["schemas"]["Profile"];
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /** Requested By */
+            requested_by: string | null;
+            /**
+             * Requested By User Id
+             * Format: uuid
+             */
+            requested_by_user_id: string;
+            /** Scope Version */
+            scope_version: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "awaiting_approval" | "running" | "succeeded" | "partial" | "failed" | "denied" | "rejected" | "cancelled";
+            /** Steps */
+            steps: components["schemas"]["RunStepOut"][];
+            /** Target */
+            target: string;
+        };
+        /** RunStepOut */
+        RunStepOut: {
+            /** Denial Reason */
+            denial_reason: string | null;
+            /** Error */
+            error: string | null;
+            /** Finished At */
+            finished_at: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Operation Id
+             * Format: uuid
+             */
+            operation_id: string;
+            /** Result Summary */
+            result_summary: {
+                [key: string]: unknown;
+            };
+            risk_class: components["schemas"]["RiskClass"];
+            /** Started At */
+            started_at: string | null;
+            status: components["schemas"]["OperationStatus"];
+            /** Step */
+            step: number;
+            /** Tool */
+            tool: string;
         };
         /**
          * ScopeEntryKind
@@ -2840,6 +3379,23 @@ export interface components {
         SessionInfo: {
             /** Mfa Verified */
             mfa_verified: boolean;
+        };
+        /** SettingChangeOut */
+        SettingChangeOut: {
+            /**
+             * Changed At
+             * Format: date-time
+             */
+            changed_at: string;
+            /** Changed By */
+            changed_by: string | null;
+            /** Enabled */
+            enabled: boolean;
+        };
+        /** SettingIn */
+        SettingIn: {
+            /** Enabled */
+            enabled: boolean;
         };
         /**
          * Severity
@@ -2914,6 +3470,11 @@ export interface components {
             /** Ordinal */
             ordinal: number;
         };
+        /**
+         * TargetType
+         * @enum {string}
+         */
+        TargetType: "domain" | "hostname" | "ip";
         /** TaskDetail */
         TaskDetail: {
             /** Agent */
@@ -3834,6 +4395,348 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_playbooks_api_workspaces__workspace_id__blackops_playbooks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LibraryOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_playbook_api_workspaces__workspace_id__blackops_playbooks__playbook_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                playbook_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybookDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_playbook_enabled_api_workspaces__workspace_id__blackops_playbooks__playbook_id__setting_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                playbook_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybookDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_preflight_api_workspaces__workspace_id__blackops_projects__project_id__preflight_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreflightIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreflightOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    launch_run_api_workspaces__workspace_id__blackops_projects__project_id__runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LaunchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_workspaces__workspace_id__blackops_runs_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                playbook_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_workspaces__workspace_id__blackops_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_run_api_workspaces__workspace_id__blackops_runs__run_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_run_api_workspaces__workspace_id__blackops_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_run_api_workspaces__workspace_id__blackops_runs__run_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecisionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunDetail"];
                 };
             };
             /** @description Validation Error */

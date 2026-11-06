@@ -1,0 +1,72 @@
+{
+  "description": "TLS audit: legacy protocols, untrusted certificate, weak key and SHA-1 signature, expiring in 10 days.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [],
+    "checks": [],
+    "posture": {
+      "tls": {
+        "target": "www.lab.test",
+        "validation": {
+          "result": "cert_invalid",
+          "detail": "self-signed certificate"
+        },
+        "accepted": [
+          "TLSv1",
+          "TLSv1.1",
+          "TLSv1.2"
+        ],
+        "certificate": {
+          "not_after": "2026-11-11T12:00:00+00:00",
+          "key_type": "RSA",
+          "key_bits": 1024,
+          "signature_hash": "sha1"
+        }
+      }
+    }
+  },
+  "ruleset": "findings/2026.11-3",
+  "expected": [
+    {
+      "check_id": "tls.certificate-not-trusted",
+      "rule_id": "R2-certificate-not-trusted",
+      "title": "TLS certificate failed validation",
+      "severity": "medium",
+      "confidence": "high",
+      "description": "The TLS handshake completed only with certificate validation off: self-signed certificate."
+    },
+    {
+      "check_id": "tls.certificate-expiring",
+      "rule_id": "R5-certificate-expiring",
+      "title": "TLS certificate expires within 30 days",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The certificate expires on 2026-11-11T12:00:00+00:00."
+    },
+    {
+      "check_id": "tls.legacy-protocol",
+      "rule_id": "R7-legacy-tls-protocol",
+      "title": "Deprecated TLS protocol versions accepted",
+      "severity": "medium",
+      "confidence": "high",
+      "description": "The server completed a handshake with TLSv1, TLSv1.1."
+    },
+    {
+      "check_id": "tls.weak-key",
+      "rule_id": "R9-weak-certificate-key",
+      "title": "Certificate uses a weak key",
+      "severity": "medium",
+      "confidence": "high",
+      "description": "The certificate's key is RSA 1024 bits."
+    },
+    {
+      "check_id": "tls.weak-signature",
+      "rule_id": "R10-weak-certificate-signature",
+      "title": "Certificate signed with a weak hash",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The certificate is signed with sha1."
+    }
+  ]
+}

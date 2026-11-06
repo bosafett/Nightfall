@@ -165,20 +165,25 @@ def _tls_info(resp: httpx.Response) -> dict[str, Any] | None:
     info: dict[str, Any] = {"version": sslobj.version(), "cipher": (sslobj.cipher() or ("",))[0]}
     der = sslobj.getpeercert(binary_form=True)
     if der:
-        cert = x509.load_der_x509_certificate(der)
-        cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
-        issuer = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
-        try:
-            ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
-            sans = ext.value.get_values_for_type(x509.DNSName)
-        except x509.ExtensionNotFound:
-            sans = []
-        info.update(
-            subject_cn=str(cn[0].value) if cn else None,
-            issuer_cn=str(issuer[0].value) if issuer else None,
-            not_before=cert.not_valid_before_utc.isoformat(),
-            not_after=cert.not_valid_after_utc.isoformat(),
-            sans=sans[:100],
-            sha256=hashlib.sha256(der).hexdigest(),
-        )
+        info.update(certificate_summary(der))
     return info
+
+
+def certificate_summary(der: bytes) -> dict[str, Any]:
+    """The fields NIGHTFALL keeps about a peer certificate (all public information)."""
+    cert = x509.load_der_x509_certificate(der)
+    cn = cert.subject.get_attributes_for_oid(NameOID.COMMON_NAME)
+    issuer = cert.issuer.get_attributes_for_oid(NameOID.COMMON_NAME)
+    try:
+        ext = cert.extensions.get_extension_for_class(x509.SubjectAlternativeName)
+        sans = ext.value.get_values_for_type(x509.DNSName)
+    except x509.ExtensionNotFound:
+        sans = []
+    return {
+        "subject_cn": str(cn[0].value) if cn else None,
+        "issuer_cn": str(issuer[0].value) if issuer else None,
+        "not_before": cert.not_valid_before_utc.isoformat(),
+        "not_after": cert.not_valid_after_utc.isoformat(),
+        "sans": sans[:100],
+        "sha256": hashlib.sha256(der).hexdigest(),
+    }

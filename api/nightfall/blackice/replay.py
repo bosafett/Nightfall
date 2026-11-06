@@ -21,7 +21,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from nightfall.blackice.finding_rules import RULESET, Draft, from_http, from_nuclei
+from nightfall.blackice.finding_rules import RULESET, Draft, from_http, from_nuclei, from_posture
 from nightfall.core.db.models import AssessmentSnapshot, Asset, Evidence
 
 
@@ -48,9 +48,11 @@ class Diff:
 
 def drafts_for(summary: dict[str, Any], now: datetime) -> list[Draft]:
     """The rules' output for one evidence record's stored observations."""
-    return from_http(
-        summary.get("http") or [], summary.get("technologies") or [], now
-    ) + from_nuclei(summary.get("checks") or [])
+    return (
+        from_http(summary.get("http") or [], summary.get("technologies") or [], now)
+        + from_nuclei(summary.get("checks") or [])
+        + from_posture(summary.get("posture"), now)
+    )
 
 
 def _key(it: Item, by_check: bool) -> tuple[Any, ...]:

@@ -332,6 +332,8 @@ class Operation(Base):
     requested_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     proposed_by_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_tasks.id"))
     is_lab: Mapped[bool] = mapped_column(server_default=text("false"))
+    playbook_run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("playbook_runs.id"))
+    playbook_step: Mapped[int | None]
     denial_reason: Mapped[str | None]
     error: Mapped[str | None]
     result_summary: Mapped[dict[str, Any]] = mapped_column(
@@ -343,6 +345,32 @@ class Operation(Base):
     finished_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
+
+
+class PlaybookRun(Base):
+    """BLACK OPS (migration 0012): one run of a versioned playbook. Insert-only."""
+
+    __tablename__ = "playbook_runs"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    scope_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    playbook_id: Mapped[str]
+    playbook_version: Mapped[str]
+    definition_sha256: Mapped[str]
+    profile: Mapped[str]
+    target_value: Mapped[str]
+    requested_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
+
+
+class PlaybookSetting(Base):
+    __tablename__ = "playbook_settings"
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"), primary_key=True)
+    playbook_id: Mapped[str] = mapped_column(primary_key=True)
+    enabled: Mapped[bool]
+    updated_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    updated_at: Mapped[datetime] = _created()
 
 
 class Evidence(Base):

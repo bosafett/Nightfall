@@ -95,3 +95,10 @@ def test_migrations_roundtrip() -> None:
     cfg = alembic_config()
     command.downgrade(cfg, "base")
     command.upgrade(cfg, "head")
+    # Types were recreated with new OIDs: drop pooled connections, whose prepared statements
+    # still describe the old ones ("cached plan must not change result type").
+    from nightfall.core.db.session import get_engine
+    from tests import phase3_helpers
+
+    get_engine().dispose()
+    phase3_helpers._worker_engine.dispose()

@@ -63,6 +63,7 @@ class CollectorResult:
     http: list[dict[str, object]] = field(default_factory=list)  # per-request summaries
     matches: list[dict[str, str]] = field(default_factory=list)  # catalog check matches
     egress: dict[str, int] = field(default_factory=dict)  # proxy connection counts
+    posture: dict[str, object] = field(default_factory=dict)  # TLS / header audits
 
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network
@@ -535,6 +536,10 @@ class FixtureNucleiScan(NucleiScan):
         )
 
 
+# Defined after CollectorResult and RunContext, which it imports.
+from nightfall.recon import posture  # noqa: E402
+
+
 def collectors(mode: str, nuclei_scan: NucleiScan | None = None) -> dict[str, Collector]:
     if mode == "fixture":
         return {
@@ -542,18 +547,22 @@ def collectors(mode: str, nuclei_scan: NucleiScan | None = None) -> dict[str, Co
             "dns": FixtureDnsRecords(),
             "http": FixtureHttpFingerprint(),
             "nuclei": FixtureNucleiScan(),
+            "tls": posture.FixtureTlsAudit(),
+            "headers": posture.FixtureHeaderAudit(),
         }
     return {
         "ct": CertificateTransparency(),
         "dns": DnsRecords(),
         "http": HttpFingerprint(),
         "nuclei": nuclei_scan or NucleiScan(None, Sandbox()),
+        "tls": posture.TlsAudit(),
+        "headers": posture.HeaderAudit(),
     }
 
 
 # Tools the isolated lab worker runs (they contact a target directly; the passive ones need
 # public records the lab has no route to).
-LAB_TOOLS = frozenset({"http", "nuclei"})
+LAB_TOOLS = frozenset({"http", "nuclei", "tls", "headers"})
 
 
 def lab_collectors(
@@ -567,7 +576,12 @@ def lab_collectors(
 
     scan = nuclei_scan or NucleiScan(None, Sandbox())
     scan.make_pinner = pinner
-    return {"http": HttpFingerprint(make_client=pinner), "nuclei": scan}
+    return {
+        "http": HttpFingerprint(make_client=pinner),
+        "nuclei": scan,
+        "tls": posture.TlsAudit(make_client=pinner),
+        "headers": posture.HeaderAudit(make_client=pinner),
+    }
 
 
 # Tool metadata used by the API without instantiating anything.
@@ -576,4 +590,6 @@ TOOLS: dict[str, tuple[str, RiskClass]] = {
     "dns": (DnsRecords.label, RiskClass.PASSIVE),
     "http": (HttpFingerprint.label, RiskClass.LOW),
     "nuclei": (NucleiScan.label, RiskClass.LOW),
+    "tls": (posture.TlsAudit.label, RiskClass.LOW),
+    "headers": (posture.HeaderAudit.label, RiskClass.LOW),
 }

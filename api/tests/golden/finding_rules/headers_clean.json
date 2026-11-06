@@ -1,0 +1,30 @@
+{
+  "description": "Header audit: a JSON API with long HSTS needs no CSP or framing protection; HTTPS error responses aren't judged.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [],
+    "checks": [],
+    "posture": {
+      "headers": {
+        "target": "www.lab.test",
+        "https": {
+          "status": 200,
+          "content_type": "application/json",
+          "hsts": "max-age=31536000",
+          "hsts_max_age": 31536000,
+          "csp": null,
+          "csp_frame_ancestors": false,
+          "x_frame_options": null,
+          "cookies": []
+        },
+        "http": {
+          "status": 308
+        },
+        "http_redirects_to_https": true
+      }
+    }
+  },
+  "ruleset": "findings/2026.11-3",
+  "expected": []
+}

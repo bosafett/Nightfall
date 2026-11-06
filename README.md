@@ -158,3 +158,36 @@ prompts is then sent to Anthropic.
   collectors.
 - Benchmark: `cd api && .venv/bin/python -m nightfall.agents.bench --provider anthropic` (costs money; see
   `docs/benchmarks/README.md`).
+
+## BLACK OPS playbooks (Addendum 4)
+
+Reviewed, versioned assessment playbooks inside BLACKSITE (`/w/{ws}/blacksite/ops`, owner only). A playbook isn't a
+second execution path. Launching one writes an ordinary operation for each step, and every step then goes through
+the same scope checks, approvals, worker re-checks and BLACK ICE ingest as any other collection.
+
+- **Definitions are code** (`api/nightfall/blackops/catalog.py`): each step is a registered collector, and nothing
+  else (no commands, scripts, URLs or parameters) can be expressed. Each definition is fingerprinted (SHA-256), and
+  the fingerprints are pinned in `api/tests/golden/playbooks.json`, so changing one requires a version bump. A run
+  records the version and hash it was launched with.
+- **Flow:** preflight, then propose, approve, execute, verify, capture.
+  - Preflight checks: enabled, your authorization, target in the active scope, execution profile, target type, tool
+    availability, hourly budget, overlapping work.
+  - Launch runs the preflight again on the server and is refused, with an audit event, if any check fails or the
+    definition changed in between.
+  - Approval is required above passive and for every lab run. It must come from someone other than the person who
+    launched the run.
+- **Profiles:**
+  - A, live assessment: passive and read-only steps on authorized targets.
+  - C, isolated lab: lab scopes only, run by the lab worker.
+  - B, controlled validation: **not built**. It needs designated test identities, target-ownership verification and
+    its own independent review.
+- **Initial playbooks:** Surface Mapper, Service Fingerprinter, Web Exposure Audit, TLS Configuration Audit, HTTP
+  Security Assessment. The last two use new low-risk collectors:
+  - `tls`: one TLS handshake per protocol version plus one with certificate validation. No HTTP is sent.
+  - `headers`: GET / over HTTPS and over HTTP. Cookie values and response bodies are never stored.
+  - Their results feed BLACK ICE rules R7–R16, which reuse the existing check ids so that matching findings correlate.
+- **Database:** `playbook_runs` is insert-only, and its profile must match its scope. An operation can join a run only
+  when it is inserted, and only with that run's project, scope, target, requester and lab flag (trigger, migration
+  0012).
+- **Not yet built:** the BLACKSITE probe deck's loopback-only listener and step-up MFA (review §16.2). Lab
+  exploitation and simulation playbooks (Addendum 4 §10, items 6–11) wait for validation and a security review.

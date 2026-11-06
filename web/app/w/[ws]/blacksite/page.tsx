@@ -3,14 +3,15 @@ import { apiGet } from "@/lib/api/server";
 import type { Me } from "@/lib/api/types";
 import { roleLabel } from "@/lib/labels";
 import { Icon } from "@/components/ui/Icon";
-import { Badge, PageHeader, Panel } from "@/components/ui/primitives";
+import { Badge, LinkButton, PageHeader, Panel } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "BLACKSITE" };
 
 /**
- * Restricted-access state only. BLACKSITE will run on the isolated lab machine, not on
- * Vercel-hosted execution; until that environment is configured this page exposes no
- * controls. The backend remains the authority on who may use it.
+ * The manual probe deck stays in its restricted state: it will run on the isolated lab machine,
+ * not on hosted execution, and exposes no controls until that environment is configured.
+ * BLACK OPS (reviewed playbooks built from the existing scope-checked operations) is linked for
+ * owners. The backend remains the authority on who may use either.
  */
 export default async function Blacksite({ params }: { params: Promise<{ ws: string }> }) {
   const { ws } = await params;
@@ -21,7 +22,18 @@ export default async function Blacksite({ params }: { params: Promise<{ ws: stri
   return (
     <>
       <PageHeader title="BLACKSITE" subtitle="Isolated execution environment" actions={<Badge tone="crimson">Restricted</Badge>} />
-      <Panel>
+      {owner && (
+        <Panel title="BLACK OPS" className="mb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="blackops-entry">
+            <p className="text-sm text-muted">
+              Reviewed, versioned assessment playbooks. Each step is an ordinary scope-checked operation: preflight first,
+              approval by someone else above passive, results into BLACK ICE.
+            </p>
+            <LinkButton href={`/w/${ws}/blacksite/ops`} variant="primary">Open playbook library</LinkButton>
+          </div>
+        </Panel>
+      )}
+      <Panel title="Probe deck">
         <div className="flex flex-col items-center px-4 py-10 text-center" data-testid="blacksite-restricted">
           <span className="grid size-14 place-items-center rounded-full border border-crimson/60 text-crimson-text">
             <Icon name="lock" className="size-7" />

@@ -48,6 +48,8 @@ def test_freshness_follows_the_operations(
         "dns": "never_run",
         "http": "never_run",
         "nuclei": "never_run",
+        "tls": "never_run",
+        "headers": "never_run",
     }
     collect(client, env)
     make_worker().run_once()

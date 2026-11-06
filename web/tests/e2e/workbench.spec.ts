@@ -443,6 +443,43 @@ test.describe("as the owner", () => {
     await noHorizontalScroll(page);
   });
 
+  test("BLACK OPS: browse and filter playbooks, preflight refuses, a passive playbook runs", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/blacksite`);
+    await page.getByTestId("blackops-entry").getByRole("link", { name: "Open playbook library" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "BLACK OPS" })).toBeVisible();
+    await expect(page.getByTestId("profiles")).toContainText("Not built");
+    const list = page.getByTestId("playbook-list");
+    await expect(list.getByRole("listitem")).toHaveCount(5);
+    await page.getByTestId("playbook-search").fill("tls");
+    await expect(list.getByRole("listitem")).toHaveCount(1);
+    await expect(list).toContainText("TLS Configuration Audit");
+    await page.getByTestId("playbook-search").fill("");
+    await page.getByTestId("playbook-category").selectOption("reconnaissance");
+    await expect(list.getByRole("listitem")).toHaveCount(2);
+    await list.getByRole("link", { name: /Surface Mapper/ }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Surface Mapper" })).toBeVisible();
+
+    // Out of scope: the preflight shows why, and there is nothing to launch.
+    await page.getByTestId("launch-target").fill("evil.test");
+    await page.getByTestId("run-preflight").click();
+    await expect(page.locator('[data-check="scope"]')).toHaveAttribute("data-status", "fail");
+    await expect(page.getByText("Preflight failed")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Launch playbook" })).toHaveCount(0);
+
+    await page.getByTestId("launch-target").fill("acme.test");
+    await page.getByTestId("run-preflight").click();
+    await expect(page.locator('[data-check="scope"]')).toHaveAttribute("data-status", "pass");
+    await page.getByRole("button", { name: "Launch playbook" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Launch" }).click();
+    await expect(page).toHaveURL(/\/blacksite\/ops\/runs\//);
+    await expect(page.getByRole("heading", { level: 1, name: "acme.test" })).toBeVisible();
+    await expect(page.locator("main").getByText("Succeeded", { exact: true })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole("row", { name: /^1 Certificate transparency/ })).toContainText("Done");
+    await page.goto(`${workspaceUrl}/blacksite/ops`);
+    await expect(page.getByRole("row", { name: /Surface Mapper.*acme\.test/ })).toContainText("2/2");
+    await noHorizontalScroll(page);
+  });
+
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();

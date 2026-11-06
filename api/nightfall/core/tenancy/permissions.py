@@ -16,6 +16,8 @@ class Permission(enum.StrEnum):
     OPERATIONS_APPROVE = "operations.approve"  # Phase 3/6
     FINDINGS_EDIT = "findings.edit"  # Phase 4
     FINDINGS_VALIDATE = "findings.validate"  # Phase 4
+    PLAYBOOKS_RUN = "playbooks.run"  # BLACK OPS (Addendum 4): BLACKSITE is owner-only
+    PLAYBOOKS_MANAGE = "playbooks.manage"  # enable/disable playbooks in the workspace
 
 
 P = Permission
@@ -24,7 +26,7 @@ _OPERATOR = _ANALYST | {P.OPERATIONS_APPROVE}
 _ADMIN = _OPERATOR | {P.MEMBERS_MANAGE, P.SCOPE_AUTHORIZE}
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
-    Role.OWNER: frozenset(_ADMIN),
+    Role.OWNER: frozenset(_ADMIN | {P.PLAYBOOKS_RUN, P.PLAYBOOKS_MANAGE}),
     Role.ADMIN: frozenset(_ADMIN),
     Role.OPERATOR: frozenset(_OPERATOR),
     Role.ANALYST: frozenset(_ANALYST),

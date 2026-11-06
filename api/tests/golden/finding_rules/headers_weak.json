@@ -1,0 +1,85 @@
+{
+  "description": "Header audit: HTML page without HSTS, CSP or framing protection, a cookie without Secure/HttpOnly, and plain HTTP serving content.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [],
+    "checks": [],
+    "posture": {
+      "headers": {
+        "target": "www.lab.test",
+        "https": {
+          "status": 200,
+          "content_type": "text/html; charset=utf-8",
+          "hsts": null,
+          "csp": null,
+          "csp_frame_ancestors": false,
+          "x_frame_options": null,
+          "cookies": [
+            {
+              "name": "PHPSESSID",
+              "secure": false,
+              "httponly": false,
+              "samesite": null
+            }
+          ]
+        },
+        "http": {
+          "status": 200
+        },
+        "http_redirects_to_https": false
+      }
+    }
+  },
+  "ruleset": "findings/2026.11-3",
+  "expected": [
+    {
+      "check_id": "http.missing-hsts",
+      "rule_id": "R11-missing-hsts",
+      "title": "HTTPS site does not send Strict-Transport-Security",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The HTTPS response to / has no Strict-Transport-Security header."
+    },
+    {
+      "check_id": "http.missing-csp",
+      "rule_id": "R13-missing-csp",
+      "title": "No Content-Security-Policy",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The HTML response to / has no Content-Security-Policy header."
+    },
+    {
+      "check_id": "http.no-framing-protection",
+      "rule_id": "R14-no-framing-protection",
+      "title": "Page can be framed by other sites",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The HTML response to / sends neither X-Frame-Options nor a CSP frame-ancestors directive."
+    },
+    {
+      "check_id": "http.cookie-not-secure.phpsessid",
+      "rule_id": "R15-cookie-without-secure",
+      "title": "Cookie PHPSESSID is set without the Secure flag",
+      "severity": "low",
+      "confidence": "high",
+      "description": "The HTTPS response sets cookie PHPSESSID without Secure."
+    },
+    {
+      "check_id": "http.cookie-not-httponly.phpsessid",
+      "rule_id": "R15-cookie-without-httponly",
+      "title": "Cookie PHPSESSID is readable by page scripts",
+      "severity": "info",
+      "confidence": "medium",
+      "description": "Cookie PHPSESSID is set without HttpOnly. That's correct for cookies the page's own scripts read; it's a weakness for session cookies."
+    },
+    {
+      "check_id": "http.no-https-redirect",
+      "rule_id": "R16-no-https-redirect",
+      "title": "Plain HTTP is not redirected to HTTPS",
+      "severity": "low",
+      "confidence": "high",
+      "description": "http://www.lab.test/ answered 200 instead of redirecting to HTTPS."
+    }
+  ]
+}

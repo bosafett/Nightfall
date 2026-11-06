@@ -438,16 +438,10 @@ def _awaiting(db: Session, ctx: WorkspaceContext, op_id: uuid.UUID) -> Operation
     return op
 
 
-@router.post("/operations/{op_id}/approve", response_model=OperationDetail)
-def approve_operation(
-    op_id: uuid.UUID,
-    body: DecisionIn,
-    background: BackgroundTasks,
-    db: DB,
-    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
-) -> OperationDetail:
-    op = _awaiting(db, ctx, op_id)
-    # The approval is only meaningful against the scope it was requested under.
+def approve_locked(db: Session, ctx: WorkspaceContext, op: Operation, reason: str) -> bool:
+    """Approves an operation the caller has locked and checked with _awaiting. The approval is
+    only meaningful against the scope it was requested under: if that changed, or the target
+    is no longer in scope, the operation is denied instead. Returns whether it was approved."""
     current = active_scope(db, op.project_id)
     decision = (
         evaluate(snapshot(db, current), op.target_value, utcnow())
@@ -470,15 +464,14 @@ def approve_operation(
             data={"reason": op.denial_reason, "at": "approval"},
             **ctx.audit_kwargs(),
         )
-        db.flush()
-        return get_operation(op_id, db, ctx)
+        return False
     db.add(
         Approval(
             workspace_id=ctx.workspace_id,
             operation_id=op.id,
             approver_user_id=ctx.user_id,
             decision=ApprovalDecision.APPROVED,
-            reason=body.reason,
+            reason=reason,
             scope_id_at_decision=op.scope_id,
         )
     )
@@ -493,12 +486,49 @@ def approve_operation(
             "tool": op.tool,
             "target": op.target_value,
             "risk_class": op.risk_class.value,
-            "reason": body.reason,
+            "reason": reason,
         },
         **ctx.audit_kwargs(),
     )
+    return True
+
+
+def reject_locked(db: Session, ctx: WorkspaceContext, op: Operation, reason: str) -> None:
+    db.add(
+        Approval(
+            workspace_id=ctx.workspace_id,
+            operation_id=op.id,
+            approver_user_id=ctx.user_id,
+            decision=ApprovalDecision.REJECTED,
+            reason=reason,
+            scope_id_at_decision=op.scope_id,
+        )
+    )
+    op.status = OperationStatus.REJECTED
+    op.finished_at = utcnow()
+    record(
+        db,
+        "operation.rejected",
+        entity_type="operation",
+        entity_id=op.id,
+        data={"reason": reason},
+        **ctx.audit_kwargs(),
+    )
+
+
+@router.post("/operations/{op_id}/approve", response_model=OperationDetail)
+def approve_operation(
+    op_id: uuid.UUID,
+    body: DecisionIn,
+    background: BackgroundTasks,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
+) -> OperationDetail:
+    op = _awaiting(db, ctx, op_id)
+    approved = approve_locked(db, ctx, op, body.reason)
     db.flush()
-    _drain_later(background)
+    if approved:
+        _drain_later(background)
     return get_operation(op_id, db, ctx)
 
 
@@ -510,25 +540,6 @@ def reject_operation(
     ctx: WorkspaceContext = ws_permission(Permission.OPERATIONS_APPROVE),
 ) -> OperationDetail:
     op = _awaiting(db, ctx, op_id)
-    db.add(
-        Approval(
-            workspace_id=ctx.workspace_id,
-            operation_id=op.id,
-            approver_user_id=ctx.user_id,
-            decision=ApprovalDecision.REJECTED,
-            reason=body.reason,
-            scope_id_at_decision=op.scope_id,
-        )
-    )
-    op.status = OperationStatus.REJECTED
-    op.finished_at = utcnow()
-    record(
-        db,
-        "operation.rejected",
-        entity_type="operation",
-        entity_id=op.id,
-        data={"reason": body.reason},
-        **ctx.audit_kwargs(),
-    )
+    reject_locked(db, ctx, op, body.reason)
     db.flush()
     return get_operation(op_id, db, ctx)

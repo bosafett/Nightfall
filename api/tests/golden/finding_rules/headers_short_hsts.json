@@ -1,0 +1,46 @@
+{
+  "description": "Header audit: HSTS with a one-day max-age; CSP frame-ancestors counts as framing protection; secure cookie; HTTP redirects.",
+  "now": "2026-11-01T12:00:00+00:00",
+  "observations": {
+    "technologies": [],
+    "http": [],
+    "checks": [],
+    "posture": {
+      "headers": {
+        "target": "www.lab.test",
+        "https": {
+          "status": 200,
+          "content_type": "text/html",
+          "hsts": "max-age=86400",
+          "hsts_max_age": 86400,
+          "csp": "default-src 'self'; frame-ancestors 'none'",
+          "csp_frame_ancestors": true,
+          "x_frame_options": null,
+          "cookies": [
+            {
+              "name": "sid",
+              "secure": true,
+              "httponly": true,
+              "samesite": "Lax"
+            }
+          ]
+        },
+        "http": {
+          "status": 301
+        },
+        "http_redirects_to_https": true
+      }
+    }
+  },
+  "ruleset": "findings/2026.11-3",
+  "expected": [
+    {
+      "check_id": "http.hsts-short-max-age",
+      "rule_id": "R12-hsts-short-max-age",
+      "title": "Strict-Transport-Security max-age is short",
+      "severity": "info",
+      "confidence": "high",
+      "description": "Strict-Transport-Security is 'max-age=86400'; the max-age is under 180 days."
+    }
+  ]
+}
