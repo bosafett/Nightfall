@@ -787,5 +787,19 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - Retention is reported, not enforced: the policy is "keep indefinitely" and nothing deletes evidence. Deleting it
     needs a reviewed retention policy and an owner decision.
   - Page: JANUS CORE → BLACK BOX, the first JANUS CORE entry that links to a page.
-- **Next:** BLACK ICE contradiction flagging. SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
+- **BLACK ICE contradiction flags (done, no migration).**
+  - `GET /api/workspaces/{ws}/contradictions` (any member, optional `project_id`) lists rule-made findings whose
+    status disagrees with newer evidence; each finding's detail carries the same flag as `contradiction`.
+  - `not_reproduced`: an unverified or validated finding whose asset was checked again by the same tool after the
+    evidence behind it, and the current rules don't find the condition in the newer evidence.
+  - `seen_after_false_positive`: a finding marked a false positive that the rules observed again afterwards.
+    Remediated findings aren't flagged, because ingest already reopens them.
+  - Only comparable evidence counts: the latest record from the same tool, on the same asset and project, with the
+    same simulation flag (lab and real results never contradict each other). The finding's own evidence must still
+    produce the check under the current rules. Header checks need an HTTPS response in the newer audit, and cookie
+    checks need the same cookie.
+  - Read-only and computed on request: a flag never changes a finding. A person reviews it and sets the status.
+  - UI: a "Contradicted by newer evidence" panel on Findings and a notice on the finding page. BLACK ICE stays a label
+    in the sidebar.
+- **Next:** SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).

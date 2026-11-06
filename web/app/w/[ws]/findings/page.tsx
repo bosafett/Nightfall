@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { Asset, Finding, Organization, Project, Severity, ValidationStatus } from "@/lib/api/types";
+import type { Asset, ContradictedFinding, Finding, Organization, Project, Severity, ValidationStatus } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { SEVERITIES, STATUSES, can, severityLabel, statusLabel } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
@@ -24,18 +24,36 @@ export default async function FindingsPage({ params, searchParams }: { params: P
   sev.forEach((v) => q.append("severity", v));
   st.forEach((v) => q.append("status", v));
   if (sp.org && /^[0-9a-f-]{36}$/.test(sp.org)) q.set("organization_id", sp.org);
-  const [findings, orgs, projects, assets, me] = await Promise.all([
+  const [findings, orgs, projects, assets, me, flags] = await Promise.all([
     apiGet<Finding[]>(`/workspaces/${ws}/findings?${q}`),
     apiGet<Organization[]>(`/workspaces/${ws}/organizations`),
     apiGet<Project[]>(`/workspaces/${ws}/projects`),
     apiGet<Asset[]>(`/workspaces/${ws}/assets`),
     membership(ws),
+    apiGet<ContradictedFinding[]>(`/workspaces/${ws}/contradictions`),
   ]);
   const filtered = sev.length > 0 || st.length > 0 || !!sp.org;
 
   return (
     <>
       <PageHeader title="Findings" subtitle="Every finding traces to its evidence. Hypotheses are marked with a dashed border and never count as confirmed." />
+      {flags.length > 0 && (
+        <div className="mb-6">
+          <Panel title={`Contradicted by newer evidence (${flags.length})`}>
+            <p className="mb-3 text-sm text-muted">BLACK ICE compares each finding&apos;s status with the latest evidence from the same tool on the same asset. Nothing is changed automatically: review each one and set its status yourself.</p>
+            <ul className="space-y-2 text-sm" data-testid="contradictions">
+              {flags.map((c) => (
+                <li key={c.finding_id} className="flex flex-wrap gap-x-3">
+                  <Link href={`/w/${ws}/findings/${c.finding_id}`} className="font-mono text-xs text-muted hover:text-crimson-text">{c.ref}</Link>
+                  <Link href={`/w/${ws}/findings/${c.finding_id}`} className="hover:text-crimson-text">{c.title}</Link>
+                  <span className="font-mono text-xs text-muted">{c.asset_value}</span>
+                  <span className="text-muted">{c.kind === "not_reproduced" ? "Not seen in the latest re-check" : "Seen again after being marked a false positive"}</span>
+                </li>
+              ))}
+            </ul>
+          </Panel>
+        </div>
+      )}
       {can.editFindings(me.role) && <div className="mb-6"><NewFinding ws={ws} projects={projects} assets={assets} /></div>}
       <Panel title="Filter">
         <form method="get" className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_14rem_12rem_auto] lg:items-end">

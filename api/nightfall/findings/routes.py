@@ -18,6 +18,8 @@ from pydantic import StringConstraints
 from sqlalchemy import Select, case, func, select
 from sqlalchemy.orm import Session
 
+from nightfall.blackice.contradictions import find as find_contradictions
+from nightfall.blackice.routes import ContradictionOut
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
@@ -157,6 +159,7 @@ class FindingDetail(FindingOut):
     attack_paths: list[PathRef]
     proposed_by_task_id: uuid.UUID | None
     guardian_review: GuardianReview | None
+    contradiction: ContradictionOut | None
 
 
 def ref(number: int) -> str:
@@ -340,6 +343,7 @@ def get_finding(
         .where(AttackPathStep.finding_id == f.id)
     ).all()
     names = _names(db, [f.validated_by_user_id, f.created_by_user_id])
+    flags = find_contradictions(db, ctx.workspace_id, finding_id=f.id)
     return FindingDetail(
         **_out(row).model_dump(),
         description=f.description,
@@ -360,6 +364,15 @@ def get_finding(
         proposed_by_task_id=f.proposed_by_task_id,
         guardian_review=GuardianReview.model_validate(f.guardian_review)
         if f.guardian_review
+        else None,
+        contradiction=ContradictionOut(
+            kind=flags[0].kind,
+            explanation=flags[0].explanation,
+            evidence_id=flags[0].evidence_id,
+            evidence_collected_at=flags[0].evidence_collected_at,
+            tool_name=flags[0].tool_name,
+        )
+        if flags
         else None,
     )
 

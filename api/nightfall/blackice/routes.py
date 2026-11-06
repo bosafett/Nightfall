@@ -9,11 +9,19 @@ from typing import Literal
 from fastapi import APIRouter
 from sqlalchemy import select
 
+from nightfall.blackice.contradictions import Kind
+from nightfall.blackice.contradictions import find as find_contradictions
 from nightfall.blackice.freshness import STALE_AFTER, source_states
 from nightfall.blackice.replay import Item, replay
 from nightfall.config import get_settings
 from nightfall.core.clock import utcnow
-from nightfall.core.db.models import AssessmentSnapshot, RiskClass
+from nightfall.core.db.models import (
+    AssessmentSnapshot,
+    Asset,
+    Finding,
+    RiskClass,
+    ValidationStatus,
+)
 from nightfall.core.db.session import DB
 from nightfall.core.errors import not_found
 from nightfall.core.schemas import Model
@@ -22,6 +30,62 @@ from nightfall.core.tenancy.permissions import Permission
 from nightfall.recon.collectors import TOOLS
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["black-ice"])
+
+
+class ContradictionOut(Model):
+    kind: Kind
+    explanation: str
+    evidence_id: uuid.UUID
+    evidence_collected_at: datetime
+    tool_name: str
+
+
+class ContradictedFinding(ContradictionOut):
+    finding_id: uuid.UUID
+    ref: str
+    title: str
+    project_id: uuid.UUID
+    asset_value: str | None
+    validation_status: ValidationStatus
+
+
+@router.get("/contradictions", response_model=list[ContradictedFinding])
+def contradictions(
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(Permission.READ),
+    project_id: uuid.UUID | None = None,
+) -> list[ContradictedFinding]:
+    """Findings whose status disagrees with newer evidence. Read-only: nothing is changed."""
+    flags = find_contradictions(db, ctx.workspace_id, project_id=project_id)
+    if not flags:
+        return []
+    rows = {
+        f.id: (f, a)
+        for f, a in db.execute(
+            select(Finding, Asset.value)
+            .outerjoin(Asset, Asset.id == Finding.asset_id)
+            .where(Finding.id.in_([c.finding_id for c in flags]))
+        ).all()
+    }
+    out = []
+    for c in flags:
+        f, asset = rows[c.finding_id]
+        out.append(
+            ContradictedFinding(
+                kind=c.kind,
+                explanation=c.explanation,
+                evidence_id=c.evidence_id,
+                evidence_collected_at=c.evidence_collected_at,
+                tool_name=c.tool_name,
+                finding_id=f.id,
+                ref=f"NF-{f.number:04d}",
+                title=f.title,
+                project_id=f.project_id,
+                asset_value=asset,
+                validation_status=f.validation_status,
+            )
+        )
+    return out
 
 
 class SourceOut(Model):

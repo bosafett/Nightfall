@@ -38,6 +38,7 @@ export type EvidenceSummary = S["EvidenceSummary"];
 export type ReconTool = S["ToolOut"];
 export type Finding = S["FindingOut"];
 export type FindingDetail = S["FindingDetail"];
+export type ContradictedFinding = S["ContradictedFinding"];
 export type Severity = S["Severity"];
 export type ValidationStatus = S["ValidationStatus"];
 export type AttackPath = S["PathOut"];

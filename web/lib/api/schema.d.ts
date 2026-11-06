@@ -598,6 +598,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/contradictions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Contradictions
+         * @description Findings whose status disagrees with newer evidence. Read-only: nothing is changed.
+         */
+        get: operations["contradictions_api_workspaces__workspace_id__contradictions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/evidence/{evidence_id}": {
         parameters: {
             query?: never;
@@ -1888,6 +1908,67 @@ export interface components {
          * @enum {string}
          */
         Confidence: "low" | "medium" | "high";
+        /** ContradictedFinding */
+        ContradictedFinding: {
+            /** Asset Value */
+            asset_value: string | null;
+            /**
+             * Evidence Collected At
+             * Format: date-time
+             */
+            evidence_collected_at: string;
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /** Explanation */
+            explanation: string;
+            /**
+             * Finding Id
+             * Format: uuid
+             */
+            finding_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "not_reproduced" | "seen_after_false_positive";
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Ref */
+            ref: string;
+            /** Title */
+            title: string;
+            /** Tool Name */
+            tool_name: string;
+            validation_status: components["schemas"]["ValidationStatus"];
+        };
+        /** ContradictionOut */
+        ContradictionOut: {
+            /**
+             * Evidence Collected At
+             * Format: date-time
+             */
+            evidence_collected_at: string;
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /** Explanation */
+            explanation: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "not_reproduced" | "seen_after_false_positive";
+            /** Tool Name */
+            tool_name: string;
+        };
         /** Decision */
         Decision: {
             /** Action */
@@ -2089,6 +2170,7 @@ export interface components {
             /** Check Id */
             check_id: string | null;
             confidence: components["schemas"]["Confidence"];
+            contradiction: components["schemas"]["ContradictionOut"] | null;
             /** Created By */
             created_by: string | null;
             /** Description */
@@ -5187,6 +5269,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    contradictions_api_workspaces__workspace_id__contradictions_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContradictedFinding"][];
                 };
             };
             /** @description Validation Error */

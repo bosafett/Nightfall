@@ -32,6 +32,7 @@ export default async function FindingPage({ params }: { params: Promise<{ ws: st
     <>
       <nav className="mb-2 text-sm text-muted"><Link href={`/w/${ws}/findings`} className="hover:text-text">Findings</Link> / <span className="font-mono">{f.ref}</span></nav>
       <PageHeader title={f.title} actions={<><SeverityBadge severity={f.severity} /><StatusBadge status={f.validation_status} /></>} />
+      {f.contradiction && <Alert tone="yellow"><span data-testid="contradiction">Contradicted by newer evidence: {f.contradiction.explanation} (evidence from {formatDateTime(f.contradiction.evidence_collected_at)}).</span></Alert>}
       {f.validation_status === "hypothesis" && <Alert tone="yellow">Hypothesis: plausible, but not shown by evidence. Don&apos;t treat it as a confirmed vulnerability.</Alert>}
       {f.validated_by && <Alert tone={f.validation_status === "validated" ? "green" : "blue"}>Marked {f.validation_status.replace("_", " ")} by {f.validated_by} on {formatDateTime(f.validated_at)}{f.status_note && `: ${f.status_note}`}</Alert>}
       {!f.validated_by && f.status_note && <Alert tone="yellow">{f.status_note}</Alert>}

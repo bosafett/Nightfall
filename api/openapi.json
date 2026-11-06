@@ -1248,6 +1248,124 @@
         "title": "Confidence",
         "type": "string"
       },
+      "ContradictedFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Value"
+          },
+          "evidence_collected_at": {
+            "format": "date-time",
+            "title": "Evidence Collected At",
+            "type": "string"
+          },
+          "evidence_id": {
+            "format": "uuid",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "finding_id": {
+            "format": "uuid",
+            "title": "Finding Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "not_reproduced",
+              "seen_after_false_positive"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          },
+          "validation_status": {
+            "$ref": "#/components/schemas/ValidationStatus"
+          }
+        },
+        "required": [
+          "kind",
+          "explanation",
+          "evidence_id",
+          "evidence_collected_at",
+          "tool_name",
+          "finding_id",
+          "ref",
+          "title",
+          "project_id",
+          "asset_value",
+          "validation_status"
+        ],
+        "title": "ContradictedFinding",
+        "type": "object"
+      },
+      "ContradictionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_collected_at": {
+            "format": "date-time",
+            "title": "Evidence Collected At",
+            "type": "string"
+          },
+          "evidence_id": {
+            "format": "uuid",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "explanation": {
+            "title": "Explanation",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "not_reproduced",
+              "seen_after_false_positive"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "tool_name": {
+            "title": "Tool Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "explanation",
+          "evidence_id",
+          "evidence_collected_at",
+          "tool_name"
+        ],
+        "title": "ContradictionOut",
+        "type": "object"
+      },
       "Decision": {
         "additionalProperties": false,
         "properties": {
@@ -1745,6 +1863,16 @@
           "confidence": {
             "$ref": "#/components/schemas/Confidence"
           },
+          "contradiction": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContradictionOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "created_by": {
             "anyOf": [
               {
@@ -1929,7 +2057,8 @@
           "evidence",
           "attack_paths",
           "proposed_by_task_id",
-          "guardian_review"
+          "guardian_review",
+          "contradiction"
         ],
         "title": "FindingDetail",
         "type": "object"
@@ -8879,6 +9008,71 @@
         "summary": "Reject Run",
         "tags": [
           "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/contradictions": {
+      "get": {
+        "description": "Findings whose status disagrees with newer evidence. Read-only: nothing is changed.",
+        "operationId": "contradictions_api_workspaces__workspace_id__contradictions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ContradictedFinding"
+                  },
+                  "title": "Response Contradictions Api Workspaces  Workspace Id  Contradictions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Contradictions",
+        "tags": [
+          "black-ice"
         ]
       }
     },

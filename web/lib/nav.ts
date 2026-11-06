@@ -43,7 +43,7 @@ export const NAV_GROUPS: NavGroup[] = [
   ] },
   { key: "core", label: "JANUS CORE", description: "Shared infrastructure", collapsible: { open: false }, items: [
     { key: "blackice", label: "BLACK ICE", planned: true, tag: "In Findings",
-      title: "Correlation and finding rules run behind Findings; it has no separate page" },
+      title: "Correlation, finding rules and contradiction flags appear on the Findings pages; it has no separate page" },
     { key: "blackbox", label: "BLACK BOX", href: (ws) => `/w/${ws}/black-box`, icon: "blackbox" },
     { key: "atlas", label: "ATLAS", planned: true, tag: "In Targets",
       title: "Asset status and change history are on each asset in the Target Registry" },
