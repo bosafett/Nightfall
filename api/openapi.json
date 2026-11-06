@@ -1004,8 +1004,37 @@
       "EntryIn": {
         "additionalProperties": false,
         "properties": {
+          "allowed_ports": {
+            "default": [
+              80,
+              443
+            ],
+            "items": {
+              "maximum": 65535.0,
+              "minimum": 1.0,
+              "type": "integer"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Allowed Ports",
+            "type": "array"
+          },
+          "daily_budget": {
+            "default": 200,
+            "maximum": 5000.0,
+            "minimum": 1.0,
+            "title": "Daily Budget",
+            "type": "integer"
+          },
           "kind": {
             "$ref": "#/components/schemas/ScopeEntryKind"
+          },
+          "max_rps": {
+            "default": 1,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Max Rps",
+            "type": "integer"
           },
           "note": {
             "default": "",
@@ -1029,6 +1058,31 @@
       "EntryOut": {
         "additionalProperties": false,
         "properties": {
+          "allowed_ports": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Allowed Ports"
+          },
+          "daily_budget": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Daily Budget"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1036,6 +1090,17 @@
           },
           "kind": {
             "$ref": "#/components/schemas/ScopeEntryKind"
+          },
+          "max_rps": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Rps"
           },
           "note": {
             "title": "Note",

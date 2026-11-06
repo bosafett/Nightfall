@@ -196,6 +196,7 @@ def ingest(
                 "http": result.http,
                 "checks": result.matches,
                 "posture": result.posture,
+                "probe": result.probe,
             },
             is_simulation=op.is_lab,  # lab results are kept apart from real ones
         )

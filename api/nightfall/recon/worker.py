@@ -49,6 +49,7 @@ from nightfall.core.db.models import (
     Scope,
     ScopeEntryKind,
     ScopeExclusion,
+    ScopeTarget,
     WorkerHeartbeat,
 )
 from nightfall.core.db.session import set_workspace_context
@@ -105,6 +106,18 @@ def _excluded_networks(
         )
     ).all()
     return tuple(ipaddress.ip_network(v) for _, v in rows)
+
+
+def _probe_bounds(db: Session, op: Operation) -> dict[str, object] | None:
+    """Probe bounds from the operation's pinned scope version (not the request's copy)."""
+    from nightfall.blacksite.probes import target_bounds
+
+    entries = db.scalars(select(ScopeTarget).where(ScopeTarget.scope_id == op.scope_id)).all()
+    try:
+        b = target_bounds(entries, op.target_value)
+    except ValueError:
+        return None
+    return b.model_dump() if b else None
 
 
 def _get_op(db: Session, op_id: uuid.UUID) -> Operation:
@@ -222,6 +235,8 @@ class Worker:
             run_ctx = RunContext(
                 excluded_networks=_excluded_networks(db, op.scope_id),
                 scope=snapshot(db, pinned) if decision_ok and pinned is not None else None,
+                params=dict(op.params),
+                bounds=_probe_bounds(db, op) if op.tool == "probe" else None,
             )
             tool = self.tools.get(op.tool)
             target, tool_key = op.target_value, op.tool

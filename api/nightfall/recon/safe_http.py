@@ -110,10 +110,26 @@ class SafeHttp:
         return str(addrs[0])
 
     def get(self, host: str, scheme: str, verify: bool) -> Exchange:
+        return self.request(host, scheme, verify)
+
+    def request(
+        self,
+        host: str,
+        scheme: str,
+        verify: bool,
+        *,
+        method: str = "GET",
+        path: str = "/",
+        port: int | None = None,
+        headers: dict[str, str] | None = None,
+        body: bytes | None = None,
+    ) -> Exchange:
+        """One request to the pinned address. Host and User-Agent are always set here, so
+        callers can't override them; redirects are never followed."""
         ip = self.pin(host)
-        port = self.https_port if scheme == "https" else self.http_port
+        port = port or (self.https_port if scheme == "https" else self.http_port)
         netloc = f"[{ip}]" if ":" in ip else ip
-        url = f"{scheme}://{netloc}:{port}/"
+        url = f"{scheme}://{netloc}:{port}{path}"
         ctx: ssl.SSLContext | bool = ssl.create_default_context() if verify else False
         started = time.monotonic()
         with httpx.Client(
@@ -124,9 +140,15 @@ class SafeHttp:
             transport=self.transport,
         ) as client:
             req = client.build_request(
-                "GET",
+                method,
                 url,
-                headers={"Host": host, "User-Agent": USER_AGENT, "Accept": "*/*"},
+                headers={
+                    "Accept": "*/*",
+                    **(headers or {}),
+                    "Host": host,
+                    "User-Agent": USER_AGENT,
+                },
+                content=body,
                 extensions={"sni_hostname": host},
             )
             resp = client.send(req, stream=True)
@@ -144,8 +166,9 @@ class SafeHttp:
                     chunks.append(chunk)
             finally:
                 resp.close()
+        default = (scheme == "https" and port == 443) or (scheme == "http" and port == 80)
         return Exchange(
-            url=f"{scheme}://{host}/",
+            url=f"{scheme}://{host}{'' if default else f':{port}'}{path}",
             connected_ip=ip,
             status=resp.status_code,
             headers=[(k, v) for k, v in resp.headers.multi_items()],

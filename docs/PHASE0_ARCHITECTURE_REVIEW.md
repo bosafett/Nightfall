@@ -716,12 +716,32 @@ longer be started or approved from the hosted UI; it shows them read-only.
 Nothing is deployed until the owner approves a push and a Vercel redeploy, and BLACKSITE stays off until the
 independent review is recorded.
 
-### 17.2 Roadmap
+### 17.2 Phase 2 (BLACKSITE probe deck) status
+
+Lab only (profile C): under D3 BLACKSITE acts on lab work only, so probing real targets from it would need a new
+owner decision and its own review. API only; a browser UI on the tunnel is still to come.
+
+| Item | Implemented | Tested | Independently reviewed | Deployed |
+|---|---|---|---|---|
+| Probes addressed by registered asset id only (lab assets visible to the BLACKSITE role) | ✓ | ✓ | ✗ | ✗ |
+| HTTP (GET/HEAD/OPTIONS low risk; POST/PUT/PATCH/DELETE moderate, lab only, explicit confirmation), TCP connect, TLS handshake | ✓ | ✓ | ✗ | ✗ |
+| Per-target allowed ports (≤10), max requests/second and daily budget on scope entries (immutable once authorized); counted under an advisory lock | ✓ | ✓ | ✗ | ✗ |
+| At most one probe pending per target (stricter than the designed two) | ✓ | ✓ | ✗ | ✗ |
+| Host/User-Agent fixed, hop-by-hop and forwarding headers refused, redirects recorded not followed, Authorization/Cookie/Set-Cookie redacted in evidence | ✓ | ✓ | ✗ | ✗ |
+| Lab worker re-checks spec and ports from the pinned scope; only lab addresses reachable | ✓ | ✓ | ✗ | ✗ |
+| History, replay (new operation, new approval), structured compare | ✓ | ✓ | ✗ | ✗ |
+| Every refusal audited (`probe.denied`) | ✓ | ✓ | ✗ | ✗ |
+
+Known limits: operation params (not evidence) keep the header values the operator sent, readable through the database;
+"Submit to BLACK ICE" for probe results (finding drafts) and DNS probes (meaningless in a hostname-free lab) are not
+built.
+
+### 17.3 Roadmap
 
 1. **Now:** owner review of this change; independent review of the BLACKSITE authorization model and of Phase 1
    (`docs/reviews/2026-11-blacksite-authorization-model.md` §9); record the reference.
-2. **Phase 2 — BLACKSITE probe deck** (§16.3–16.6): targets by asset id, HTTP/DNS/TCP/TLS probes with per-target
-   ports, rate and daily budget, compare and replay. A local UI served on the tunnel.
+2. ~~**Phase 2 — BLACKSITE probe deck**~~ built (§17.2), lab only, API only. Next for it: a local UI on the tunnel
+   and "Submit to BLACK ICE".
 3. **BLACK OPS remainder:** Profile B design and review; playbooks 6–11 after validation.
 4. **Tools:** ZAP baseline (low risk), Amass engine, moderate-risk lab packs, each with its own review.
 5. **Platform:** local AI provider (no paid calls), audit export to append-only storage (F7), server-side PDF.

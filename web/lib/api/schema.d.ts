@@ -1754,7 +1754,25 @@ export interface components {
         };
         /** EntryIn */
         EntryIn: {
+            /**
+             * Allowed Ports
+             * @default [
+             *       80,
+             *       443
+             *     ]
+             */
+            allowed_ports: number[];
+            /**
+             * Daily Budget
+             * @default 200
+             */
+            daily_budget: number;
             kind: components["schemas"]["ScopeEntryKind"];
+            /**
+             * Max Rps
+             * @default 1
+             */
+            max_rps: number;
             /**
              * Note
              * @default
@@ -1765,12 +1783,18 @@ export interface components {
         };
         /** EntryOut */
         EntryOut: {
+            /** Allowed Ports */
+            allowed_ports?: number[] | null;
+            /** Daily Budget */
+            daily_budget?: number | null;
             /**
              * Id
              * Format: uuid
              */
             id: string;
             kind: components["schemas"]["ScopeEntryKind"];
+            /** Max Rps */
+            max_rps?: number | null;
             /** Note */
             note: string;
             /** Value */

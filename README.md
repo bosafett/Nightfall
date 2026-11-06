@@ -209,6 +209,10 @@ the same scope checks, approvals, worker re-checks and BLACK ICE ingest as any o
   request needs the owner, fresh two-factor, and is audited.
 - **Lab boundary.** Lab operations and lab playbook runs are created, approved and cancelled only through BLACKSITE.
   The hosted app (Vercel) can still read lab results; the database refuses it anything more.
+- **Probe deck (Phase 2, lab only).** `POST /api/workspaces/{ws}/blacksite/probes` on the BLACKSITE listener:
+  HTTP, TCP-connect or TLS probes against a registered lab asset, within the scope entry's allowed ports, rate and
+  daily budget; replay and compare. State-changing HTTP methods are moderate risk, lab only, and need an explicit
+  confirmation. See `docs/blacksite-deployment.md`.
 - **Review gate (D4).** BLACKSITE refuses lab execution until `NIGHTFALL_BLACKSITE_REVIEW_REF` names the recorded
   independent review. That is an attestation by the operator, not proof a review happened; tests and self-review
   don't count.

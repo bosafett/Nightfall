@@ -12,7 +12,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter
-from pydantic import StringConstraints, model_validator
+from pydantic import Field, StringConstraints, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -44,10 +44,17 @@ Short = Annotated[str, StringConstraints(strip_whitespace=True, max_length=500)]
 MAX_ENTRIES = 500
 
 
+Port = Annotated[int, Field(ge=1, le=65535)]
+
+
 class EntryIn(Model):
     kind: ScopeEntryKind
     value: Annotated[str, StringConstraints(max_length=300)]
     note: Short = ""
+    # Probe bounds for this target (BLACKSITE probe deck). Ignored for exclusions.
+    allowed_ports: Annotated[list[Port], Field(min_length=1, max_length=10)] = [80, 443]
+    max_rps: Annotated[int, Field(ge=1, le=10)] = 1
+    daily_budget: Annotated[int, Field(ge=1, le=5000)] = 200
 
 
 class EntryOut(Model):
@@ -55,6 +62,9 @@ class EntryOut(Model):
     kind: ScopeEntryKind
     value: str
     note: str
+    allowed_ports: list[int] | None = None
+    max_rps: int | None = None
+    daily_budget: int | None = None
 
 
 class ScopePatch(Model):
@@ -160,7 +170,18 @@ def _out(db: Session, s: Scope) -> ScopeOut:
         superseded_at=s.superseded_at,
         created_at=s.created_at,
         is_lab=s.is_lab,
-        targets=[EntryOut(id=t.id, kind=t.kind, value=t.value, note=t.note) for t in targets],
+        targets=[
+            EntryOut(
+                id=t.id,
+                kind=t.kind,
+                value=t.value,
+                note=t.note,
+                allowed_ports=t.allowed_ports,
+                max_rps=t.max_rps,
+                daily_budget=t.daily_budget,
+            )
+            for t in targets
+        ],
         exclusions=[
             EntryOut(id=e.id, kind=e.kind, value=e.value, note=e.reason) for e in exclusions
         ],
@@ -315,6 +336,9 @@ def _add_entry(
                 kind=body.kind,
                 value=value,
                 note=body.note,
+                allowed_ports=sorted(set(body.allowed_ports)),
+                max_rps=body.max_rps,
+                daily_budget=body.daily_budget,
             )
         )
     try:

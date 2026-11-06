@@ -142,7 +142,10 @@ def _curated() -> list[APIRouter]:
     ]
     for path, fn, methods, code in ws_routes:
         w.add_api_route(path, fn, methods=methods, status_code=code, response_model=None)
-    return [a, w, router]
+    from nightfall.blacksite.probe_routes import router as probes
+
+    # /compare is declared before /{op_id}/... paths; static path first is fine either way.
+    return [a, w, router, probes]
 
 
 def create_blacksite_app() -> FastAPI:

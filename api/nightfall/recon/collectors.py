@@ -64,6 +64,7 @@ class CollectorResult:
     matches: list[dict[str, str]] = field(default_factory=list)  # catalog check matches
     egress: dict[str, int] = field(default_factory=dict)  # proxy connection counts
     posture: dict[str, object] = field(default_factory=dict)  # TLS / header audits
+    probe: dict[str, object] = field(default_factory=dict)  # BLACKSITE probe record
 
 
 Network = ipaddress.IPv4Network | ipaddress.IPv6Network
@@ -75,6 +76,8 @@ class RunContext:
 
     excluded_networks: tuple[Network, ...] = ()
     scope: ScopeSnapshot | None = None
+    params: dict[str, object] = field(default_factory=dict)  # the operation's validated params
+    bounds: dict[str, object] | None = None  # probe bounds of the target's pinned scope entry
 
 
 class Collector(Protocol):
@@ -536,7 +539,8 @@ class FixtureNucleiScan(NucleiScan):
         )
 
 
-# Defined after CollectorResult and RunContext, which it imports.
+# Defined after CollectorResult and RunContext, which they import.
+from nightfall.blacksite.probes import Probe  # noqa: E402
 from nightfall.recon import posture  # noqa: E402
 
 
@@ -581,6 +585,7 @@ def lab_collectors(
         "nuclei": scan,
         "tls": posture.TlsAudit(make_client=pinner),
         "headers": posture.HeaderAudit(make_client=pinner),
+        "probe": Probe(make_client=pinner),
     }
 
 

@@ -8,8 +8,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Enum, ForeignKey, LargeBinary, text
-from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, LargeBinary, text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -304,6 +304,12 @@ class ScopeTarget(Base):
     kind: Mapped[ScopeEntryKind] = mapped_column(_pg_enum(ScopeEntryKind, "scope_entry_kind"))
     value: Mapped[str]
     note: Mapped[str] = mapped_column(server_default=text("''"))
+    # Probe bounds (migration 0014), fixed with the scope version once authorized.
+    allowed_ports: Mapped[list[int]] = mapped_column(
+        ARRAY(Integer), server_default=text("'{80,443}'")
+    )
+    max_rps: Mapped[int] = mapped_column(server_default=text("1"))
+    daily_budget: Mapped[int] = mapped_column(server_default=text("200"))
     created_at: Mapped[datetime] = _created()
 
 

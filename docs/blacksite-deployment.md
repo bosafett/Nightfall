@@ -67,8 +67,26 @@ ssh -N -L 8443:127.0.0.1:8443 you@lab-machine
 ```
 
 Then sign in at `http://127.0.0.1:8443/api/auth/login` (email, password, authenticator code) and check
-`GET /api/workspaces/<ws>/blacksite/status`. Phase 1 is API only; the browser UI for BLACKSITE comes with the probe
-deck (Phase 2).
+`GET /api/workspaces/<ws>/blacksite/status`. BLACKSITE is API only for now.
+
+### Probe deck (Phase 2, lab only)
+
+Register the lab address as an asset in the project's organization (hosted app, Target Registry), and give the lab
+scope's target entry its probe bounds when you add it (`allowed_ports`, `max_rps`, `daily_budget`; defaults 80/443,
+1 per second, 200 a day). Then, through the tunnel:
+
+```bash
+curl -s -b jar -c jar -H 'Origin: http://127.0.0.1:8443' -H 'Content-Type: application/json' \
+  http://127.0.0.1:8443/api/workspaces/<ws>/blacksite/probes \
+  -d '{"project_id":"<project>","asset_id":"<asset>","approve":true,
+       "spec":{"type":"http","scheme":"http","method":"GET","path":"/"}}'
+```
+
+- `type`: `http` (method, path, port, headers, body), `tcp` (`ports`, at most 10) or `tls` (`port`).
+- `approve: true` approves it in the same request (single operator). POST, PUT, PATCH and DELETE also need
+  `"confirm_state_change": true`.
+- History: `GET …/blacksite/probes`; replay: `POST …/blacksite/probes/<id>/replay`; compare:
+  `GET …/blacksite/probes/compare?a=<id>&b=<id>`. Results are in the operation's evidence.
 
 ## Rotation
 
