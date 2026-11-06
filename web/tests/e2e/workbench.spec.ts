@@ -200,6 +200,16 @@ test.describe("as the owner", () => {
     await expect(page.getByTestId("history-row")).toHaveCount(2);
     await expect(page.getByTestId("history-row").first()).toContainText("Unverified → Verified");
 
+    // BLACK BOX: inventory of the collected evidence and an on-demand integrity check.
+    const primary = page.getByRole("navigation", { name: "Primary" });
+    await primary.getByRole("button", { name: /JANUS CORE/ }).click();
+    await primary.getByRole("link", { name: "BLACK BOX" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "BLACK BOX" })).toBeVisible();
+    await expect(page.getByTestId("last-verification")).toHaveText("Never verified.");
+    await page.getByRole("button", { name: "Verify all evidence" }).click();
+    await expect(page.getByText(/^All \d+ evidence records match their SHA-256\.$/)).toBeVisible();
+    await expect(page.getByTestId("last-verification")).toContainText("0 failed");
+
     await page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Reconnaissance" }).click();
     await expect(page.getByRole("heading", { name: "Discovery history" })).toBeVisible();
     await page.getByRole("link", { name: "acme.test", exact: true }).click();

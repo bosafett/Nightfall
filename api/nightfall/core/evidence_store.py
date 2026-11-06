@@ -59,6 +59,13 @@ class EvidenceStore:
                 os.unlink(tmp)
         return digest
 
+    def read_raw(self, digest: bytes) -> bytes | None:
+        """Stored bytes without verification (BLACK BOX checks them itself); None if missing."""
+        try:
+            return self._path(digest).read_bytes()
+        except FileNotFoundError:
+            return None
+
     def get(self, digest: bytes) -> bytes:
         try:
             data = self._path(digest).read_bytes()
@@ -110,3 +117,9 @@ def read_from(db: Session, digest: bytes) -> bytes:
     the API sees only blobs its current workspace's evidence refers to."""
     data = db.scalar(text("SELECT content FROM evidence_blobs WHERE sha256 = :d"), {"d": digest})
     return _verified(None if data is None else bytes(data), digest)
+
+
+def read_raw_from(db: Session, digest: bytes) -> bytes | None:
+    """Like read_from, without verification; None if the blob is missing or not visible."""
+    data = db.scalar(text("SELECT content FROM evidence_blobs WHERE sha256 = :d"), {"d": digest})
+    return None if data is None else bytes(data)

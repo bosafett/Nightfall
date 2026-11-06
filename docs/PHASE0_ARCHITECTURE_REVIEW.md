@@ -775,5 +775,17 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - "Monitored" isn't a status: nothing monitors assets yet (that's AEGIS), and the label would imply it does.
   - UI: a status badge and filter on the asset list, a status field on the asset form, and a History panel on each asset.
     ATLAS stays a label in the sidebar ("In Targets").
-- **Next:** BLACK BOX integrity verification and retention, BLACK ICE contradiction flagging. SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
+- **BLACK BOX v0: evidence integrity and retention (done, no migration).**
+  - `GET /api/workspaces/{ws}/blackbox` (owner and admin, `audit.read`) is the evidence inventory: count, size, kinds,
+    simulated items, oldest and newest, counts older than 90 and 365 days, and the last verification run.
+  - `POST /api/workspaces/{ws}/blackbox/verify` re-reads stored content (file or Postgres backend, under row-level
+    security) and reports each record whose content is missing or whose hash or size doesn't match.
+  - It runs in batches of 200 so it fits one serverless request. The page calls it batch by batch until the workspace
+    is done. Each batch is an audit event (`blackbox.verified`) with the run's running totals, computed on the server
+    from earlier events in the same run, and each failure is also logged as `evidence.integrity_failed`.
+  - It runs only when a person asks; there is no schedule.
+  - Retention is reported, not enforced: the policy is "keep indefinitely" and nothing deletes evidence. Deleting it
+    needs a reviewed retention policy and an owner decision.
+  - Page: JANUS CORE → BLACK BOX, the first JANUS CORE entry that links to a page.
+- **Next:** BLACK ICE contradiction flagging. SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).

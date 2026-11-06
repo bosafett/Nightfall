@@ -56,6 +56,25 @@
         "title": "AcceptInviteOut",
         "type": "object"
       },
+      "AgeCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "older_than_days": {
+            "title": "Older Than Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "older_than_days",
+          "count"
+        ],
+        "title": "AgeCount",
+        "type": "object"
+      },
       "AgentActivity": {
         "additionalProperties": false,
         "properties": {
@@ -1001,6 +1020,89 @@
         "title": "AwaitingOp",
         "type": "object"
       },
+      "BlackBoxOut": {
+        "additionalProperties": false,
+        "properties": {
+          "by_age": {
+            "items": {
+              "$ref": "#/components/schemas/AgeCount"
+            },
+            "title": "By Age",
+            "type": "array"
+          },
+          "by_kind": {
+            "items": {
+              "$ref": "#/components/schemas/KindCount"
+            },
+            "title": "By Kind",
+            "type": "array"
+          },
+          "last_verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LastVerification"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "newest_collected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Newest Collected At"
+          },
+          "oldest_collected_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Oldest Collected At"
+          },
+          "retention_policy": {
+            "const": "keep_indefinitely",
+            "title": "Retention Policy",
+            "type": "string"
+          },
+          "simulated": {
+            "title": "Simulated",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "total_bytes": {
+            "title": "Total Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "total_bytes",
+          "simulated",
+          "by_kind",
+          "oldest_collected_at",
+          "newest_collected_at",
+          "by_age",
+          "retention_policy",
+          "last_verification"
+        ],
+        "title": "BlackBoxOut",
+        "type": "object"
+      },
       "Category": {
         "enum": [
           "reconnaissance",
@@ -1492,6 +1594,17 @@
         "title": "EvidenceDetail",
         "type": "object"
       },
+      "EvidenceKind": {
+        "enum": [
+          "observation",
+          "tool_output",
+          "document",
+          "screenshot",
+          "agent_note"
+        ],
+        "title": "EvidenceKind",
+        "type": "string"
+      },
       "EvidenceSummary": {
         "additionalProperties": false,
         "properties": {
@@ -1558,6 +1671,31 @@
           "sha256"
         ],
         "title": "EvidenceSummary",
+        "type": "object"
+      },
+      "Failure": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_id": {
+            "format": "uuid",
+            "title": "Evidence Id",
+            "type": "string"
+          },
+          "problem": {
+            "enum": [
+              "missing",
+              "hash_mismatch",
+              "size_mismatch"
+            ],
+            "title": "Problem",
+            "type": "string"
+          }
+        },
+        "required": [
+          "evidence_id",
+          "problem"
+        ],
+        "title": "Failure",
         "type": "object"
       },
       "FindingDetail": {
@@ -2646,6 +2784,54 @@
           "created_at"
         ],
         "title": "InviteOut",
+        "type": "object"
+      },
+      "KindCount": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EvidenceKind"
+          }
+        },
+        "required": [
+          "kind",
+          "count"
+        ],
+        "title": "KindCount",
+        "type": "object"
+      },
+      "LastVerification": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "title": "Checked",
+            "type": "integer"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "failed": {
+            "title": "Failed",
+            "type": "integer"
+          },
+          "occurred_at": {
+            "format": "date-time",
+            "title": "Occurred At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "occurred_at",
+          "checked",
+          "failed",
+          "complete"
+        ],
+        "title": "LastVerification",
         "type": "object"
       },
       "LaunchIn": {
@@ -6524,6 +6710,62 @@
         "title": "ValidationStatus",
         "type": "string"
       },
+      "VerifyOut": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "title": "Checked",
+            "type": "integer"
+          },
+          "failures": {
+            "items": {
+              "$ref": "#/components/schemas/Failure"
+            },
+            "title": "Failures",
+            "type": "array"
+          },
+          "next_after": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next After"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "integer"
+          },
+          "run_id": {
+            "format": "uuid",
+            "title": "Run Id",
+            "type": "string"
+          },
+          "total_checked": {
+            "title": "Total Checked",
+            "type": "integer"
+          },
+          "total_failed": {
+            "title": "Total Failed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "checked",
+          "ok",
+          "failures",
+          "run_id",
+          "total_checked",
+          "total_failed",
+          "next_after"
+        ],
+        "title": "VerifyOut",
+        "type": "object"
+      },
       "WarRoomOut": {
         "additionalProperties": false,
         "properties": {
@@ -7907,6 +8149,127 @@
         "summary": "Audit Log",
         "tags": [
           "audit"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackbox": {
+      "get": {
+        "operationId": "inventory_api_workspaces__workspace_id__blackbox_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlackBoxOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Inventory",
+        "tags": [
+          "blackbox"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/blackbox/verify": {
+      "post": {
+        "description": "One batch of a verification run. Start without parameters; continue with the\nreturned `next_after` and `run_id` until `next_after` is null.",
+        "operationId": "verify_api_workspaces__workspace_id__blackbox_verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "run_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "blackbox"
         ]
       }
     },

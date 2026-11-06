@@ -50,7 +50,7 @@ describe("navigation", () => {
   it("groups pages into the Addendum 5 divisions", () => {
     expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, "SWORD", "SHIELD", "JANUS CORE", "SYSTEM"]);
     expect(NAV.map((n) => n.label)).toEqual([
-      "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports",
+      "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports", "BLACK BOX",
       "Agents", "War Room", "Audit Log", "Settings",
     ]);
   });

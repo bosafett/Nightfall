@@ -67,3 +67,5 @@ export type PlaybookRunStatus = PlaybookRun["status"];
 export type AuditPage = S["AuditPage"];
 export type AuditEvent = S["AuditEventOut"];
 export type Watchtower = S["WatchtowerOut"];
+export type BlackBox = S["BlackBoxOut"];
+export type BlackBoxVerify = S["VerifyOut"];

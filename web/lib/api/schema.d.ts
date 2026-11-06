@@ -386,6 +386,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/blackbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Inventory */
+        get: operations["inventory_api_workspaces__workspace_id__blackbox_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/blackbox/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify
+         * @description One batch of a verification run. Start without parameters; continue with the
+         *     returned `next_after` and `run_id` until `next_after` is null.
+         */
+        post: operations["verify_api_workspaces__workspace_id__blackbox_verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/blackops/playbooks": {
         parameters: {
             query?: never;
@@ -1382,6 +1420,13 @@ export interface components {
             /** Workspace Id */
             workspace_id: string;
         };
+        /** AgeCount */
+        AgeCount: {
+            /** Count */
+            count: number;
+            /** Older Than Days */
+            older_than_days: number;
+        };
         /** AgentActivity */
         AgentActivity: {
             /** Agent Proposals Awaiting Approval */
@@ -1765,6 +1810,29 @@ export interface components {
             /** Why Not */
             why_not: string | null;
         };
+        /** BlackBoxOut */
+        BlackBoxOut: {
+            /** By Age */
+            by_age: components["schemas"]["AgeCount"][];
+            /** By Kind */
+            by_kind: components["schemas"]["KindCount"][];
+            last_verification: components["schemas"]["LastVerification"] | null;
+            /** Newest Collected At */
+            newest_collected_at: string | null;
+            /** Oldest Collected At */
+            oldest_collected_at: string | null;
+            /**
+             * Retention Policy
+             * @constant
+             */
+            retention_policy: "keep_indefinitely";
+            /** Simulated */
+            simulated: number;
+            /** Total */
+            total: number;
+            /** Total Bytes */
+            total_bytes: number;
+        };
         /**
          * Category
          * @enum {string}
@@ -1964,6 +2032,11 @@ export interface components {
             /** Tool Version */
             tool_version: string;
         };
+        /**
+         * EvidenceKind
+         * @enum {string}
+         */
+        EvidenceKind: "observation" | "tool_output" | "document" | "screenshot" | "agent_note";
         /** EvidenceSummary */
         EvidenceSummary: {
             /**
@@ -1991,6 +2064,19 @@ export interface components {
             tool_name: string;
             /** Tool Version */
             tool_version: string;
+        };
+        /** Failure */
+        Failure: {
+            /**
+             * Evidence Id
+             * Format: uuid
+             */
+            evidence_id: string;
+            /**
+             * Problem
+             * @enum {string}
+             */
+            problem: "missing" | "hash_mismatch" | "size_mismatch";
         };
         /** FindingDetail */
         FindingDetail: {
@@ -2404,6 +2490,26 @@ export interface components {
              */
             id: string;
             role: components["schemas"]["Role"];
+        };
+        /** KindCount */
+        KindCount: {
+            /** Count */
+            count: number;
+            kind: components["schemas"]["EvidenceKind"];
+        };
+        /** LastVerification */
+        LastVerification: {
+            /** Checked */
+            checked: number;
+            /** Complete */
+            complete: boolean;
+            /** Failed */
+            failed: number;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
         };
         /** LaunchIn */
         LaunchIn: {
@@ -3791,6 +3897,26 @@ export interface components {
          * @enum {string}
          */
         ValidationStatus: "hypothesis" | "unverified" | "validated" | "false_positive" | "remediated";
+        /** VerifyOut */
+        VerifyOut: {
+            /** Checked */
+            checked: number;
+            /** Failures */
+            failures: components["schemas"]["Failure"][];
+            /** Next After */
+            next_after: string | null;
+            /** Ok */
+            ok: number;
+            /**
+             * Run Id
+             * Format: uuid
+             */
+            run_id: string;
+            /** Total Checked */
+            total_checked: number;
+            /** Total Failed */
+            total_failed: number;
+        };
         /** WarRoomOut */
         WarRoomOut: {
             /** Awaiting */
@@ -4654,6 +4780,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    inventory_api_workspaces__workspace_id__blackbox_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlackBoxOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_api_workspaces__workspace_id__blackbox_verify_post: {
+        parameters: {
+            query?: {
+                after?: string | null;
+                run_id?: string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifyOut"];
                 };
             };
             /** @description Validation Error */
