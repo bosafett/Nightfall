@@ -150,6 +150,12 @@ jobs:
         run: >-
           ! docker compose run --rm --no-deps -e NIGHTFALL_LAB_NETWORKS=192.168.0.0/16
           lab-worker nightfall-worker --check
+      - name: The lab worker runs with its own home, not /root (libpq client-cert lookup)
+        run: >-
+          docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP
+          --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
+          -e NIGHTFALL_WORKER_MODE=lab
+          nightfall-worker:lab sh -c 'test "$(id -un)" = nfworker && test "$HOME" = /nonexistent'
       - name: The lab worker process can't reach the internet
         run: >-
           docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP

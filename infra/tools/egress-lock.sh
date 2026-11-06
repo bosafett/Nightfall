@@ -57,6 +57,11 @@ fi
 if [ "${NIGHTFALL_EGRESS_LOCK_ONLY:-}" = "1" ]; then
   exit 0
 fi
+# setpriv keeps the environment, so HOME would still be /root. The worker can't read it, and
+# libpq treats "permission denied" on ~/.postgresql/postgresql.crt as fatal. Use the worker's
+# own (nonexistent) home, so libpq finds no client certificate and carries on.
+HOME="$(getent passwd "$WORKER_USER" | cut -d: -f6)"
+export HOME
 exec setpriv --reuid "$WORKER_USER" --regid "$WORKER_USER" --init-groups --no-new-privs \
   --inh-caps -all,+setuid,+setgid --ambient-caps -all,+setuid,+setgid \
   --bounding-set -all,+setuid,+setgid -- "$@"
