@@ -25,6 +25,9 @@ RUN pip install --no-cache-dir -r /app/requirements.lock
 COPY api /app/api
 RUN pip install --no-cache-dir --no-deps /app/api && rm -rf /app/api
 COPY infra/tools/egress-lock.sh /usr/local/bin/egress-lock.sh
+# A Windows checkout can turn the script's line endings into CRLF, which breaks the
+# #!/bin/sh line ("no such file or directory"). Strip them so the build works either way.
+RUN sed -i 's/\r$//' /usr/local/bin/egress-lock.sh && chmod 0755 /usr/local/bin/egress-lock.sh
 
 ENV NIGHTFALL_NUCLEI_BIN=/usr/local/bin/nuclei \
     NIGHTFALL_TOOL_SANDBOX=uid \

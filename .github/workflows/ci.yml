@@ -138,7 +138,10 @@ jobs:
         run: >-
           ! docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1
           -s -m 5 https://example.com
-      - run: docker build -f infra/tools/Dockerfile -t nightfall-worker:lab .
+      - name: Build as from a Windows checkout (CRLF line endings in the entrypoint)
+        run: |
+          sed -i 's/$/\r/' infra/tools/egress-lock.sh
+          docker build -f infra/tools/Dockerfile -t nightfall-worker:lab .
       - name: The lab worker's self-check passes on the real lab networks
         working-directory: infra/lab
         run: docker compose run --rm --no-deps lab-worker nightfall-worker --check

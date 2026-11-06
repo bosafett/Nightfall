@@ -23,7 +23,7 @@ NIGHTFALL (Vercel) ─▶ database (Neon) ◀─ lab worker ─▶ lab-net (no i
    unzip it.
 3. **Create the lab password.** In PowerShell:
    ```powershell
-   -join ((1..48) | ForEach-Object { '{0:x}' -f (Get-Random -Maximum 16) })
+   $b = New-Object byte[] 24; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); ($b | ForEach-Object { $_.ToString('x2') }) -join ''
    ```
    Copy the 48-character result. It only contains 0–9 and a–f, so it's safe in a connection string.
 > **Before step 4:** make sure the live site is running a version with migration 0011, which confines the lab
@@ -49,13 +49,13 @@ Run each command in PowerShell from `infra\lab` and compare the result:
 
 | Check | Command | Expected |
 |---|---|---|
-| The worker is running in lab mode | `docker compose logs lab-worker` | `egress-lock: lab mode …` and `LAB WORKER: lab operations only` (never `LAB WORKER REFUSED TO START`) |
-| The tools are ready | `docker compose exec lab-worker nightfall-worker --check` | every line starts with `ok` |
-| The practice app is up, inside the lab | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -o NUL -w "%{http_code}" http://172.30.99.10/` | `200` |
+| The worker is running in lab mode | `docker compose --env-file lab.env logs lab-worker` | `egress-lock: lab mode …` and `LAB WORKER: lab operations only` (never `LAB WORKER REFUSED TO START`) |
+| The tools are ready | `docker compose --env-file lab.env exec lab-worker nightfall-worker --check` | every line starts with `ok` |
+| The practice app is up, inside the lab | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -o /dev/null -w "%{http_code}" http://172.30.99.10/` | `200` |
 | The lab has no internet | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -m 5 https://example.com` | fails (timeout or "could not resolve") |
-| Nothing is published | `docker compose ps` | no `0.0.0.0:` ports listed |
+| Nothing is published | `docker compose --env-file lab.env ps` | no `0.0.0.0:` ports listed |
 
-If any check doesn't match, stop the lab (`docker compose down`) and send me the output.
+If any check doesn't match, stop the lab (`docker compose --env-file lab.env down`) and send me the output.
 
 ## Using the lab in NIGHTFALL
 
@@ -73,7 +73,7 @@ database enforces this with the lab worker's own restricted account.
 
 ## Everyday use
 
-- Stop the lab: `docker compose down`. Start it: `docker compose --env-file lab.env up -d`.
+- Stop the lab: `docker compose --env-file lab.env down`. Start it: `docker compose --env-file lab.env up -d`.
 - Lab jobs queue up while the lab is off and run when it's back.
 - To turn the lab off for good, remove `NIGHTFALL_LAB_WORKER_DB_PASSWORD` from Vercel and redeploy. The
   lab account then can't log in.
