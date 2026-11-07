@@ -166,14 +166,14 @@ class ChronicleEntry(Model):
 
 
 class ChronicleOut(Model):
-    project_id: uuid.UUID
+    project_id: uuid.UUID | None  # None for an asset's activity across projects
     organization_id: uuid.UUID
     entries: list[ChronicleEntry]
     next_before: uuid.UUID | None  # pass as ?before= for older entries
 
 
 def _entities(
-    project_id: uuid.UUID, asset_id: uuid.UUID | None, operation_id: uuid.UUID | None
+    project_id: uuid.UUID | None, asset_id: uuid.UUID | None, operation_id: uuid.UUID | None
 ) -> Any:
     """(entity_type, entity_id) pairs whose events belong in this view."""
 
@@ -199,16 +199,17 @@ def _entities(
             ),
         ]
     elif asset_id is not None:
+        # Without a project: the asset's activity across every project of the workspace.
+        def in_project(col: Any) -> list[ColumnElement[bool]]:
+            return [col == project_id] if project_id is not None else []
+
         asset_evidence = select(Evidence.id).where(
-            Evidence.asset_id == asset_id, Evidence.project_id == project_id
+            Evidence.asset_id == asset_id, *in_project(Evidence.project_id)
         )
         parts = [
             pair("asset", Asset.id, Asset.id == asset_id),
             pair(
-                "finding",
-                Finding.id,
-                Finding.asset_id == asset_id,
-                Finding.project_id == project_id,
+                "finding", Finding.id, Finding.asset_id == asset_id, *in_project(Finding.project_id)
             ),
             pair("evidence", Evidence.id, Evidence.id.in_(asset_evidence)),
             pair(
@@ -221,7 +222,7 @@ def _entities(
                 "agent_task",
                 AgentTask.id,
                 AgentTask.subject_asset_id == asset_id,
-                AgentTask.project_id == project_id,
+                *in_project(AgentTask.project_id),
             ),
         ]
     else:
@@ -241,11 +242,11 @@ def _entities(
 
 
 def _belongs(
-    project_id: uuid.UUID, asset_id: uuid.UUID | None, operation_id: uuid.UUID | None
+    project_id: uuid.UUID | None, asset_id: uuid.UUID | None, operation_id: uuid.UUID | None
 ) -> ColumnElement[bool]:
     ents = _entities(project_id, asset_id, operation_id)
     by_entity = tuple_(AuditEvent.entity_type, AuditEvent.entity_id).in_(select(ents.c.t, ents.c.i))
-    if asset_id is not None or operation_id is not None:
+    if asset_id is not None or operation_id is not None or project_id is None:
         return by_entity
     pid = str(project_id)
     scope_ids = select(cast(Scope.id, String)).where(Scope.project_id == project_id)
@@ -304,7 +305,7 @@ def _entry(e: AuditEvent, names: dict[uuid.UUID, str]) -> ChronicleEntry:
 def timeline(
     db: Session,
     workspace_id: uuid.UUID,
-    project_id: uuid.UUID,
+    project_id: uuid.UUID | None,
     *,
     asset_id: uuid.UUID | None = None,
     operation_id: uuid.UUID | None = None,
@@ -318,6 +319,37 @@ def timeline(
         q = q.where(tuple_(AuditEvent.occurred_at, AuditEvent.id) < (before.occurred_at, before.id))
     q = q.order_by(AuditEvent.occurred_at.desc(), AuditEvent.id.desc()).limit(limit)
     return list(db.scalars(q))
+
+
+def _page(
+    db: Session,
+    ctx: WorkspaceContext,
+    project_id: uuid.UUID | None,
+    organization_id: uuid.UUID,
+    before: uuid.UUID | None,
+    limit: int,
+    **filters: uuid.UUID | None,
+) -> ChronicleOut:
+    anchor = None
+    if before is not None:
+        anchor = db.get(AuditEvent, before)
+        if anchor is None or anchor.workspace_id != ctx.workspace_id:
+            raise not_found("That history entry isn't in this workspace.")
+    rows = timeline(db, ctx.workspace_id, project_id, before=anchor, limit=limit + 1, **filters)
+    more = len(rows) > limit
+    rows = rows[:limit]
+    ids = {e.actor_id for e in rows if e.actor_id and e.actor_type.value == "user"}
+    names = (
+        {r[0]: r[1] for r in db.execute(select(User.id, User.display_name).where(User.id.in_(ids)))}
+        if ids
+        else {}
+    )
+    return ChronicleOut(
+        project_id=project_id,
+        organization_id=organization_id,
+        entries=[_entry(e, names) for e in rows],
+        next_before=rows[-1].id if more and rows else None,
+    )
 
 
 @router.get("/projects/{project_id}/chronicle", response_model=ChronicleOut)
@@ -334,31 +366,29 @@ def project_chronicle(
     project = db.get(Project, project_id)
     if project is None or project.workspace_id != ctx.workspace_id:
         raise not_found("Project not found.")
-    anchor = None
-    if before is not None:
-        anchor = db.get(AuditEvent, before)
-        if anchor is None or anchor.workspace_id != ctx.workspace_id:
-            raise not_found("That history entry isn't in this workspace.")
-    rows = timeline(
+    return _page(
         db,
-        ctx.workspace_id,
-        project_id,
+        ctx,
+        project.id,
+        project.organization_id,
+        before,
+        limit,
         asset_id=asset_id,
         operation_id=operation_id,
-        before=anchor,
-        limit=limit + 1,
     )
-    more = len(rows) > limit
-    rows = rows[:limit]
-    ids = {e.actor_id for e in rows if e.actor_id and e.actor_type.value == "user"}
-    names = (
-        {r[0]: r[1] for r in db.execute(select(User.id, User.display_name).where(User.id.in_(ids)))}
-        if ids
-        else {}
-    )
-    return ChronicleOut(
-        project_id=project.id,
-        organization_id=project.organization_id,
-        entries=[_entry(e, names) for e in rows],
-        next_before=rows[-1].id if more and rows else None,
-    )
+
+
+@router.get("/assets/{asset_id}/chronicle", response_model=ChronicleOut)
+def asset_chronicle(
+    asset_id: uuid.UUID,
+    db: DB,
+    before: uuid.UUID | None = None,
+    limit: int = Query(100, ge=1, le=MAX_LIMIT),
+    ctx: WorkspaceContext = ws_permission(Permission.READ),
+) -> ChronicleOut:
+    """An asset's activity across all projects: its findings, the evidence about it and
+    the operations that produced that evidence, agent tasks about it, and edits to it."""
+    asset = db.get(Asset, asset_id)
+    if asset is None or asset.workspace_id != ctx.workspace_id:
+        raise not_found("Asset not found.")
+    return _page(db, ctx, None, asset.organization_id, before, limit, asset_id=asset.id)

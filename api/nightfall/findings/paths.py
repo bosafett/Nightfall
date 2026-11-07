@@ -109,7 +109,7 @@ def _path_out(db: Session, p: AttackPath) -> PathOut:
     ).all()
     ids = [i for i in (p.created_by_user_id, p.reviewed_by_user_id) if i]
     names = (
-        dict(db.execute(select(User.id, User.display_name).where(User.id.in_(ids))).tuples().all())
+        dict(db.execute(select(User.id, User.display_name).where(User.id.in_(ids))).all())
         if ids
         else {}
     )

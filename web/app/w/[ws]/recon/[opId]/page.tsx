@@ -121,7 +121,7 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
         </Panel>
       </div>
       <Panel title="History" className="mt-6">
-        <Timeline ws={ws} projectId={op.project_id} initial={history} operationId={opId} />
+        <Timeline ws={ws} path={`/workspaces/${ws}/projects/${op.project_id}/chronicle`} initial={history} query={{ operation_id: opId }} />
       </Panel>
     </>
   );

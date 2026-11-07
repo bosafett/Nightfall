@@ -169,7 +169,7 @@ def _assets(db: DB, tasks: list[AgentTask]) -> dict[uuid.UUID, str]:
     ids = {t.subject_asset_id for t in tasks if t.subject_asset_id}
     if not ids:
         return {}
-    return dict(db.execute(select(Asset.id, Asset.value).where(Asset.id.in_(ids))).tuples().all())
+    return dict(db.execute(select(Asset.id, Asset.value).where(Asset.id.in_(ids))).all())
 
 
 def _outs(db: DB, tasks: list[AgentTask]) -> list[TaskOut]:

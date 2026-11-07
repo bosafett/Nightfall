@@ -345,6 +345,31 @@ test.describe("as the owner", () => {
     await page.getByRole("button", { name: "Record decision" }).click();
     await expect(page.getByText(/Marked validated by Nick Operator/)).toBeVisible();
 
+    // BLACK ICE contradiction flag: a finding marked false positive that newer evidence shows again.
+    await page.goto(`${workspaceUrl}/findings`);
+    await page.getByRole("link", { name: "PHP version disclosed in HTTP headers" }).click();
+    await page.getByRole("radio", { name: /^False positive/ }).check();
+    await page.getByLabel("Why (required, kept with the decision)").fill("Thought it was the proxy");
+    await page.getByRole("button", { name: "Record decision" }).click();
+    await expect(page.getByText(/Marked false positive by Nick Operator/)).toBeVisible();
+    await page.goto(`${workspaceUrl}/targets`);
+    await page.getByRole("link", { name: "Acme Corporation" }).click();
+    await page.getByRole("link", { name: "External reconnaissance" }).click();
+    await page.getByLabel("Collector").selectOption("http");
+    await page.getByLabel("Target", { exact: true }).fill("www.acme.test");
+    await page.getByRole("button", { name: "Request collection" }).click();
+    await page.goto(`${workspaceUrl}/recon`);
+    await page.getByRole("region").or(page.locator("section")).filter({ hasText: "Awaiting approval" }).first()
+      .getByRole("link", { name: "www.acme.test" }).click();
+    await page.getByLabel("Reason (recorded with your decision)").fill("Recheck");
+    await page.getByRole("button", { name: "Approve", exact: true }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Approve and queue" }).click();
+    await expect(page.getByRole("cell", { name: "WordPress", exact: true }).first()).toBeVisible({ timeout: 20_000 });
+    await page.goto(`${workspaceUrl}/findings`);
+    await expect(page.getByTestId("contradictions")).toContainText("PHP version disclosed in HTTP headers");
+    await page.getByTestId("contradictions").getByRole("link", { name: /PHP version disclosed/ }).first().click();
+    await expect(page.getByTestId("contradiction")).toBeVisible();
+
     // A person records a hypothesis: shown as such, never as confirmed.
     await page.goto(`${workspaceUrl}/findings`);
     await page.getByRole("button", { name: "Record a finding" }).click();

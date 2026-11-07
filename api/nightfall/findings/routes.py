@@ -218,9 +218,7 @@ def _names(db: Session, ids: list[uuid.UUID | None]) -> dict[uuid.UUID, str]:
     wanted = [i for i in ids if i]
     if not wanted:
         return {}
-    return dict(
-        db.execute(select(User.id, User.display_name).where(User.id.in_(wanted))).tuples().all()
-    )
+    return dict(db.execute(select(User.id, User.display_name).where(User.id.in_(wanted))).all())
 
 
 def _project_asset_check(

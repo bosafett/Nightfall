@@ -168,9 +168,7 @@ def _out(db: Session, s: Scope) -> ScopeOut:
             select(User.id, User.display_name).where(
                 User.id.in_([u for u in (s.created_by_user_id, s.authorized_by_user_id) if u])
             )
-        )
-        .tuples()
-        .all()
+        ).all()
     )
     targets = db.scalars(
         select(ScopeTarget)

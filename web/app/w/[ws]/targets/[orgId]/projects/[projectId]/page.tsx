@@ -113,7 +113,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
           </div>
         </Panel>
         <Panel title="History">
-          <Timeline ws={ws} projectId={projectId} initial={history} />
+          <Timeline ws={ws} path={`/workspaces/${ws}/projects/${projectId}/chronicle`} initial={history} />
         </Panel>
       </div>
     </>

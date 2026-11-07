@@ -44,7 +44,9 @@ function Entry({ ws, e }: { ws: string; e: ChronicleEntry }) {
 }
 
 /** CHRONICLE: the project's history, newest first, from the audit log (nothing copied). */
-export function Timeline({ ws, projectId, initial, operationId }: { ws: string; projectId: string; initial: Chronicle; operationId?: string }) {
+export function Timeline({ ws, path, initial, query = {} }: {
+  ws: string; path: string; initial: Chronicle; query?: Record<string, string>;
+}) {
   const [entries, setEntries] = useState(initial.entries);
   const [next, setNext] = useState(initial.next_before);
   const [busy, setBusy] = useState(false);
@@ -55,8 +57,8 @@ export function Timeline({ ws, projectId, initial, operationId }: { ws: string; 
     setBusy(true);
     setError(null);
     try {
-      const q = new URLSearchParams({ before: next, limit: "50", ...(operationId ? { operation_id: operationId } : {}) });
-      const page = await api<Chronicle>(`/workspaces/${ws}/projects/${projectId}/chronicle?${q}`);
+      const q = new URLSearchParams({ ...query, before: next, limit: "50" });
+      const page = await api<Chronicle>(`${path}?${q}`);
       setEntries((cur) => [...cur, ...page.entries]);
       setNext(page.next_before);
     } catch (e) {

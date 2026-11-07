@@ -872,6 +872,15 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - UI: a History panel on each project and on each operation page (that operation, its evidence and linked
     findings). CHRONICLE is labelled "In Projects" in the sidebar. Not yet: before-and-after comparisons, incident
     timelines (they need SHIELD) and NEXUS run history (it needs NEXUS).
+- **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
+  member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
+  it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel
+  (status, ownership and notes changes) is unchanged.
+- **Hygiene (done).** Removed the deprecated `Result.tuples()` calls, and added a browser test of a contradiction flag
+  (a false positive shown again by newer evidence). The remaining test warnings about unclosed connections come from
+  inside the database driver, not from JANUS code.
+- **Lab tool pack 1 (design only).** `docs/designs/2026-11-lab-tool-pack-1.md`: a pinned, rule-filtered subset of the
+  public Nuclei templates as a moderate-risk, lab-only tool, behind its own review reference. Four owner decisions.
 - **NEXUS v1: workflow orchestration (done, migration 0018).** Design and owner decisions:
   `docs/designs/2026-11-nexus.md` (§12 lists how v1 differs from the design text).
   - **Workflows:** reviewed definitions in code, versioned and fingerprinted. "Exposure review" (HTTP security

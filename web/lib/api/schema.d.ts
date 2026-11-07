@@ -334,6 +334,27 @@ export interface paths {
         patch: operations["update_asset_api_workspaces__workspace_id__assets__asset_id__patch"];
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/assets/{asset_id}/chronicle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Asset Chronicle
+         * @description An asset's activity across all projects: its findings, the evidence about it and
+         *     the operations that produced that evidence, agent tasks about it, and edits to it.
+         */
+        get: operations["asset_chronicle_api_workspaces__workspace_id__assets__asset_id__chronicle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/attack-paths/{path_id}": {
         parameters: {
             query?: never;
@@ -2332,11 +2353,8 @@ export interface components {
              * Format: uuid
              */
             organization_id: string;
-            /**
-             * Project Id
-             * Format: uuid
-             */
-            project_id: string;
+            /** Project Id */
+            project_id: string | null;
         };
         /** ClaimCreated */
         ClaimCreated: {
@@ -5509,6 +5527,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AssetOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    asset_chronicle_api_workspaces__workspace_id__assets__asset_id__chronicle_get: {
+        parameters: {
+            query?: {
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                asset_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChronicleOut"];
                 };
             };
             /** @description Validation Error */

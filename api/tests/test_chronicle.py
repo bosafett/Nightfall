@@ -127,3 +127,35 @@ def test_asset_filter(client: TestClient, env: dict, owner_db: Session) -> None:
     assert entries[0]["summary"] == "System: updated an asset"
     # Asset events aren't project events unless asked for (assets belong to the organization).
     assert "asset.updated" not in [e["action"] for e in _get(client, env)["entries"]]
+
+
+def test_asset_activity_across_projects(
+    client: TestClient, env: dict, owner_db: Session, factory: Factory
+) -> None:
+    ws, pid = env["ws"], env["pid"]
+    org = owner_db.execute(
+        text("SELECT organization_id FROM projects WHERE id = :p"), {"p": pid}
+    ).scalar_one()
+    asset = owner_db.execute(
+        text(
+            "INSERT INTO assets (workspace_id, organization_id, kind, value, source) "
+            "VALUES (:w, :o, 'hostname', 'api.example.com', 'manual') RETURNING id"
+        ),
+        {"w": ws, "o": org},
+    ).scalar_one()
+    owner_db.execute(
+        text(
+            "INSERT INTO audit_events (workspace_id, actor_type, action, entity_type, entity_id) "
+            "VALUES (:w, 'system', 'asset.updated', 'asset', :a)"
+        ),
+        {"w": ws, "a": asset},
+    )
+    owner_db.commit()
+    r = client.get(f"/api/workspaces/{ws}/assets/{asset}/chronicle")
+    assert r.status_code == 200, r.text
+    out = r.json()
+    assert out["project_id"] is None and out["organization_id"] == str(org)
+    assert [e["action"] for e in out["entries"]] == ["asset.updated"]
+    other = factory.workspace("Elsewhere")
+    use(client, factory.sign_in(factory.member(other, Role.OWNER)))
+    assert client.get(f"/api/workspaces/{other}/assets/{asset}/chronicle").status_code == 404

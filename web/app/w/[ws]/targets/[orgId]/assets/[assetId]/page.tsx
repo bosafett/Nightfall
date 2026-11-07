@@ -3,7 +3,8 @@ import Link from "next/link";
 import { AiBadge } from "@/components/agents/AgentBadges";
 import { notFound } from "next/navigation";
 import { apiGet } from "@/lib/api/server";
-import type { AssetDetail, AssetHistory } from "@/lib/api/types";
+import type { AssetDetail, AssetHistory, Chronicle } from "@/lib/api/types";
+import { Timeline } from "@/components/chronicle/Timeline";
 import { formatDateTime } from "@/lib/format";
 import { assetKindLabel, assetStatusLabel, assetStatusTone, can, ownershipLabel } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
@@ -34,7 +35,10 @@ const relLabelIn = { subdomain_of: "Has subdomain", resolves_to: "Resolved from"
 
 export default async function AssetPage({ params }: { params: Promise<{ ws: string; orgId: string; assetId: string }> }) {
   const { ws, orgId, assetId } = await params;
-  const [asset, me] = await Promise.all([apiGet<AssetDetail>(`/workspaces/${ws}/assets/${assetId}`), membership(ws)]);
+  const [asset, me, activity] = await Promise.all([
+    apiGet<AssetDetail>(`/workspaces/${ws}/assets/${assetId}`), membership(ws),
+    apiGet<Chronicle>(`/workspaces/${ws}/assets/${assetId}/chronicle?limit=30`),
+  ]);
   if (asset.organization_id !== orgId) notFound();
 
   return (
@@ -62,6 +66,9 @@ export default async function AssetPage({ params }: { params: Promise<{ ws: stri
             )}
           </Panel>
           <Panel title="Evidence"><EvidenceList ws={ws} items={asset.evidence} /></Panel>
+          <Panel title="Activity">
+            <Timeline ws={ws} path={`/workspaces/${ws}/assets/${assetId}/chronicle`} initial={activity} />
+          </Panel>
           <Panel title="History">
             <p className="mb-3 text-xs text-muted">Written by the database on every change to status, ownership or notes. It can&apos;t be edited or deleted.</p>
             <DataTable head={["When", "Change", "Detail", "By"]}>
