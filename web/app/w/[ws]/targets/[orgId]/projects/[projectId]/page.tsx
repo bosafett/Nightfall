@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiGet } from "@/lib/api/server";
-import type { AgentsInfo, AgentTask, AgentTaskDetail, Asset, Operation, OwnershipClaim, Project, ScopeVersion } from "@/lib/api/types";
+import type { AgentsInfo, AgentTask, AgentTaskDetail, Asset, Chronicle, Operation, OwnershipClaim, Project, ScopeVersion } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { assessmentTypeLabel, can } from "@/lib/labels";
 import { AutoRefresh } from "@/components/recon/AutoRefresh";
@@ -10,6 +10,7 @@ import { AgentTasksTable } from "@/components/agents/AgentTasksTable";
 import { RunAgent } from "@/components/agents/RunAgent";
 import { CollectionForm } from "@/components/recon/CollectionForm";
 import { OperationsTable } from "@/components/recon/OperationsTable";
+import { Timeline } from "@/components/chronicle/Timeline";
 import { OwnershipPanel } from "@/components/scope/OwnershipPanel";
 import { ScopePanel } from "@/components/scope/ScopePanel";
 import { membership } from "@/lib/workspace";
@@ -21,7 +22,7 @@ export const metadata: Metadata = { title: "Project" };
 
 export default async function ProjectPage({ params }: { params: Promise<{ ws: string; orgId: string; projectId: string }> }) {
   const { ws, orgId, projectId } = await params;
-  const [project, scopes, ops, me, ai, tasks, assets, claims] = await Promise.all([
+  const [project, scopes, ops, me, ai, tasks, assets, claims, history] = await Promise.all([
     apiGet<Project>(`/workspaces/${ws}/projects/${projectId}`),
     apiGet<ScopeVersion[]>(`/workspaces/${ws}/projects/${projectId}/scopes`),
     apiGet<Operation[]>(`/workspaces/${ws}/operations?project_id=${encodeURIComponent(projectId)}&limit=20`),
@@ -30,6 +31,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
     apiGet<AgentTask[]>(`/workspaces/${ws}/projects/${projectId}/agent-tasks`),
     apiGet<Asset[]>(`/workspaces/${ws}/assets?organization_id=${encodeURIComponent(orgId)}`),
     apiGet<OwnershipClaim[]>(`/workspaces/${ws}/ownership/claims`),
+    apiGet<Chronicle>(`/workspaces/${ws}/projects/${projectId}/chronicle?limit=30`),
   ]);
   const lastSummary = tasks.find((t) => t.agent === "analyst" && t.status === "succeeded");
   const summary = lastSummary ? await apiGet<AgentTaskDetail>(`/workspaces/${ws}/agent-tasks/${lastSummary.id}`) : null;
@@ -97,6 +99,9 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
               {tasks.length > 0 ? <AgentTasksTable ws={ws} tasks={tasks} /> : <p className="text-sm text-muted">No agent has run for this project yet.</p>}
             </div>
           )}
+        </Panel>
+        <Panel title="History">
+          <Timeline ws={ws} projectId={projectId} initial={history} />
         </Panel>
       </div>
     </>

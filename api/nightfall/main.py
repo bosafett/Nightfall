@@ -17,6 +17,7 @@ from nightfall.agents.routes import router as agents_router
 from nightfall.blackbox.routes import router as blackbox_router
 from nightfall.blackice.routes import router as blackice_router
 from nightfall.blackops.routes import router as blackops_router
+from nightfall.chronicle.routes import router as chronicle_router
 from nightfall.config import get_settings
 from nightfall.core.audit.export import router as audit_export_router
 from nightfall.core.audit.routes import router as audit_router
@@ -175,6 +176,7 @@ ROUTERS = (
     assets_router,
     scope_router,
     ownership_router,
+    chronicle_router,
     recon_router,
     findings_router,
     paths_router,

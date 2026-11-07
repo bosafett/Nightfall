@@ -858,6 +858,20 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - The proof is stored with the check instead of in the evidence table, because the app role can't write evidence
     (only workers can). It is hashed and insert-only all the same.
   - Profile B stays off: the catalog still refuses it. UI: a "Proof of control" panel on each project.
+- **CHRONICLE v1: project history (done, no migration).**
+  - `GET /api/workspaces/{ws}/projects/{project}/chronicle` (any member; optional `asset_id` or `operation_id`;
+    paged newest first with `before`) builds a timeline **from the audit log on request**. It stores nothing and copies
+    nothing: each entry is an audit event, pointing to its operation, finding, report, agent task or playbook run and to
+    any evidence ids.
+  - What counts as part of a project: events on its records (the project, scope versions, operations, findings,
+    evidence, attack paths, reports, playbook runs, agent tasks); events whose data names the project, e.g. an
+    operation refused before it existed; and proof-of-control checks against its scope versions. Ownership claims are
+    workspace-wide and assets belong to the organization, so their own events appear only with the asset filter.
+  - Like the War Room's decision log, entries carry fixed safe fields only, never IP addresses, user agents or raw
+    data. The full audit log stays owner- and admin-only.
+  - UI: a History panel on each project and on each operation page (that operation, its evidence and linked
+    findings). CHRONICLE is labelled "In Projects" in the sidebar. Not yet: before-and-after comparisons, incident
+    timelines (they need SHIELD) and NEXUS run history (it needs NEXUS).
 - **NEXUS: workflow orchestration (design only).** `docs/designs/2026-11-nexus.md`, for review with five owner
   decisions. Nothing is built; NEXUS stays a Planned label.
     Scripts DejaVu lacks (e.g. CJK) don't render; adding them needs a larger font.

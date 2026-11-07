@@ -2,7 +2,8 @@ import { LabBadge } from "@/components/scope/LabBadge";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { Me, OperationDetail } from "@/lib/api/types";
+import type { Chronicle, Me, OperationDetail } from "@/lib/api/types";
+import { Timeline } from "@/components/chronicle/Timeline";
 import { can, decidesOwn } from "@/lib/labels";
 import { CancelRequest, DecisionPanel } from "@/components/recon/DecisionPanel";
 import { formatDateTime } from "@/lib/format";
@@ -16,6 +17,7 @@ export const metadata: Metadata = { title: "Operation" };
 export default async function OperationPage({ params }: { params: Promise<{ ws: string; opId: string }> }) {
   const { ws, opId } = await params;
   const [op, me] = await Promise.all([apiGet<OperationDetail>(`/workspaces/${ws}/operations/${opId}`), apiGet<Me>("/auth/me")]);
+  const history = await apiGet<Chronicle>(`/workspaces/${ws}/projects/${op.project_id}/chronicle?operation_id=${opId}&limit=50`);
   const membership = me.workspaces.find((w) => w.id === ws);
   const role = membership?.role ?? "viewer";
   const mine = op.requested_by_user_id === me.user.id && !decidesOwn(role, membership?.approval_policy);
@@ -118,6 +120,9 @@ export default async function OperationPage({ params }: { params: Promise<{ ws: 
           <div className="mt-4"><EvidenceList ws={ws} items={op.evidence} /></div>
         </Panel>
       </div>
+      <Panel title="History" className="mt-6">
+        <Timeline ws={ws} projectId={op.project_id} initial={history} operationId={opId} />
+      </Panel>
     </>
   );
 }

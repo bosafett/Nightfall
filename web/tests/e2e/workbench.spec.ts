@@ -182,6 +182,11 @@ test.describe("as the owner", () => {
     await expect(alertIn(page)).toContainText("only run with live collection");
     await page.reload();
 
+    // CHRONICLE: the project's history shows what just happened, newest first.
+    const history = page.getByTestId("chronicle");
+    await expect(history).toContainText("authorized the scope");
+    await expect(history).toContainText("started a scope draft");
+
     // Server-side refusal of out-of-scope and excluded targets.
     for (const target of ["evil.test", "mail.acme.test"]) {
       await page.getByLabel("Target", { exact: true }).fill(target);

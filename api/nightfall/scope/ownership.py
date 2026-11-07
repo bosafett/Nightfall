@@ -121,10 +121,9 @@ class LiveProbes:
         except (dns.resolver.NoNameservers, dns.exception.Timeout) as exc:
             obs["error"] = type(exc).__name__
             return Observed([], obs, f"The DNS lookup for {name} failed ({type(exc).__name__}).")
-        texts = [
-            b"".join(r.strings).decode("utf-8", "replace")[:MAX_TEXT]
-            for r in answer
-        ][:MAX_ANSWERS]
+        texts = [b"".join(r.strings).decode("utf-8", "replace")[:MAX_TEXT] for r in answer][
+            :MAX_ANSWERS
+        ]
         obs["answers"] = texts
         return Observed(texts, obs, None if texts else f"{name} has no TXT record.")
 

@@ -1134,6 +1134,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/chronicle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Project Chronicle
+         * @description Newest first. Pass `next_before` back as `before` for the next page.
+         */
+        get: operations["project_chronicle_api_workspaces__workspace_id__projects__project_id__chronicle_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects/{project_id}/collections": {
         parameters: {
             query?: never;
@@ -2103,6 +2123,56 @@ export interface components {
              * Format: uuid
              */
             scope_id: string;
+        };
+        /** ChronicleEntry */
+        ChronicleEntry: {
+            /** Action */
+            action: string;
+            /** Actor */
+            actor: string;
+            /** Actor Type */
+            actor_type: string;
+            /** Category */
+            category: string;
+            /** Details */
+            details: {
+                [key: string]: unknown;
+            };
+            /** Entity Id */
+            entity_id: string | null;
+            /** Entity Type */
+            entity_type: string | null;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Summary */
+            summary: string;
+        };
+        /** ChronicleOut */
+        ChronicleOut: {
+            /** Entries */
+            entries: components["schemas"]["ChronicleEntry"][];
+            /** Next Before */
+            next_before: string | null;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
         };
         /** ClaimCreated */
         ClaimCreated: {
@@ -6914,6 +6984,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PathOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    project_chronicle_api_workspaces__workspace_id__projects__project_id__chronicle_get: {
+        parameters: {
+            query?: {
+                asset_id?: string | null;
+                operation_id?: string | null;
+                before?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChronicleOut"];
                 };
             };
             /** @description Validation Error */
