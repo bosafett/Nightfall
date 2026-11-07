@@ -825,6 +825,9 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     checks and the "only a person can verify" rule are unchanged.
   - The Agents page shows "Local model (Ollama): <model>". No model was run and no benchmark was done here:
     which local model is good enough for each agent needs measuring later, when benchmarks are allowed.
+- **AI provider decision (owner, 2026-11-07):** the deployment will use the Anthropic API
+  (`NIGHTFALL_AI_PROVIDER=anthropic`); the owner adds `ANTHROPIC_API_KEY` in Vercel. Until then AI stays off. Ollama
+  remains available for self-hosted workers but isn't required. Agent benchmarks are still not run in this phase.
 - **SWORD: ZAP baseline:** skipped for now by the owner (2026-11-07). It needs owner decisions on where the ZAP daemon runs (it can't run on Vercel) and its own tool review before it may contact targets.
 - **Next:** SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).
