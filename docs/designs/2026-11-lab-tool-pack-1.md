@@ -1,6 +1,8 @@
 # Lab tool pack 1: wider Nuclei template set, lab only (design for review)
 
-Status: **design approved by the owner for review, 2026-11-07 (decisions in §11). Nothing is built or enabled.** Today JANUS runs 4 of its own Nuclei templates
+Status: **approved for review 2026-11-07 (decisions in §11). Built 2026-11-07 and switched off: it can't run until
+`NIGHTFALL_LAB_PACK1_REVIEW_REF` records an independent review and BLACKSITE is enabled.** §12 lists what the build does
+differently from this text. Today JANUS runs 4 of its own Nuclei templates
 (`api/nightfall/tools/nuclei/templates`), all low risk, GET only, on live and lab targets. This pack would add a reviewed,
 pinned subset of the public `nuclei-templates` collection as a **moderate-risk tool for the isolated lab (Profile C)
 only**.
@@ -118,3 +120,36 @@ own fingerprint and tests, like the existing five playbooks.
    pack is listed as unavailable, even if it's built.
 3. **Default-login templates:** included, lab only, and counted separately on the approval screen.
 4. **Limits:** as recommended: 10 requests per second, 10 concurrent templates, 30 minutes and 3,000 templates per run.
+
+## 12. As built (2026-11-07)
+
+- **Release:** `nuclei-templates` v10.5.1 (commit `79fb6827…`, published 2026-10-23).
+- **Manifest:** `api/nightfall/tools/nuclei/pack1.json` keeps **5,788** templates:
+
+  | Category | Templates |
+  |---|---|
+  | CVE | 2,668 |
+  | Exposure | 1,202 |
+  | Technology detection | 1,185 |
+  | Misconfiguration | 389 |
+  | Default login | 269 |
+  | Takeover | 75 |
+
+  The import script records how many were dropped, and why, in the manifest's `counts`.
+- **HTTP only:** network (TCP) templates aren't in v1, because the per-run egress proxy carries HTTP only. They would
+  fail closed against the sandbox firewall anyway.
+- **Three groups**, because 5,788 is over the 3,000-per-run limit. Each is its own moderate-risk tool and playbook step:
+  - `nuclei-pack1-cve`: 2,668 templates;
+  - `nuclei-pack1-config`: 1,935 templates (exposure, misconfiguration, takeover, and the 269 default-login templates,
+    named in the step text the approver sees);
+  - `nuclei-pack1-tech`: 1,185 templates.
+- **Playbook** `known-weakness-scan-lab` v1.0.0: Profile C only, IP targets (lab scopes are addresses), three steps.
+- **Image:** the lab tool image (`infra/tools/Dockerfile`) clones the pinned tag. `infra/tools/stage_nuclei_pack.py`
+  checks the commit, copies only the listed templates and checks each hash, then puts them at `/opt/nuclei-pack1`.
+  The worker checks every hash again before each run.
+- **Findings:** new finding rule R17 (ruleset `findings/2026.11-4`), confidence medium, worded "detected, not
+  exploited. Lab result". Names, severities and CVE ids come from the manifest.
+- **Where the pack's tools appear:** they aren't offered as single collections on the recon page. In the playbook
+  library and the BLACK ICE sources panel they show as unavailable until the gates hold.
+- **Tests:** `api/tests/test_lab_pack1.py`. The import-rule test needs PyYAML, so it is skipped where only the API's
+  dependencies are installed.

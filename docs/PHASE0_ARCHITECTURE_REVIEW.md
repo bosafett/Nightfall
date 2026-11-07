@@ -879,9 +879,18 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
 - **Hygiene (done).** Removed the deprecated `Result.tuples()` calls, and added a browser test of a contradiction flag
   (a false positive shown again by newer evidence). The remaining test warnings about unclosed connections come from
   inside the database driver, not from JANUS code.
-- **Lab tool pack 1 (design only).** `docs/designs/2026-11-lab-tool-pack-1.md`: a pinned, rule-filtered subset of the
-  public Nuclei templates as a moderate-risk, lab-only tool, behind its own review reference. Owner decisions (2026-11-07): approved for review, default-login
-  templates included, recommended limits; the reviewer will be named later.
+- **Lab tool pack 1 (built, switched off; no migration).** Design and as-built notes:
+  `docs/designs/2026-11-lab-tool-pack-1.md`.
+  - **What it is:** 5,788 HTTP templates from `nuclei-templates` v10.5.1, chosen by fixed rules (no out-of-band
+    callbacks, DoS, fuzzing, brute force, self-contained or JavaScript templates, and no PUT, DELETE or PATCH), each
+    pinned by SHA-256 in a reviewed manifest.
+  - **How it runs:** as three moderate-risk lab tools (CVE, configuration and default-login, technology), in the lab
+    playbook "Known-weakness scan (lab)".
+  - **Limits:** 10 requests per second, 10 concurrent templates, 30 minutes per step, HTTP only through the scope
+    proxy.
+  - **Findings:** matches become unverified lab findings under rule R17.
+  - **Gate:** it runs only with BLACKSITE enabled and `NIGHTFALL_LAB_PACK1_REVIEW_REF` set. Until then it's
+    "unavailable", and the worker refuses it too.
 - **NEXUS v1: workflow orchestration (done, migration 0018).** Design and owner decisions:
   `docs/designs/2026-11-nexus.md` (§12 lists how v1 differs from the design text).
   - **Workflows:** reviewed definitions in code, versioned and fingerprinted. "Exposure review" (HTTP security

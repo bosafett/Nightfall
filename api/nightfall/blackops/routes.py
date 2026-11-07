@@ -160,8 +160,14 @@ class LibraryOut(Model):
 
 def _unavailable_tools() -> set[str]:
     """Tools this deployment can't run (same rule as BLACK ICE's source panel)."""
+    from nightfall.recon.collectors import PACK_TOOLS
+    from nightfall.tools.nuclei import pack1
+
     s = get_settings()
-    return {"nuclei"} if s.on_demand_worker and not s.nuclei_bin else set()
+    out = {"nuclei"} if s.on_demand_worker and not s.nuclei_bin else set()
+    if pack1.unavailable_reason(s) or s.on_demand_worker:
+        out |= set(PACK_TOOLS)  # lab tool pack 1: BLACKSITE plus its own review, lab worker
+    return out
 
 
 def _enabled_map(db: Session, ctx: WorkspaceContext) -> dict[str, bool]:

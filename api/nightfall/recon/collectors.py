@@ -18,7 +18,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from importlib.metadata import version
-from typing import Protocol
+from pathlib import Path
+from typing import Any, Protocol
 
 import httpx
 
@@ -32,6 +33,7 @@ from nightfall.scope.engine import ScopeSnapshot, evaluate
 from nightfall.scope.normalize import NormalizationError
 from nightfall.tools import nuclei
 from nightfall.tools.egress import EgressProxy, Policy, canonical_host
+from nightfall.tools.nuclei import pack1
 from nightfall.tools.runner import Sandbox
 from nightfall.tools.runner import run as run_tool
 
@@ -432,9 +434,29 @@ class NucleiScan:
         self.timeout = timeout
         self.ports = ports
 
+    # The template set: the curated catalog here; lab tool pack 1 overrides these.
+    def invocation(self, target: str, proxy_url: str) -> list[str]:
+        return nuclei.build_invocation(self.binary or "", target, proxy_url)
+
+    def parse(self, stdout: bytes, target: str) -> tuple[list[dict[str, str]], int]:
+        return nuclei.parse(stdout, target)
+
+    def set_version(self) -> str:
+        return nuclei.CATALOG_VERSION
+
+    def templates_record(self) -> Any:
+        return {t: c.sha256 for t, c in sorted(nuclei.CATALOG.items())}
+
+    def preconditions(self) -> None:
+        """Raises Refused if this tool may not run here."""
+
+    def redact_argv(self, argv: list[str]) -> list[str]:
+        return argv
+
     def run(self, target: str, ctx: RunContext) -> CollectorResult:
         if not self.binary:
             raise RuntimeError("Nuclei isn't installed on this worker (NIGHTFALL_NUCLEI_BIN).")
+        self.preconditions()
         if self.require_lock:
             self.sandbox.verify_lock()
         scope = ctx.scope
@@ -454,27 +476,25 @@ class NucleiScan:
             pinner=self.make_pinner(list(ctx.excluded_networks)),
         )
         with EgressProxy(policy, bind=("127.0.0.1", self.egress_port)) as proxy:
-            argv = nuclei.build_invocation(self.binary, target, proxy.url)
+            argv = self.invocation(target, proxy.url)
             res = run_tool(argv, sandbox=self.sandbox, timeout=self.timeout)
             version_res = run_tool(
                 [self.binary, "-version", "-duc"], sandbox=self.sandbox, timeout=30
             )
             egress = proxy.log()
             dropped = proxy.dropped_log_entries
-            safe_argv = nuclei.redact(argv, proxy.url)
-        matches, rejected = nuclei.parse(res.stdout, target)
+            safe_argv = self.redact_argv(nuclei.redact(argv, proxy.url))
+        matches, rejected = self.parse(res.stdout, target)
         if res.returncode != 0 and not matches:
             tail = res.stderr.decode("utf-8", "replace")[-300:]
             raise RuntimeError(f"Nuclei exited with {res.returncode}: {tail}")
-        tool_version = (
-            f"nuclei {nuclei.engine_version(version_res.stderr)}; {nuclei.CATALOG_VERSION}"
-        )
+        tool_version = f"nuclei {nuclei.engine_version(version_res.stderr)}; {self.set_version()}"
         raw = json.dumps(
             {
                 "target": target,
                 "argv": safe_argv,
                 "tool_version": tool_version,
-                "templates": {t: c.sha256 for t, c in sorted(nuclei.CATALOG.items())},
+                "templates": self.templates_record(),
                 "returncode": res.returncode,
                 "timed_out": res.timed_out,
                 "output_truncated": res.stdout_truncated,
@@ -496,9 +516,9 @@ class NucleiScan:
         return CollectorResult(
             raw=raw,
             content_type="application/json",
-            tool_name="nuclei",
+            tool_name=self.key,
             tool_version=tool_version,
-            source="nuclei",
+            source=self.key,
             confidence=Confidence.HIGH,
             addresses=addresses,
             matches=matches,
@@ -539,6 +559,69 @@ class FixtureNucleiScan(NucleiScan):
         )
 
 
+class NucleiPackScan(NucleiScan):
+    """Lab tool pack 1 (moderate risk, lab only): one group of the pinned public templates.
+    Same sandbox, egress proxy and output rules as the curated checks; the set comes from
+    the reviewed manifest and every template's hash is checked before each run."""
+
+    risk_class = RiskClass.MODERATE
+
+    def __init__(
+        self, group: str, binary: str | None, sandbox: Sandbox, root: Path, **kw: Any
+    ) -> None:
+        super().__init__(binary, sandbox, timeout=pack1.TIMEOUT_S, **kw)
+        self.group = group
+        self.root = root
+        self.key = f"{pack1.TOOL_PREFIX}{group}"
+        self.label = PACK_LABELS[group]
+        self.method = f"Nuclei, lab tool pack 1 ({group}), through the scope proxy"
+        self._paths: list[str] = []
+
+    def preconditions(self) -> None:
+        from nightfall.config import get_settings
+
+        why = pack1.unavailable_reason(get_settings())
+        if why:
+            raise Refused(why)
+        try:
+            self._paths = pack1.verified_paths(self.root, self.group)
+        except nuclei.TemplateTampered as exc:
+            raise Refused(str(exc)) from exc
+
+    def invocation(self, target: str, proxy_url: str) -> list[str]:
+        return pack1.build_invocation(self.binary or "", target, proxy_url, self._paths)
+
+    def parse(self, stdout: bytes, target: str) -> tuple[list[dict[str, str]], int]:
+        return nuclei.parse(stdout, target, pack1.lookup)
+
+    def set_version(self) -> str:
+        return pack1.version()
+
+    def templates_record(self) -> Any:
+        return {"group": self.group, "count": len(self._paths), "manifest": pack1.version()}
+
+    def redact_argv(self, argv: list[str]) -> list[str]:
+        """The template list is in the manifest; the evidence keeps the flags."""
+        out: list[str] = []
+        skip = False
+        for a in argv:
+            if skip:
+                skip = False
+                continue
+            if a == "-t":
+                skip = True
+                continue
+            out.append(a)
+        return [*out[:1], f"<{len(self._paths)} pack templates>", *out[1:]]
+
+
+PACK_LABELS = {
+    "cve": "Known CVE checks (lab pack 1)",
+    "config": "Exposure, misconfiguration and default-login checks (lab pack 1)",
+    "tech": "Technology detection (lab pack 1)",
+}
+
+
 # Defined after CollectorResult and RunContext, which they import.
 from nightfall.blacksite.probes import Probe  # noqa: E402
 from nightfall.recon import posture  # noqa: E402
@@ -566,11 +649,14 @@ def collectors(mode: str, nuclei_scan: NucleiScan | None = None) -> dict[str, Co
 
 # Tools the isolated lab worker runs (they contact a target directly; the passive ones need
 # public records the lab has no route to).
-LAB_TOOLS = frozenset({"http", "nuclei", "tls", "headers"})
+PACK_TOOLS = tuple(f"{pack1.TOOL_PREFIX}{g}" for g in pack1.GROUPS)
+LAB_TOOLS = frozenset({"http", "nuclei", "tls", "headers", *PACK_TOOLS})
 
 
 def lab_collectors(
-    networks: tuple[Network, ...], nuclei_scan: NucleiScan | None = None
+    networks: tuple[Network, ...],
+    nuclei_scan: NucleiScan | None = None,
+    pack_root: Path | None = None,
 ) -> dict[str, Collector]:
     """The lab worker's tools: every address they contact must be inside the lab networks
     (SafeHttp.only_networks), on top of the scope check and the tool sandbox."""
@@ -586,6 +672,19 @@ def lab_collectors(
         "tls": posture.TlsAudit(make_client=pinner),
         "headers": posture.HeaderAudit(make_client=pinner),
         "probe": Probe(make_client=pinner),
+        **{
+            f"{pack1.TOOL_PREFIX}{g}": NucleiPackScan(
+                g,
+                scan.binary,
+                scan.sandbox,
+                pack_root or Path("/opt/nuclei-pack1"),
+                egress_port=scan.egress_port,
+                require_lock=scan.require_lock,
+                make_pinner=pinner,
+                clock=scan.clock,
+            )
+            for g in pack1.GROUPS
+        },
     }
 
 
@@ -597,4 +696,5 @@ TOOLS: dict[str, tuple[str, RiskClass]] = {
     "nuclei": (NucleiScan.label, RiskClass.LOW),
     "tls": (posture.TlsAudit.label, RiskClass.LOW),
     "headers": (posture.HeaderAudit.label, RiskClass.LOW),
+    **{f"{pack1.TOOL_PREFIX}{g}": (PACK_LABELS[g], RiskClass.MODERATE) for g in pack1.GROUPS},
 }

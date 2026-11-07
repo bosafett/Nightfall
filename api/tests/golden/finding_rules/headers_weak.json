@@ -31,7 +31,7 @@
       }
     }
   },
-  "ruleset": "findings/2026.11-3",
+  "ruleset": "findings/2026.11-4",
   "expected": [
     {
       "check_id": "http.missing-hsts",

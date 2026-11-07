@@ -108,6 +108,11 @@ def sources(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> S
     s = get_settings()
     # Serverless hosting can't run the tool sandbox, so tool-based sources can't run there.
     unavailable = {"nuclei"} if s.on_demand_worker and not s.nuclei_bin else set()
+    from nightfall.recon.collectors import PACK_TOOLS
+    from nightfall.tools.nuclei import pack1
+
+    if pack1.unavailable_reason(s) or s.on_demand_worker:
+        unavailable |= set(PACK_TOOLS)  # lab tool pack 1: BLACKSITE plus its own review
     states = source_states(db, ctx.workspace_id, list(TOOLS), unavailable, utcnow())
     return SourcesOut(
         stale_after_days=STALE_AFTER.days,

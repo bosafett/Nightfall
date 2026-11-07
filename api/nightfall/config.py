@@ -58,6 +58,10 @@ Optional:
   NIGHTFALL_BLACKSITE_REVIEW_REF    reference of the recorded independent review (D4). Without
                                     it BLACKSITE refuses to create or approve lab execution.
   NIGHTFALL_BLACKSITE_DB_PASSWORD   (bootstrap-roles only) enables the BLACKSITE role's login.
+  NIGHTFALL_LAB_PACK1_REVIEW_REF    reference of the recorded independent review of lab tool
+                                    pack 1. Without it (and BLACKSITE) the pack is unavailable.
+  NIGHTFALL_LAB_PACK1_DIR           (lab worker) the pack's templates, from the lab tool image
+                                    (default /opt/nuclei-pack1), checked against pack1.json.
 """
 
 from __future__ import annotations
@@ -115,6 +119,9 @@ class Settings:
         ipaddress.ip_network("::1/128"),
     )
     blacksite_review_ref: str | None = None
+    # Lab tool pack 1 (docs/designs/2026-11-lab-tool-pack-1.md): off without its own review.
+    lab_pack1_review_ref: str | None = None
+    lab_pack1_dir: Path = Path("/opt/nuclei-pack1")
     version: str = "0.1.0"
 
 
@@ -243,6 +250,10 @@ def load_settings() -> Settings:
     if any(not (n.is_private or n.is_loopback) for n in peers):
         raise ConfigError("NIGHTFALL_BLACKSITE_ALLOWED_PEERS must be loopback or private ranges")
     review_ref = os.environ.get("NIGHTFALL_BLACKSITE_REVIEW_REF", "").strip()[:200]
+    pack1_ref = os.environ.get("NIGHTFALL_LAB_PACK1_REVIEW_REF", "").strip()[:200]
+    pack1_dir = Path(os.environ.get("NIGHTFALL_LAB_PACK1_DIR", "/opt/nuclei-pack1").strip())
+    if not pack1_dir.is_absolute():
+        raise ConfigError("NIGHTFALL_LAB_PACK1_DIR must be an absolute path")
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:
         raise ConfigError("NIGHTFALL_EGRESS_PORT must be a TCP port")
@@ -276,6 +287,8 @@ def load_settings() -> Settings:
         blacksite_bind=os.environ.get("NIGHTFALL_BLACKSITE_BIND", "").strip() or "127.0.0.1",
         blacksite_allowed_peers=peers or Settings.blacksite_allowed_peers,
         blacksite_review_ref=review_ref or None,
+        lab_pack1_review_ref=pack1_ref or None,
+        lab_pack1_dir=pack1_dir,
     )
 
 

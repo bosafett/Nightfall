@@ -14,7 +14,7 @@ from typing import Any
 
 from nightfall.core.db.models import Confidence, Severity
 
-RULESET = "findings/2026.11-3"
+RULESET = "findings/2026.11-4"
 
 
 @dataclass(frozen=True)
@@ -155,7 +155,11 @@ def from_nuclei(matches: list[dict[str, str]]) -> list[Draft]:
     seen: set[str] = set()
     for m in matches:
         check = CATALOG.get(m.get("template_id", ""))
-        if check is None or check.template_id in seen:
+        if check is None:
+            pack = _from_pack1(m, seen)
+            drafts += [pack] if pack else []
+            continue
+        if check.template_id in seen:
             continue
         seen.add(check.template_id)
         drafts.append(
@@ -171,6 +175,31 @@ def from_nuclei(matches: list[dict[str, str]]) -> list[Draft]:
             )
         )
     return drafts
+
+
+def _from_pack1(m: dict[str, str], seen: set[str]) -> Draft | None:
+    """R17: a lab tool pack 1 template matched (lab only). The template's own name and
+    severity come from the reviewed manifest; the wording says what was and wasn't done."""
+    from nightfall.tools.nuclei import pack1
+
+    t = pack1.templates().get(m.get("template_id", ""))
+    if t is None or t.id in seen:
+        return None
+    seen.add(t.id)
+    cves = f" ({', '.join(t.cves)})" if t.cves else ""
+    return Draft(
+        check_id=f"lab-pack1.{t.id}",
+        rule_id=f"R17-lab-pack1:{t.id}",
+        title=t.name[:200],
+        severity=t.severity,
+        confidence=Confidence.MEDIUM,
+        description=f"Nuclei template {t.id}{cves} from lab tool pack 1 ({pack1.version()}) "
+        f"matched at {m.get('matched_at', '?')}. Detected by the template's checks, not "
+        "exploited. Lab result.",
+        impact="Depends on the weakness: see the template's references and any CVE advisory.",
+        remediation="Confirm the finding by hand, then apply the vendor's fix or "
+        "configuration change.",
+    )
 
 
 HSTS_MIN_AGE = 15_552_000  # 180 days

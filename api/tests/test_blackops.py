@@ -83,9 +83,13 @@ def test_catalog_starts_with_the_five_low_risk_playbooks() -> None:
         "web-exposure-audit",
         "tls-configuration-audit",
         "http-security-assessment",
+        "known-weakness-scan-lab",  # lab tool pack 1: moderate, lab only
     ]
     for p in PLAYBOOKS.values():
-        assert p.risk_class.value in ("passive", "low")
+        if p.id == "known-weakness-scan-lab":
+            assert p.risk_class.value == "moderate" and p.profiles == (Profile.LAB,)
+        else:
+            assert p.risk_class.value in ("passive", "low")
         assert Profile.VALIDATION not in p.profiles
 
 
@@ -139,7 +143,9 @@ def test_library_shows_availability_and_who_may_run(client: TestClient, env) -> 
     use(client, env["owner"])
     lib = client.get(f"{base(env)}/playbooks").json()
     assert lib["can_run"] is True and lib["can_manage"] is True
-    assert all(p["availability"] == "available" for p in lib["playbooks"])
+    avail = {p["id"]: p["availability"] for p in lib["playbooks"]}
+    assert avail.pop("known-weakness-scan-lab") != "available"  # no pack review recorded
+    assert all(a == "available" for a in avail.values())
     detail = client.get(f"{base(env)}/playbooks/tls-configuration-audit").json()
     assert detail["definition_sha256"] == PLAYBOOKS["tls-configuration-audit"].sha256
     assert detail["dependencies"] and detail["changelog"][0]["version"] == "1.0.0"

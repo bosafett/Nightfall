@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -140,9 +141,19 @@ def redact(argv: list[str], proxy_url: str) -> list[str]:
     return [a.replace(proxy_url, "http://nf:REDACTED@proxy") for a in argv]
 
 
-def parse(stdout: bytes, target: str) -> tuple[list[dict[str, str]], int]:
-    """Matches for the target from catalog templates, deduplicated. Returns (matches,
-    rejected lines)."""
+def _catalog_lookup(tid: str) -> tuple[str, str] | None:
+    c = CATALOG.get(tid)
+    return (c.check_id, c.title) if c else None
+
+
+def parse(
+    stdout: bytes,
+    target: str,
+    lookup: Callable[[str], tuple[str, str] | None] = _catalog_lookup,
+) -> tuple[list[dict[str, str]], int]:
+    """Matches for the target from listed templates (by default the curated catalog),
+    deduplicated. `lookup` gives (check id, title) for a listed template id, or None.
+    Returns (matches, rejected lines)."""
     matches: dict[tuple[str, str], dict[str, str]] = {}
     rejected = 0
     for line in stdout.splitlines():
@@ -153,9 +164,9 @@ def parse(stdout: bytes, target: str) -> tuple[list[dict[str, str]], int]:
             tid = row["template-id"]
             matched_at = str(row["matched-at"])[:500]
             url = urlsplit(matched_at)
+            listed = lookup(tid) if isinstance(tid, str) else None
             ok = (
-                isinstance(tid, str)
-                and tid in CATALOG
+                listed is not None
                 and url.scheme in ("http", "https")
                 and url.hostname is not None
                 and canonical_host(url.hostname) == target
@@ -166,13 +177,13 @@ def parse(stdout: bytes, target: str) -> tuple[list[dict[str, str]], int]:
             rejected += 1
             continue
         clean = re.sub(r"[^\x21-\x7e]", "", matched_at)
-        check = CATALOG[tid]
+        assert listed is not None  # noqa: S101 - narrowed by `ok`
         matches.setdefault(
             (tid, url.scheme),
             {
                 "template_id": tid,
-                "check_id": check.check_id,
-                "title": check.title,
+                "check_id": listed[0],
+                "title": listed[1],
                 "matched_at": clean,
             },
         )

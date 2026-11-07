@@ -106,6 +106,17 @@ TOOL_DEPENDENCIES: dict[str, tuple[Dependency, ...]] = {
         Dependency("cryptography", "Apache-2.0 OR BSD-3-Clause", "api/requirements.lock"),
     ),
     "headers": (Dependency("httpx", "BSD-3-Clause", "api/requirements.lock"),),
+    **{
+        f"nuclei-pack1-{g}": (
+            Dependency("Nuclei (ProjectDiscovery)", "MIT", "infra/tools/Dockerfile (by digest)"),
+            Dependency(
+                "nuclei-templates v10.5.1 (lab pack 1 subset)",
+                "MIT",
+                "api/nightfall/tools/nuclei/pack1.json (SHA-256 per template)",
+            ),
+        )
+        for g in ("cve", "config", "tech")
+    },
 }
 
 
@@ -306,6 +317,44 @@ PLAYBOOKS: dict[str, Playbook] = {
             tests=(
                 "tests/test_posture.py::test_header_audit_against_a_local_server",
                 "tests/test_blackops.py::test_approved_run_executes_and_reaches_black_ice",
+            ),
+            changelog=_V1,
+        ),
+        Playbook(
+            id="known-weakness-scan-lab",
+            name="Known-weakness scan (lab)",
+            version="1.0.0",
+            category=Category.VULNERABILITY_ASSESSMENT,
+            summary="Lab tool pack 1: known CVEs, exposures, misconfigurations, default logins "
+            "and technology detection on a lab machine.",
+            description="Runs the reviewed subset of the public Nuclei templates (release "
+            "v10.5.1, filtered by fixed rules, every file checked against its pinned hash) in "
+            "three groups. Lab machines only: the lab worker, the lab network and BLACKSITE, "
+            "plus the pack's own recorded review. Matches become unverified lab findings; "
+            "nothing is exploited.",
+            steps=(
+                Step("nuclei-pack1-cve", "2,668 known-CVE detection templates"),
+                Step(
+                    "nuclei-pack1-config",
+                    "1,935 exposure, misconfiguration and takeover templates, including 269 "
+                    "default-login templates (they try vendor default passwords)",
+                ),
+                Step("nuclei-pack1-tech", "1,185 technology detection templates"),
+            ),
+            profiles=(Profile.LAB,),
+            target_types=(TargetType.IP,),
+            expected_duration="Up to 30 minutes per step",
+            limits=(
+                "HTTP only, through the scope proxy pinned to the lab target",
+                "10 requests per second, 10 templates at once, 30 minutes per step",
+                "No out-of-band callbacks, no PUT, DELETE or PATCH, redirects not followed",
+            ),
+            outputs=("Unverified lab findings (rule R17)",),
+            cleanup="None expected: templates are detection checks. Default-login templates "
+            "may leave failed-login records on the lab machine.",
+            tests=(
+                "tests/test_lab_pack1.py::test_manifest_rules_and_groups",
+                "tests/test_lab_pack1.py::test_pack_runs_only_with_review_and_verified_templates",
             ),
             changelog=_V1,
         ),

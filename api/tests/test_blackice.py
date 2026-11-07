@@ -50,6 +50,10 @@ def test_freshness_follows_the_operations(
         "nuclei": "never_run",
         "tls": "never_run",
         "headers": "never_run",
+        # Lab tool pack 1: no BLACKSITE and no pack review on this deployment.
+        "nuclei-pack1-cve": "unavailable",
+        "nuclei-pack1-config": "unavailable",
+        "nuclei-pack1-tech": "unavailable",
     }
     collect(client, env)
     make_worker().run_once()

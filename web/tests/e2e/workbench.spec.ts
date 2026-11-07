@@ -531,7 +531,7 @@ test.describe("as the owner", () => {
     await expect(page.getByRole("heading", { level: 1, name: "BLACK OPS" })).toBeVisible();
     await expect(page.getByTestId("profiles")).toContainText("Not built");
     const list = page.getByTestId("playbook-list");
-    await expect(list.getByRole("listitem")).toHaveCount(5);
+    await expect(list.getByRole("listitem")).toHaveCount(6);
     await page.getByTestId("playbook-search").fill("tls");
     await expect(list.getByRole("listitem")).toHaveCount(1);
     await expect(list).toContainText("TLS Configuration Audit");

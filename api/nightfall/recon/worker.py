@@ -292,7 +292,7 @@ class Worker:
             op.status = OperationStatus.SUCCEEDED
             op.finished_at = utcnow()
             op.result_summary = {**summary.as_dict(), "findings": findings}
-            if op.tool == "nuclei":
+            if op.tool == "nuclei" or op.tool.startswith("nuclei-pack1-"):
                 op.result_summary["checks"] = result.matches
                 op.result_summary["egress"] = result.egress
             record(
@@ -331,7 +331,8 @@ def build_worker() -> Worker:
         if problem := _lab_network_problem():
             raise SystemExit(f"LAB WORKER REFUSED TO START: {problem}")
         log.info("LAB WORKER: lab operations only, addresses in %s only", s.lab_networks)
-        return Worker(sessions, store, lab_collectors(s.lab_networks, nuclei_scan=scan), lab=True)
+        collectors_ = lab_collectors(s.lab_networks, nuclei_scan=scan, pack_root=s.lab_pack1_dir)
+        return Worker(sessions, store, collectors_, lab=True)
     return Worker(
         sessions,
         store,

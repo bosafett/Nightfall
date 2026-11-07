@@ -66,6 +66,6 @@ testpaths = ["tests"]
 addopts = "-q"
 
 [tool.setuptools.package-data]
-"nightfall.tools.nuclei" = ["templates/*.yaml"]
+"nightfall.tools.nuclei" = ["templates/*.yaml", "pack1.json"]
 "nightfall.blacksite" = ["static/*"]
 "nightfall.reports" = ["fonts/*.ttf", "fonts/*.txt"]

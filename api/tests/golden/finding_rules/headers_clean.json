@@ -25,6 +25,6 @@
       }
     }
   },
-  "ruleset": "findings/2026.11-3",
+  "ruleset": "findings/2026.11-4",
   "expected": []
 }
