@@ -1,6 +1,6 @@
 # Lab tool pack 1: wider Nuclei template set, lab only (design for review)
 
-Status: **design only, 2026-11-07.** Nothing here is built or enabled. Today JANUS runs 4 of its own Nuclei templates
+Status: **design approved by the owner for review, 2026-11-07 (decisions in §11). Nothing is built or enabled.** Today JANUS runs 4 of its own Nuclei templates
 (`api/nightfall/tools/nuclei/templates`), all low risk, GET only, on live and lab targets. This pack would add a reviewed,
 pinned subset of the public `nuclei-templates` collection as a **moderate-risk tool for the isolated lab (Profile C)
 only**.
@@ -110,3 +110,11 @@ own fingerprint and tests, like the existing five playbooks.
 2. **Who reviews it:** the value for `NIGHTFALL_LAB_PACK1_REVIEW_REF`.
 3. **Default-login templates:** include them (lab machines only; recommended), or leave them out of v1.
 4. **Limits:** 10 requests per second and 30 minutes per run (recommended), or different values.
+
+## 11. Owner decisions (2026-11-07)
+
+1. **Design:** approved for independent review, as written.
+2. **Reviewer:** to be named later. Until a review is recorded, `NIGHTFALL_LAB_PACK1_REVIEW_REF` stays empty and the
+   pack is listed as unavailable, even if it's built.
+3. **Default-login templates:** included, lab only, and counted separately on the approval screen.
+4. **Limits:** as recommended: 10 requests per second, 10 concurrent templates, 30 minutes and 3,000 templates per run.

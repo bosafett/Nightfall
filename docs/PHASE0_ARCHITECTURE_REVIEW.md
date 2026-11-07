@@ -880,7 +880,8 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   (a false positive shown again by newer evidence). The remaining test warnings about unclosed connections come from
   inside the database driver, not from JANUS code.
 - **Lab tool pack 1 (design only).** `docs/designs/2026-11-lab-tool-pack-1.md`: a pinned, rule-filtered subset of the
-  public Nuclei templates as a moderate-risk, lab-only tool, behind its own review reference. Four owner decisions.
+  public Nuclei templates as a moderate-risk, lab-only tool, behind its own review reference. Owner decisions (2026-11-07): approved for review, default-login
+  templates included, recommended limits; the reviewer will be named later.
 - **NEXUS v1: workflow orchestration (done, migration 0018).** Design and owner decisions:
   `docs/designs/2026-11-nexus.md` (§12 lists how v1 differs from the design text).
   - **Workflows:** reviewed definitions in code, versioned and fingerprinted. "Exposure review" (HTTP security
