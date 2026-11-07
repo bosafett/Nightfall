@@ -839,6 +839,10 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - Library: fpdf2 (pure Python, LGPL-3.0, with Pillow and fontTools), so it runs on Vercel without system packages.
     The DejaVu fonts are bundled (Bitstream Vera licence) so any Latin, Greek or Cyrillic name prints correctly.
     Scripts DejaVu lacks (e.g. CJK) don't render; adding them needs a larger font.
+- **BLACK OPS Profile B: design written, not built** (`docs/designs/2026-11-blackops-profile-b.md`). Gates: proof
+  of control over the target (F3), designated test identities, a recorded independent review plus an enable flag,
+  per-run approval with fresh two-factor, and (recommended) a self-hosted worker only. It outlines playbooks 6–8.
+  Waiting on owner decisions (§11 there) and the independent review.
 - **SWORD: ZAP baseline:** skipped for now by the owner (2026-11-07). It needs owner decisions on where the ZAP daemon runs (it can't run on Vercel) and its own tool review before it may contact targets.
 - **Next:** SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).
