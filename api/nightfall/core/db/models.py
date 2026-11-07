@@ -299,6 +299,42 @@ class AssetHistory(Base):
     occurred_at: Mapped[datetime] = _created()
 
 
+class OwnershipMethod(enum.StrEnum):
+    DNS = "dns"  # TXT record _janus-verify.<name>: covers the name and every name under it
+    FILE = "file"  # https://<name>/.well-known/janus-verify.txt: covers that host only
+
+
+class OwnershipClaim(Base):
+    """Migration 0017. The token is never stored, only its SHA-256."""
+
+    __tablename__ = "ownership_claims"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    name: Mapped[str]
+    method: Mapped[OwnershipMethod] = mapped_column(_pg_enum(OwnershipMethod, "ownership_method"))
+    token_sha256: Mapped[bytes] = mapped_column(LargeBinary)
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
+    retired_at: Mapped[datetime | None]
+    retired_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class OwnershipCheck(Base):
+    """Insert-only (migration 0017)."""
+
+    __tablename__ = "ownership_checks"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    claim_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("ownership_claims.id"))
+    scope_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    ok: Mapped[bool]
+    detail: Mapped[str]
+    observation: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    observation_sha256: Mapped[bytes] = mapped_column(LargeBinary)
+    checked_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    checked_at: Mapped[datetime] = _created()
+
+
 class Scope(Base):
     __tablename__ = "scopes"
     id: Mapped[uuid.UUID] = _uuid_pk_col()

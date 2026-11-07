@@ -1008,6 +1008,44 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/ownership/claims": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Claims */
+        get: operations["list_claims_api_workspaces__workspace_id__ownership_claims_get"];
+        put?: never;
+        /**
+         * Create Claim
+         * @description Owner only. Returns the token once; publish it, then run a check.
+         */
+        post: operations["create_claim_api_workspaces__workspace_id__ownership_claims_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/ownership/claims/{claim_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Claim */
+        post: operations["retire_claim_api_workspaces__workspace_id__ownership_claims__claim_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects": {
         parameters: {
             query?: never;
@@ -1349,6 +1387,26 @@ export interface paths {
         post?: never;
         /** Remove Exclusion */
         delete: operations["remove_exclusion_api_workspaces__workspace_id__scopes__scope_id__exclusions__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/ownership/{claim_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Claim
+         * @description Look for the token now and record the result against this scope version.
+         */
+        post: operations["check_claim_api_workspaces__workspace_id__scopes__scope_id__ownership__claim_id__check_post"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2016,6 +2074,90 @@ export interface components {
             /** Scope Version */
             scope_version: number | null;
         };
+        /** CheckSummary */
+        CheckSummary: {
+            /**
+             * Checked At
+             * Format: date-time
+             */
+            checked_at: string;
+            /** Checked By */
+            checked_by: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Observation */
+            observation: {
+                [key: string]: unknown;
+            };
+            /** Observation Sha256 */
+            observation_sha256: string;
+            /** Ok */
+            ok: boolean;
+            /**
+             * Scope Id
+             * Format: uuid
+             */
+            scope_id: string;
+        };
+        /** ClaimCreated */
+        ClaimCreated: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            last_check: components["schemas"]["CheckSummary"] | null;
+            method: components["schemas"]["OwnershipMethod"];
+            /** Name */
+            name: string;
+            /** Retired At */
+            retired_at: string | null;
+            /** Token */
+            token: string;
+            /** Where */
+            where: string;
+        };
+        /** ClaimIn */
+        ClaimIn: {
+            method: components["schemas"]["OwnershipMethod"];
+            /** Name */
+            name: string;
+        };
+        /** ClaimOut */
+        ClaimOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            last_check: components["schemas"]["CheckSummary"] | null;
+            method: components["schemas"]["OwnershipMethod"];
+            /** Name */
+            name: string;
+            /** Retired At */
+            retired_at: string | null;
+            /** Where */
+            where: string;
+        };
         /** CollectionIn */
         CollectionIn: {
             /** Target */
@@ -2102,6 +2244,19 @@ export interface components {
             /** Tool Name */
             tool_name: string;
         };
+        /** ControlOut */
+        ControlOut: {
+            /** Checked At */
+            checked_at?: string | null;
+            /** Claim Id */
+            claim_id?: string | null;
+            /** Claim Name */
+            claim_name?: string | null;
+            /** Method */
+            method?: string | null;
+            /** Proven */
+            proven: boolean;
+        };
         /** Decision */
         Decision: {
             /** Action */
@@ -2184,6 +2339,7 @@ export interface components {
         EntryOut: {
             /** Allowed Ports */
             allowed_ports?: number[] | null;
+            control?: components["schemas"]["ControlOut"] | null;
             /** Daily Budget */
             daily_budget?: number | null;
             /**
@@ -3067,6 +3223,11 @@ export interface components {
             risk: components["schemas"]["Risk"];
             window: components["schemas"]["Window"];
         };
+        /**
+         * OwnershipMethod
+         * @enum {string}
+         */
+        OwnershipMethod: "dns" | "file";
         /** PasswordResetIn */
         PasswordResetIn: {
             /** New Password */
@@ -6396,6 +6557,104 @@ export interface operations {
             };
         };
     };
+    list_claims_api_workspaces__workspace_id__ownership_claims_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_claim_api_workspaces__workspace_id__ownership_claims_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retire_claim_api_workspaces__workspace_id__ownership_claims__claim_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                claim_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClaimOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_projects_api_workspaces__workspace_id__projects_get: {
         parameters: {
             query?: {
@@ -7215,6 +7474,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScopeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_claim_api_workspaces__workspace_id__scopes__scope_id__ownership__claim_id__check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                scope_id: string;
+                claim_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckSummary"];
                 };
             };
             /** @description Validation Error */

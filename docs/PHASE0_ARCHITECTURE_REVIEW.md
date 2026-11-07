@@ -838,6 +838,26 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     carry it.
   - Library: fpdf2 (pure Python, LGPL-3.0, with Pillow and fontTools), so it runs on Vercel without system packages.
     The DejaVu fonts are bundled (Bitstream Vera licence) so any Latin, Greek or Cyrillic name prints correctly.
+- **BLACK OPS Profile B step 1: proof of control (G1, review F3; migration 0017, not yet on Neon).**
+  - The owner issues a claim for a hostname with one of two proof methods: a DNS TXT record at
+    `_janus-verify.<name>` (covers the name and everything under it), or the file
+    `https://<name>/.well-known/janus-verify.txt` (covers that host only). The token is shown once and only its
+    SHA-256 is stored. IP-address targets are never eligible.
+  - `POST /api/workspaces/{ws}/ownership/claims` and `…/claims/{id}/retire`: owner only (`ownership.manage`, two-factor
+    in the last 15 minutes). `GET …/ownership/claims`: any member. `POST …/scopes/{scope}/ownership/{claim}/check`:
+    admin or owner, against the active, non-lab scope, and only when the claim covers one of its targets.
+  - A check is one DNS TXT lookup, or one HTTPS GET of that fixed path through the collectors' address-pinning client
+    (no private addresses, the scope's excluded networks honoured, redirects not followed, certificate verified). The
+    file check also requires the host to pass the scope at that moment. Checks run only when a person asks and are
+    refused in fixture mode instead of being simulated.
+  - Each check is stored insert-only (`ownership_checks`) with what was observed and its SHA-256, and is an audit
+    event. Claims can only be retired, never edited or revived (column grants and a trigger).
+  - A scope target shows "Control proven" when an active covering claim's **latest** check against **that scope
+    version** passed within 24 hours. A new scope version needs a new check. `proof_for()` is the function the later
+    Profile B gates will call again at approval and at worker start.
+  - The proof is stored with the check instead of in the evidence table, because the app role can't write evidence
+    (only workers can). It is hashed and insert-only all the same.
+  - Profile B stays off: the catalog still refuses it. UI: a "Proof of control" panel on each project.
     Scripts DejaVu lacks (e.g. CJK) don't render; adding them needs a larger font.
 - **BLACK OPS Profile B: design written, not built** (`docs/designs/2026-11-blackops-profile-b.md`). Gates: proof
   of control over the target (F3), designated test identities, a recorded independent review plus an enable flag,

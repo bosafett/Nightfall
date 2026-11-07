@@ -1,6 +1,6 @@
 # BLACK OPS Profile B: controlled validation (design for review)
 
-Status: **design only, 2026-11-07.** Nothing here is built or enabled. Profile B stays switched off in code
+Status: **design, 2026-11-07. Step 1 (G1, proof of control) is built; nothing else is built or enabled.** Profile B stays switched off in code
 (`blackops/catalog.py` refuses any playbook that lists it). Building starts only after an independent review
 of this document is recorded and the owner decisions in §11 are made.
 
@@ -240,7 +240,9 @@ Profile B adds:
 
 ## 9. Build order once approved
 
-1. Ownership verification (G1). It's useful on its own: a scope can show "control proven".
+1. Ownership verification (G1). It's useful on its own: a scope can show "control proven". **Built (migration
+   0017).** Differences from §2: the observation is stored hashed in the check row rather than as an evidence record
+   (the app role can't write evidence), and checks run when a person asks, from the API.
 2. The test identity store (G2) and the gates (G3–G5), with no playbook yet.
 3. Playbook 7 (fewest requests).
 4. Playbook 8.

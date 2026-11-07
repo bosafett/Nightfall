@@ -33,6 +33,7 @@ from nightfall.recon.routes import router as recon_router
 from nightfall.registry.assets import router as assets_router
 from nightfall.registry.routes import router as registry_router
 from nightfall.reports.routes import router as reports_router
+from nightfall.scope.ownership import router as ownership_router
 from nightfall.scope.routes import router as scope_router
 from nightfall.warroom.routes import router as warroom_router
 from nightfall.watchtower.routes import router as watchtower_router
@@ -173,6 +174,7 @@ ROUTERS = (
     overview_router,
     assets_router,
     scope_router,
+    ownership_router,
     recon_router,
     findings_router,
     paths_router,

@@ -203,6 +203,10 @@ network by construction.
 **Recommendation:** before Profile 2 or any active real-world probing, add ownership verification (a DNS TXT
 record or a file under `/.well-known/`) to scope authorization. **Not needed for the lab.**
 
+**Status (2026-11-07):** built as Profile B step 1 (migration 0017): DNS or `/.well-known/` proof per
+hostname, checked against a scope version and fresh for 24 hours. It's shown on scope targets but not yet required
+by any gate; Profile B will require it at approval and at worker start.
+
 ### F4 (Medium): the lab network range is configured in two places, and "private" is too broad
 
 **What:**

@@ -172,6 +172,16 @@ test.describe("as the owner", () => {
     await page.getByRole("dialog").getByRole("button", { name: "Authorize scope" }).click();
     await expect(page.getByText("Authorized · v1")).toBeVisible();
 
+    // Proof of control (Profile B G1): the owner gets a one-time token; checks contact real
+    // DNS, so they're refused in fixture mode rather than faked.
+    await page.getByLabel("Hostname or domain").fill("acme.test");
+    await page.getByRole("button", { name: "Issue token" }).click();
+    await expect(page.getByTestId("claim-token")).toContainText("janus-verify=");
+    await page.getByRole("button", { name: "I've copied it" }).click();
+    await page.getByTestId("ownership-claims").getByRole("button", { name: "Check now" }).click();
+    await expect(alertIn(page)).toContainText("only run with live collection");
+    await page.reload();
+
     // Server-side refusal of out-of-scope and excluded targets.
     for (const target of ["evil.test", "mail.acme.test"]) {
       await page.getByLabel("Target", { exact: true }).fill(target);

@@ -1380,6 +1380,212 @@
         "title": "CheckOut",
         "type": "object"
       },
+      "CheckSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "format": "date-time",
+            "title": "Checked At",
+            "type": "string"
+          },
+          "checked_by": {
+            "title": "Checked By",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observation": {
+            "additionalProperties": true,
+            "title": "Observation",
+            "type": "object"
+          },
+          "observation_sha256": {
+            "title": "Observation Sha256",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          },
+          "scope_id": {
+            "format": "uuid",
+            "title": "Scope Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "scope_id",
+          "ok",
+          "detail",
+          "checked_at",
+          "checked_by",
+          "observation",
+          "observation_sha256"
+        ],
+        "title": "CheckSummary",
+        "type": "object"
+      },
+      "ClaimCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_check": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "method": {
+            "$ref": "#/components/schemas/OwnershipMethod"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "where": {
+            "title": "Where",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "method",
+          "where",
+          "created_by",
+          "created_at",
+          "retired_at",
+          "last_check",
+          "token"
+        ],
+        "title": "ClaimCreated",
+        "type": "object"
+      },
+      "ClaimIn": {
+        "additionalProperties": false,
+        "properties": {
+          "method": {
+            "$ref": "#/components/schemas/OwnershipMethod"
+          },
+          "name": {
+            "maxLength": 253,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "method"
+        ],
+        "title": "ClaimIn",
+        "type": "object"
+      },
+      "ClaimOut": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_check": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CheckSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "method": {
+            "$ref": "#/components/schemas/OwnershipMethod"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          },
+          "where": {
+            "title": "Where",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "method",
+          "where",
+          "created_by",
+          "created_at",
+          "retired_at",
+          "last_check"
+        ],
+        "title": "ClaimOut",
+        "type": "object"
+      },
       "CollectionIn": {
         "additionalProperties": false,
         "properties": {
@@ -1556,6 +1762,66 @@
           "tool_name"
         ],
         "title": "ContradictionOut",
+        "type": "object"
+      },
+      "ControlOut": {
+        "additionalProperties": false,
+        "properties": {
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "claim_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Id"
+          },
+          "claim_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Claim Name"
+          },
+          "method": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Method"
+          },
+          "proven": {
+            "title": "Proven",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "proven"
+        ],
+        "title": "ControlOut",
         "type": "object"
       },
       "Decision": {
@@ -1746,6 +2012,16 @@
               }
             ],
             "title": "Allowed Ports"
+          },
+          "control": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ControlOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "daily_budget": {
             "anyOf": [
@@ -4051,6 +4327,14 @@
         ],
         "title": "OverviewOut",
         "type": "object"
+      },
+      "OwnershipMethod": {
+        "enum": [
+          "dns",
+          "file"
+        ],
+        "title": "OwnershipMethod",
+        "type": "string"
       },
       "PasswordResetIn": {
         "additionalProperties": false,
@@ -10950,6 +11234,158 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/ownership/claims": {
+      "get": {
+        "operationId": "list_claims_api_workspaces__workspace_id__ownership_claims_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ClaimOut"
+                  },
+                  "title": "Response List Claims Api Workspaces  Workspace Id  Ownership Claims Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Claims",
+        "tags": [
+          "scope"
+        ]
+      },
+      "post": {
+        "description": "Owner only. Returns the token once; publish it, then run a check.",
+        "operationId": "create_claim_api_workspaces__workspace_id__ownership_claims_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimCreated"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Claim",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/ownership/claims/{claim_id}/retire": {
+      "post": {
+        "operationId": "retire_claim_api_workspaces__workspace_id__ownership_claims__claim_id__retire_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire Claim",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/projects": {
       "get": {
         "operationId": "list_projects_api_workspaces__workspace_id__projects_get",
@@ -12364,6 +12800,70 @@
           }
         },
         "summary": "Remove Exclusion",
+        "tags": [
+          "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/scopes/{scope_id}/ownership/{claim_id}/check": {
+      "post": {
+        "description": "Look for the token now and record the result against this scope version.",
+        "operationId": "check_claim_api_workspaces__workspace_id__scopes__scope_id__ownership__claim_id__check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "scope_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Scope Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "claim_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Claim Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Claim",
         "tags": [
           "scope"
         ]

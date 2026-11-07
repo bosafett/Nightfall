@@ -27,6 +27,11 @@ function Entries({ title, entries, onRemove, empty }: {
                 <span className="block truncate font-mono text-sm">{e.value}</span>
                 <span className="block text-xs text-muted">{scopeKindLabel[e.kind]}{e.note && ` · ${e.note}`}</span>
               </span>
+              {e.control?.proven && (
+                <span data-testid="control-proven" title={`Proven by ${e.control.method === "dns" ? "DNS record" : "file"} on ${e.control.claim_name}, checked ${formatDateTime(e.control.checked_at ?? null)}`}>
+                  <Badge tone="green">Control proven</Badge>
+                </span>
+              )}
               {onRemove && <Button variant="ghost" className="px-2 py-1 text-xs" onClick={() => onRemove(e.id)} aria-label={`Remove ${e.value}`}>Remove</Button>}
             </li>
           ))}

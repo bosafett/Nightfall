@@ -37,6 +37,7 @@ from nightfall.core.tenancy.permissions import Permission
 from nightfall.scope.engine import evaluate, normalize_entry
 from nightfall.scope.lab import entry_problem
 from nightfall.scope.normalize import NormalizationError
+from nightfall.scope.ownership import proof_for
 from nightfall.scope.repository import active_scope, snapshot
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["scope"])
@@ -57,6 +58,14 @@ class EntryIn(Model):
     daily_budget: Annotated[int, Field(ge=1, le=5000)] = 200
 
 
+class ControlOut(Model):
+    proven: bool
+    claim_id: uuid.UUID | None = None
+    claim_name: str | None = None
+    method: str | None = None
+    checked_at: datetime | None = None
+
+
 class EntryOut(Model):
     id: uuid.UUID
     kind: ScopeEntryKind
@@ -65,6 +74,8 @@ class EntryOut(Model):
     allowed_ports: list[int] | None = None
     max_rps: int | None = None
     daily_budget: int | None = None
+    # Proof of control (Profile B G1): set only on targets of the active scope.
+    control: ControlOut | None = None
 
 
 class ScopePatch(Model):
@@ -136,6 +147,21 @@ def _draft(db: Session, ctx: WorkspaceContext, scope_id: uuid.UUID) -> Scope:
     return s
 
 
+def _control(db: Session, s: Scope, t: ScopeTarget) -> ControlOut | None:
+    if s.status is not ScopeStatus.ACTIVE or s.is_lab:
+        return None
+    p = proof_for(db, s, t.kind, t.value)
+    if p is None:
+        return ControlOut(proven=False)
+    return ControlOut(
+        proven=True,
+        claim_id=p.claim.id,
+        claim_name=p.claim.name,
+        method=p.claim.method.value,
+        checked_at=p.check.checked_at,
+    )
+
+
 def _out(db: Session, s: Scope) -> ScopeOut:
     names = dict(
         db.execute(
@@ -179,6 +205,7 @@ def _out(db: Session, s: Scope) -> ScopeOut:
                 allowed_ports=t.allowed_ports,
                 max_rps=t.max_rps,
                 daily_budget=t.daily_budget,
+                control=_control(db, s, t),
             )
             for t in targets
         ],
