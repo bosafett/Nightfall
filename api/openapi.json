@@ -11972,6 +11972,56 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/reports/{report_id}/pdf": {
+      "get": {
+        "description": "The report as a PDF, rendered on the server from the frozen snapshot.",
+        "operationId": "report_pdf_api_workspaces__workspace_id__reports__report_id__pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "report_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Report Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Pdf",
+        "tags": [
+          "reports"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/reports/{report_id}/replay": {
       "get": {
         "description": "Read-only: re-runs the current finding rules over the evidence as of this report.",

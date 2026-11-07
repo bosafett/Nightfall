@@ -15,7 +15,7 @@ from collections import Counter
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -43,7 +43,7 @@ from nightfall.core.db.models import (
     User,
 )
 from nightfall.core.db.session import DB
-from nightfall.core.errors import not_found
+from nightfall.core.errors import api_error, not_found
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
@@ -374,3 +374,56 @@ def get_report(
     s, name = row
     ok = hashlib.sha256(canonical(s.content)).digest() == s.content_sha256
     return ReportOut(**_summary(s, name).model_dump(), integrity_ok=ok, content=s.content)
+
+
+@router.get(
+    "/reports/{report_id}/pdf",
+    response_class=Response,
+    responses={200: {"content": {"application/pdf": {}}}},
+)
+def report_pdf(
+    report_id: uuid.UUID, db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)
+) -> Response:
+    """The report as a PDF, rendered on the server from the frozen snapshot."""
+    from nightfall.reports.pdf import render
+
+    row = db.execute(
+        select(AssessmentSnapshot, User.display_name)
+        .join(User, User.id == AssessmentSnapshot.taken_by_user_id)
+        .where(
+            AssessmentSnapshot.id == report_id, AssessmentSnapshot.workspace_id == ctx.workspace_id
+        )
+    ).first()
+    if row is None:
+        raise not_found("Report not found.")
+    s, name = row
+    if hashlib.sha256(canonical(s.content)).digest() != s.content_sha256:
+        # A document that leaves the system must not carry a snapshot that fails its check.
+        raise api_error(
+            409,
+            "integrity_failed",
+            "This snapshot no longer matches its SHA-256, so no PDF is produced.",
+        )
+    sha = s.content_sha256.hex()
+    body = render(s.content, report_id=str(s.id), sha256=sha, taken_by=name)
+    record(
+        db,
+        "report.exported",
+        entity_type="report",
+        entity_id=s.id,
+        data={
+            "format": "pdf",
+            "snapshot_sha256": sha,
+            "pdf_sha256": hashlib.sha256(body).hexdigest(),
+        },
+        **ctx.audit_kwargs(),
+    )
+    filename = f"janus-report-{s.taken_at.date().isoformat()}-{str(s.id)[:8]}.pdf"
+    return Response(
+        content=body,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Cache-Control": "no-store",
+        },
+    )

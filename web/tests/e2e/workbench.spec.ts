@@ -368,6 +368,11 @@ test.describe("as the owner", () => {
     await expect(page.getByText(/TEST-FIXTURE evidence/)).toBeVisible();
     await expect(page.getByText(/attack paths are hypotheses, not demonstrated compromises/)).toBeVisible();
     await expect(page.getByText("Integrity check failed")).toHaveCount(0);
+    // Server-side PDF of the same snapshot.
+    const pdf = page.waitForEvent("download");
+    await page.getByRole("link", { name: "Download PDF" }).click();
+    const file = await (await pdf).path();
+    expect((await import("node:fs")).readFileSync(file).subarray(0, 5).toString()).toBe("%PDF-");
 
     // BLACK ICE replay: today's rules over the report's evidence, read-only.
     await page.getByRole("link", { name: "Check against current rules" }).click();

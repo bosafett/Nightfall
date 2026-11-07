@@ -51,6 +51,7 @@ export default async function ReportPage({ params }: { params: Promise<{ ws: str
         <Link href={`/w/${ws}/reports?project=${r.project_id}`} className="text-sm text-muted hover:text-text">← Reports</Link>
         <span className="flex items-center gap-3">
           <Link href={`/w/${ws}/reports/${r.id}/replay`} className="text-sm text-crimson-text hover:underline">Check against current rules</Link>
+          {r.integrity_ok && <a href={`/api/workspaces/${ws}/reports/${r.id}/pdf`} download className="text-sm text-crimson-text hover:underline">Download PDF</a>}
           <PrintButton />
         </span>
       </div>

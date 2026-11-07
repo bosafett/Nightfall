@@ -828,6 +828,17 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
 - **AI provider decision (owner, 2026-11-07):** the deployment will use the Anthropic API
   (`NIGHTFALL_AI_PROVIDER=anthropic`); the owner adds `ANTHROPIC_API_KEY` in Vercel. Until then AI stays off. Ollama
   remains available for self-hosted workers but isn't required. Agent benchmarks are still not run in this phase.
+- **Server-side PDF reports (done, no migration).**
+  - `GET /api/workspaces/{ws}/reports/{id}/pdf` (any member) renders the frozen snapshot, never live data, with the
+    same sections as the report page. "Download PDF" on the report page.
+  - Every page footer names the snapshot and its SHA-256; page 1 has both in full. The PDF's dates come from the
+    snapshot, so the same snapshot always gives the same bytes. Each download is an audit event
+    (`report.exported`) with the snapshot's hash and the PDF's hash.
+  - A snapshot that fails its integrity check gets a 409 and no PDF: a document that leaves the system must not
+    carry it.
+  - Library: fpdf2 (pure Python, LGPL-3.0, with Pillow and fontTools), so it runs on Vercel without system packages.
+    The DejaVu fonts are bundled (Bitstream Vera licence) so any Latin, Greek or Cyrillic name prints correctly.
+    Scripts DejaVu lacks (e.g. CJK) don't render; adding them needs a larger font.
 - **SWORD: ZAP baseline:** skipped for now by the owner (2026-11-07). It needs owner decisions on where the ZAP daemon runs (it can't run on Vercel) and its own tool review before it may contact targets.
 - **Next:** SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).

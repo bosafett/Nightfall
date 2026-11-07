@@ -20,6 +20,7 @@ dependencies = [
   "httpx~=0.28.1",      # collectors
   "dnspython~=2.9",     # collectors
   "anthropic~=2.5",     # agents (optional at runtime: NIGHTFALL_AI_PROVIDER)
+  "fpdf2~=2.9",         # report PDFs (pure Python; fonts bundled in nightfall/reports/fonts)
 ]
 
 [project.optional-dependencies]
@@ -67,3 +68,4 @@ addopts = "-q"
 [tool.setuptools.package-data]
 "nightfall.tools.nuclei" = ["templates/*.yaml"]
 "nightfall.blacksite" = ["static/*"]
+"nightfall.reports" = ["fonts/*.ttf", "fonts/*.txt"]
