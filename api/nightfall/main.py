@@ -29,6 +29,7 @@ from nightfall.core.schemas import Model
 from nightfall.core.tenancy.routes import router as workspace_router
 from nightfall.findings.paths import router as paths_router
 from nightfall.findings.routes import router as findings_router
+from nightfall.nexus.routes import router as nexus_router
 from nightfall.overview.routes import router as overview_router
 from nightfall.recon.routes import router as recon_router
 from nightfall.registry.assets import router as assets_router
@@ -177,6 +178,7 @@ ROUTERS = (
     scope_router,
     ownership_router,
     chronicle_router,
+    nexus_router,
     recon_router,
     findings_router,
     paths_router,

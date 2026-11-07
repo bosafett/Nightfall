@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, LargeBinary, text
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, LargeBinary, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -678,3 +678,88 @@ class AgentTask(Base):
     finished_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = _created()
     updated_at: Mapped[datetime] = _updated()
+
+
+class WorkflowRunState(enum.StrEnum):
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+    TIMED_OUT = "timed_out"
+
+
+class WorkflowStepState(enum.StrEnum):
+    PENDING = "pending"
+    READY = "ready"
+    BLOCKED = "blocked"
+    RUNNING = "running"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+    CANCELLED = "cancelled"
+    TIMED_OUT = "timed_out"
+
+
+class WorkflowRun(Base):
+    """NEXUS (migration 0018)."""
+
+    __tablename__ = "workflow_runs"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    definition_id: Mapped[str]
+    definition_version: Mapped[str]
+    definition_sha256: Mapped[str]
+    inputs: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+    state: Mapped[WorkflowRunState] = mapped_column(
+        _pg_enum(WorkflowRunState, "workflow_run_state"), server_default=text("'running'")
+    )
+    started_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    started_at: Mapped[datetime] = _created()
+    deadline: Mapped[datetime]
+    finished_at: Mapped[datetime | None]
+    cancelled_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    cancel_reason: Mapped[str] = mapped_column(server_default=text("''"))
+
+
+class WorkflowStep(Base):
+    """State changes only along the allowed transitions (trigger, migration 0018)."""
+
+    __tablename__ = "workflow_steps"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    run_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workflow_runs.id"))
+    key: Mapped[str]
+    kind: Mapped[str]
+    position: Mapped[int]
+    depends_on: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
+    state: Mapped[WorkflowStepState] = mapped_column(
+        _pg_enum(WorkflowStepState, "workflow_step_state"), server_default=text("'pending'")
+    )
+    attempt: Mapped[int] = mapped_column(server_default=text("0"))
+    started_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    started_at: Mapped[datetime | None]
+    deadline: Mapped[datetime | None]
+    finished_at: Mapped[datetime | None]
+    detail: Mapped[str] = mapped_column(server_default=text("''"))
+    outputs: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'::jsonb"))
+
+
+class WorkflowStepEvent(Base):
+    """Insert-only, written by trigger (migration 0018)."""
+
+    __tablename__ = "workflow_step_events"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    run_id: Mapped[uuid.UUID]
+    step_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workflow_steps.id"))
+    step_key: Mapped[str]
+    from_state: Mapped[WorkflowStepState | None] = mapped_column(
+        _pg_enum(WorkflowStepState, "workflow_step_state")
+    )
+    to_state: Mapped[WorkflowStepState] = mapped_column(
+        _pg_enum(WorkflowStepState, "workflow_step_state")
+    )
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    detail: Mapped[str]
+    occurred_at: Mapped[datetime] = _created()

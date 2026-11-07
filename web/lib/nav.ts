@@ -13,7 +13,7 @@ export type NavGroup = {
   collapsible?: { open: boolean };
 };
 export type IconName =
-  | "command" | "target" | "recon" | "findings" | "graph" | "warroom" | "blacksite" | "reports" | "settings" | "agents" | "audit" | "blackbox";
+  | "command" | "target" | "recon" | "findings" | "graph" | "warroom" | "blacksite" | "reports" | "settings" | "agents" | "audit" | "blackbox" | "nexus";
 
 const planned = (key: string, label: string): PlannedItem =>
   ({ key, label, planned: true, tag: "Planned", title: "Not built yet" });
@@ -49,7 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
       title: "Asset status and change history are on each asset in the Target Registry" },
     { key: "chronicle", label: "CHRONICLE", planned: true, tag: "In Projects",
       title: "Each project and operation has a History panel built from the audit log" },
-    planned("nexus", "NEXUS"),
+    { key: "nexus", label: "NEXUS", href: (ws) => `/w/${ws}/nexus`, icon: "nexus" },
     planned("control", "CONTROL"),
     planned("watchtower", "WATCHTOWER"),
   ] },

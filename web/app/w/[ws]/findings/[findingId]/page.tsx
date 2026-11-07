@@ -10,6 +10,7 @@ import { EvidenceList } from "@/components/assets/EvidenceList";
 import { SeverityBadge, StatusBadge } from "@/components/findings/Badges";
 import { EditFinding, LinkEvidence, StatusDecision } from "@/components/findings/FindingForms";
 import { Alert, PageHeader, Panel } from "@/components/ui/primitives";
+import { ReassessFinding } from "@/components/nexus/StartWorkflow";
 
 export const metadata: Metadata = { title: "Finding" };
 
@@ -36,6 +37,9 @@ export default async function FindingPage({ params }: { params: Promise<{ ws: st
       {f.validation_status === "hypothesis" && <Alert tone="yellow">Hypothesis: plausible, but not shown by evidence. Don&apos;t treat it as a confirmed vulnerability.</Alert>}
       {f.validated_by && <Alert tone={f.validation_status === "validated" ? "green" : "blue"}>Marked {f.validation_status.replace("_", " ")} by {f.validated_by} on {formatDateTime(f.validated_at)}{f.status_note && `: ${f.status_note}`}</Alert>}
       {!f.validated_by && f.status_note && <Alert tone="yellow">{f.status_note}</Alert>}
+      {f.validation_status === "remediated" && can.launchPlaybooks(me.role) && (
+        <div className="mt-3"><ReassessFinding ws={ws} projectId={f.project_id} findingId={f.id} /></div>
+      )}
       <div className="mt-4 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div className="space-y-6">
           <Panel title="Details">

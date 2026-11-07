@@ -870,6 +870,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/nexus/workflows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Workflows */
+        get: operations["list_workflows_api_workspaces__workspace_id__nexus_workflows_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/operations": {
         parameters: {
             query?: never;
@@ -1269,6 +1286,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/workflows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Workflow
+         * @description Starting a run approves nothing: each step that contacts a target is started by a
+         *     person and approved through the normal flow when it's due.
+         */
+        post: operations["start_workflow_api_workspaces__workspace_id__projects__project_id__workflows_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/recon/tools": {
         parameters: {
             query?: never;
@@ -1552,6 +1590,132 @@ export interface paths {
          *     every job was already authorized when it was queued, and is re-checked when it runs).
          */
         post: operations["run_queued_jobs_api_workspaces__workspace_id__worker_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_workspaces__workspace_id__workflow_runs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Workflow Run */
+        get: operations["get_workflow_run_api_workspaces__workspace_id__workflow_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Run
+         * @description Queued operations are cancelled; running ones finish and their evidence is kept.
+         */
+        post: operations["cancel_run_api_workspaces__workspace_id__workflow_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs/{run_id}/steps/{key}/answer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Answer Checkpoint */
+        post: operations["answer_checkpoint_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__answer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs/{run_id}/steps/{key}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Review */
+        post: operations["complete_review_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs/{run_id}/steps/{key}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Step
+         * @description Puts a failed step back to ready. A person still starts it, and its new operations
+         *     need their own approvals: nothing is re-used.
+         */
+        post: operations["retry_step_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/workflow-runs/{run_id}/steps/{key}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start Step */
+        post: operations["start_step_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__start_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4405,6 +4569,263 @@ export interface components {
          * @enum {string}
          */
         Window: "1h" | "24h" | "7d" | "30d";
+        /** WorkflowAnswerIn */
+        WorkflowAnswerIn: {
+            /**
+             * Answer
+             * @enum {string}
+             */
+            answer: "continue" | "stop";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** WorkflowCancelIn */
+        WorkflowCancelIn: {
+            /** Reason */
+            reason: string;
+        };
+        /** WorkflowCompleteIn */
+        WorkflowCompleteIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** WorkflowDefOut */
+        WorkflowDefOut: {
+            /** Deadline Days */
+            deadline_days: number;
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Sha256 */
+            sha256: string;
+            /** Starts From */
+            starts_from: string;
+            /** Steps */
+            steps: components["schemas"]["WorkflowStepDefOut"][];
+            /** Summary */
+            summary: string;
+            /** Tests */
+            tests: string[];
+            /** Version */
+            version: string;
+        };
+        /** WorkflowRunDetail */
+        WorkflowRunDetail: {
+            /** Cancel Reason */
+            cancel_reason: string;
+            /** Current */
+            current: string | null;
+            /**
+             * Deadline
+             * Format: date-time
+             */
+            deadline: string;
+            /** Definition Sha256 */
+            definition_sha256: string;
+            /** Events */
+            events: components["schemas"]["WorkflowStepEventOut"][];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Organization Id
+             * Format: uuid
+             */
+            organization_id: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By */
+            started_by: string;
+            state: components["schemas"]["WorkflowRunState"];
+            /** Steps */
+            steps: components["schemas"]["WorkflowStepOut"][];
+            /** Subject */
+            subject: string;
+            /** Tracked */
+            tracked: components["schemas"]["WorkflowTrackedFinding"][];
+            /** Version */
+            version: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Workflow Name */
+            workflow_name: string;
+        };
+        /** WorkflowRunOut */
+        WorkflowRunOut: {
+            /** Current */
+            current: string | null;
+            /**
+             * Deadline
+             * Format: date-time
+             */
+            deadline: string;
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By */
+            started_by: string;
+            state: components["schemas"]["WorkflowRunState"];
+            /** Subject */
+            subject: string;
+            /** Version */
+            version: string;
+            /** Workflow Id */
+            workflow_id: string;
+            /** Workflow Name */
+            workflow_name: string;
+        };
+        /**
+         * WorkflowRunState
+         * @enum {string}
+         */
+        WorkflowRunState: "running" | "succeeded" | "failed" | "cancelled" | "timed_out";
+        /** WorkflowStartIn */
+        WorkflowStartIn: {
+            /** Finding Id */
+            finding_id?: string | null;
+            /** Target */
+            target?: string | null;
+            /** Workflow Id */
+            workflow_id: string;
+        };
+        /** WorkflowStepDefOut */
+        WorkflowStepDefOut: {
+            /** Depends On */
+            depends_on: string[];
+            /** Description */
+            description: string;
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Retries */
+            retries: number;
+            /**
+             * Starts
+             * @enum {string}
+             */
+            starts: "person" | "automatic";
+            /** Timeout Hours */
+            timeout_hours: number;
+            /** When */
+            when: string;
+        };
+        /** WorkflowStepEventOut */
+        WorkflowStepEventOut: {
+            /** Actor */
+            actor: string;
+            /** Detail */
+            detail: string;
+            from_state: components["schemas"]["WorkflowStepState"] | null;
+            /**
+             * Occurred At
+             * Format: date-time
+             */
+            occurred_at: string;
+            /** Step Key */
+            step_key: string;
+            to_state: components["schemas"]["WorkflowStepState"];
+        };
+        /** WorkflowStepOut */
+        WorkflowStepOut: {
+            /** Attempt */
+            attempt: number;
+            /** Can Retry */
+            can_retry: boolean;
+            /** Deadline */
+            deadline: string | null;
+            /** Depends On */
+            depends_on: string[];
+            /** Description */
+            description: string;
+            /** Detail */
+            detail: string;
+            /** Finished At */
+            finished_at: string | null;
+            /** Key */
+            key: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Outputs */
+            outputs: {
+                [key: string]: unknown;
+            };
+            /** Retries */
+            retries: number;
+            /** Started At */
+            started_at: string | null;
+            /** Started By */
+            started_by: string | null;
+            state: components["schemas"]["WorkflowStepState"];
+        };
+        /**
+         * WorkflowStepState
+         * @enum {string}
+         */
+        WorkflowStepState: "pending" | "ready" | "blocked" | "running" | "succeeded" | "failed" | "skipped" | "cancelled" | "timed_out";
+        /** WorkflowTrackedFinding */
+        WorkflowTrackedFinding: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ref */
+            ref: string;
+            /** Severity */
+            severity: string;
+            status: components["schemas"]["ValidationStatus"];
+            /** Title */
+            title: string;
+        };
+        /** WorkflowsOut */
+        WorkflowsOut: {
+            /** Unavailable Step Kinds */
+            unavailable_step_kinds: string[];
+            /** Workflows */
+            workflows: components["schemas"]["WorkflowDefOut"][];
+        };
         /** WorkspaceOut */
         WorkspaceOut: {
             /**
@@ -6289,6 +6710,37 @@ export interface operations {
             };
         };
     };
+    list_workflows_api_workspaces__workspace_id__nexus_workflows_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_operations_api_workspaces__workspace_id__operations_get: {
         parameters: {
             query?: {
@@ -7298,6 +7750,42 @@ export interface operations {
             };
         };
     };
+    start_workflow_api_workspaces__workspace_id__projects__project_id__workflows_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowStartIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_tools_api_workspaces__workspace_id__recon_tools_get: {
         parameters: {
             query?: never;
@@ -7838,6 +8326,248 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DrainOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_runs_api_workspaces__workspace_id__workflow_runs_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_workflow_run_api_workspaces__workspace_id__workflow_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_run_api_workspaces__workspace_id__workflow_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowCancelIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    answer_checkpoint_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__answer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                key: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowAnswerIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    complete_review_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                key: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkflowCompleteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_step_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                key: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_step_api_workspaces__workspace_id__workflow_runs__run_id__steps__key__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+                key: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkflowRunDetail"];
                 };
             };
             /** @description Validation Error */

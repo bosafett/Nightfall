@@ -872,8 +872,25 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - UI: a History panel on each project and on each operation page (that operation, its evidence and linked
     findings). CHRONICLE is labelled "In Projects" in the sidebar. Not yet: before-and-after comparisons, incident
     timelines (they need SHIELD) and NEXUS run history (it needs NEXUS).
-- **NEXUS: workflow orchestration (design only).** `docs/designs/2026-11-nexus.md`, for review with five owner
-  decisions. Nothing is built; NEXUS stays a Planned label.
+- **NEXUS v1: workflow orchestration (done, migration 0018).** Design and owner decisions:
+  `docs/designs/2026-11-nexus.md` (§12 lists how v1 differs from the design text).
+  - **Workflows:** reviewed definitions in code, versioned and fingerprinted. "Exposure review" (HTTP security
+    playbook → triage → checkpoint → wait for fixes → reassess → check) and "Remediation reassessment" (from a
+    remediated finding).
+  - **Step kinds:** playbook, rerun, review, checkpoint and wait. Dependencies and fixed conditions (no expressions)
+    decide what's next; a skipped step skips its dependants.
+  - **NEXUS holds no permissions.** A person starts every step that sends anything. Starting a step calls the normal
+    playbook launch or collection request as that person, inside a savepoint, so scope, preflight, permission and
+    approval apply at that moment. A refusal leaves the step "couldn't start", with the reason recorded and audited.
+    Starting a run approves nothing, and retries create new operations that need new approvals.
+  - **The database enforces it:** allowed step transitions are checked by a trigger; runs and steps can't be deleted;
+    every step change is written insert-only to `workflow_step_events` by trigger, with the person or "NEXUS" for
+    automatic changes.
+  - **Timeouts and cancellation:** timeouts per step and per run. Cancelling, or a timeout, cancels operations still
+    queued or awaiting approval; running ones finish and their evidence is kept.
+  - **Audit:** `workflow.*` audit events carry the project id, so CHRONICLE shows them.
+  - **UI:** JANUS CORE → NEXUS (runs and available workflows), a run page with step actions, a Workflows panel on
+    projects and "Reassess with NEXUS" on remediated findings.
     Scripts DejaVu lacks (e.g. CJK) don't render; adding them needs a larger font.
 - **BLACK OPS Profile B: design written, not built** (`docs/designs/2026-11-blackops-profile-b.md`). Gates: proof
   of control over the target (F3), designated test identities, a recorded independent review plus an enable flag,

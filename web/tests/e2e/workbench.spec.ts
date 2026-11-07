@@ -537,6 +537,31 @@ test.describe("as the owner", () => {
     await noHorizontalScroll(page);
   });
 
+  test("NEXUS: start a workflow; a person starts the step; it waits for approval; cancel", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/targets`);
+    await page.getByRole("link", { name: "Acme Corporation" }).click();
+    await page.getByRole("link", { name: "External reconnaissance" }).click();
+    await page.getByRole("combobox", { name: "Workflow", exact: true }).selectOption("exposure-review");
+    await page.getByRole("combobox", { name: "Workflow target" }).selectOption("acme.test");
+    await page.getByRole("button", { name: "Start workflow" }).click();
+    await expect(page).toHaveURL(/\/nexus\/runs\//);
+    const assess = page.getByTestId("step-assess");
+    await expect(assess).toContainText("Ready to start");
+    await expect(page.getByTestId("step-triage")).toContainText("Waiting on earlier steps");
+
+    // Starting the step launches the playbook as this person; its operation awaits approval.
+    await assess.getByRole("button", { name: "Start step" }).click();
+    await expect(assess).toContainText("In progress");
+    await expect(assess.getByRole("link", { name: /Operation/ })).toBeVisible();
+
+    await page.getByRole("button", { name: "Cancel workflow" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Cancel workflow" }).click();
+    await expect(page.locator("main").getByText("Cancelled", { exact: true }).first()).toBeVisible();
+    await page.goto(`${workspaceUrl}/nexus`);
+    await expect(page.getByRole("row", { name: /Exposure review.*acme\.test/ })).toContainText("Cancelled");
+    await noHorizontalScroll(page);
+  });
+
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();

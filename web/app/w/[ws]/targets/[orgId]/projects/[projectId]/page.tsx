@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiGet } from "@/lib/api/server";
-import type { AgentsInfo, AgentTask, AgentTaskDetail, Asset, Chronicle, Operation, OwnershipClaim, Project, ScopeVersion } from "@/lib/api/types";
+import type { AgentsInfo, AgentTask, AgentTaskDetail, Asset, Chronicle, Operation, OwnershipClaim, WorkflowRun, Workflows, Project, ScopeVersion } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { assessmentTypeLabel, can } from "@/lib/labels";
 import { AutoRefresh } from "@/components/recon/AutoRefresh";
@@ -11,6 +11,8 @@ import { RunAgent } from "@/components/agents/RunAgent";
 import { CollectionForm } from "@/components/recon/CollectionForm";
 import { OperationsTable } from "@/components/recon/OperationsTable";
 import { Timeline } from "@/components/chronicle/Timeline";
+import { RunsTable } from "@/components/nexus/RunsTable";
+import { StartWorkflow } from "@/components/nexus/StartWorkflow";
 import { OwnershipPanel } from "@/components/scope/OwnershipPanel";
 import { ScopePanel } from "@/components/scope/ScopePanel";
 import { membership } from "@/lib/workspace";
@@ -22,7 +24,7 @@ export const metadata: Metadata = { title: "Project" };
 
 export default async function ProjectPage({ params }: { params: Promise<{ ws: string; orgId: string; projectId: string }> }) {
   const { ws, orgId, projectId } = await params;
-  const [project, scopes, ops, me, ai, tasks, assets, claims, history] = await Promise.all([
+  const [project, scopes, ops, me, ai, tasks, assets, claims, history, workflows, wruns] = await Promise.all([
     apiGet<Project>(`/workspaces/${ws}/projects/${projectId}`),
     apiGet<ScopeVersion[]>(`/workspaces/${ws}/projects/${projectId}/scopes`),
     apiGet<Operation[]>(`/workspaces/${ws}/operations?project_id=${encodeURIComponent(projectId)}&limit=20`),
@@ -32,6 +34,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
     apiGet<Asset[]>(`/workspaces/${ws}/assets?organization_id=${encodeURIComponent(orgId)}`),
     apiGet<OwnershipClaim[]>(`/workspaces/${ws}/ownership/claims`),
     apiGet<Chronicle>(`/workspaces/${ws}/projects/${projectId}/chronicle?limit=30`),
+    apiGet<Workflows>(`/workspaces/${ws}/nexus/workflows`),
+    apiGet<WorkflowRun[]>(`/workspaces/${ws}/workflow-runs?project_id=${encodeURIComponent(projectId)}&limit=10`),
   ]);
   const lastSummary = tasks.find((t) => t.agent === "analyst" && t.status === "succeeded");
   const summary = lastSummary ? await apiGet<AgentTaskDetail>(`/workspaces/${ws}/agent-tasks/${lastSummary.id}`) : null;
@@ -99,6 +103,14 @@ export default async function ProjectPage({ params }: { params: Promise<{ ws: st
               {tasks.length > 0 ? <AgentTasksTable ws={ws} tasks={tasks} /> : <p className="text-sm text-muted">No agent has run for this project yet.</p>}
             </div>
           )}
+        </Panel>
+        <Panel title="Workflows (NEXUS)">
+          <div className="space-y-4">
+            {can.launchPlaybooks(me.role) && active && !active.is_lab
+              ? <StartWorkflow ws={ws} projectId={projectId} workflows={workflows.workflows} targets={suggestions} />
+              : <p className="text-sm text-muted">{active?.is_lab ? "Workflows run against live, non-lab scopes." : "The workspace owner starts workflows (they launch playbooks)."}</p>}
+            {wruns.length > 0 ? <RunsTable ws={ws} runs={wruns} showProject={false} /> : <p className="text-sm text-muted">No workflow has run on this project yet.</p>}
+          </div>
         </Panel>
         <Panel title="History">
           <Timeline ws={ws} projectId={projectId} initial={history} />

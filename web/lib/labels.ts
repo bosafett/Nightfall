@@ -39,6 +39,7 @@ export const can = {
   manageMembers: (r: Role) => rank[r] >= rank.admin,
   authorizeScope: (r: Role) => rank[r] >= rank.admin,
   manageOwnership: (r: Role) => r === "owner",
+  launchPlaybooks: (r: Role) => r === "owner",
   approveOperations: (r: Role) => rank[r] >= rank.operator,
   editFindings: (r: Role) => rank[r] >= rank.analyst,
   assign: (actor: Role, role: Role) => actor === "owner" || rank[role] < rank[actor],

@@ -43,6 +43,7 @@ from nightfall.core.db.models import (
     Project,
     Scope,
     User,
+    WorkflowRun,
 )
 from nightfall.core.db.session import DB
 from nightfall.core.errors import not_found
@@ -76,6 +77,10 @@ SAFE_FIELDS = (
     "detail",
     "scope_version",
     "fields",
+    "workflow",
+    "step",
+    "answer",
+    "attempt",
     "format",
     "sha256",
     "accepted",
@@ -135,6 +140,14 @@ ACTIONS: dict[str, str] = {
     "asset.created": "added an asset",
     "asset.updated": "updated an asset",
     "relationship.proposed_by_agent": "AI agent proposed an asset relationship",
+    "workflow.started": "started a workflow",
+    "workflow.step_started": "started a workflow step",
+    "workflow.step_blocked": "Workflow step couldn't start",
+    "workflow.step_retried": "retried a workflow step",
+    "workflow.review_completed": "completed a workflow review",
+    "workflow.checkpoint_answered": "answered a workflow checkpoint",
+    "workflow.cancelled": "cancelled a workflow",
+    "workflow.finished": "Workflow finished",
 }
 
 
@@ -222,6 +235,7 @@ def _entities(
             pair("report", AssessmentSnapshot.id, AssessmentSnapshot.project_id == project_id),
             pair("playbook_run", PlaybookRun.id, PlaybookRun.project_id == project_id),
             pair("agent_task", AgentTask.id, AgentTask.project_id == project_id),
+            pair("workflow_run", WorkflowRun.id, WorkflowRun.project_id == project_id),
         ]
     return union_all(*parts).subquery()
 
