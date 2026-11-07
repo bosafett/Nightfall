@@ -253,6 +253,10 @@ the Vercel environment for migrations, can modify or delete rows.
 **Recommendation:** later, export audit events continuously to a separate append-only store (for example a
 log drain to storage with object lock). Not blocking for the lab.
 
+**Status (2026-11-07):** partly addressed. A hash-chained export and a check against a kept export now detect
+changes (Audit Log → Export; `docs/PHASE0_ARCHITECTURE_REVIEW.md` §17.4). Prevention still needs append-only
+storage outside the database, which is an owner decision.
+
 ### F8 (Info): parts of BLACKSITE's design are untested because they're unbuilt
 
 The loopback listener, the step-up MFA window, asset-id-only targeting, per-target budgets, DNS pinning for

@@ -386,6 +386,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/audit/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Export Page
+         * @description One page of the chained export. Call again with `next` until it is null.
+         */
+        post: operations["export_page_api_workspaces__workspace_id__audit_export_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/audit/export/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Export
+         * @description Recompute the chain up to the last record of a kept export and compare.
+         */
+        post: operations["check_export_api_workspaces__workspace_id__audit_export_check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/blackbox": {
         parameters: {
             query?: never;
@@ -1743,6 +1783,29 @@ export interface components {
          * @enum {string}
          */
         AttackPathStatus: "hypothesis" | "validated" | "rejected";
+        /** AuditCheckIn */
+        AuditCheckIn: {
+            /** Hash */
+            hash: string;
+            /** Position */
+            position: number;
+            /**
+             * Through Id
+             * Format: uuid
+             */
+            through_id: string;
+        };
+        /** AuditCheckOut */
+        AuditCheckOut: {
+            /** Detail */
+            detail: string;
+            /** Events Checked */
+            events_checked: number;
+            /** Match */
+            match: boolean;
+            /** Problem */
+            problem: ("missing" | "position" | "hash") | null;
+        };
         /** AuditEventOut */
         AuditEventOut: {
             /** Action */
@@ -1771,6 +1834,54 @@ export interface components {
              * Format: date-time
              */
             occurred_at: string;
+        };
+        /** AuditExportCursor */
+        AuditExportCursor: {
+            /**
+             * After
+             * Format: uuid
+             */
+            after: string;
+            /**
+             * Cutoff
+             * Format: date-time
+             */
+            cutoff: string;
+            /** Position */
+            position: number;
+            /** Prev */
+            prev: string;
+        };
+        /** AuditExportPage */
+        AuditExportPage: {
+            /**
+             * Cutoff
+             * Format: date-time
+             */
+            cutoff: string;
+            /** Format */
+            format: string;
+            /** Genesis */
+            genesis: string;
+            next: components["schemas"]["AuditExportCursor"] | null;
+            /** Records */
+            records: components["schemas"]["AuditExportRecord"][];
+            /**
+             * Workspace Id
+             * Format: uuid
+             */
+            workspace_id: string;
+        };
+        /** AuditExportRecord */
+        AuditExportRecord: {
+            /** Hash */
+            hash: string;
+            /** Position */
+            position: number;
+            /** Record */
+            record: {
+                [key: string]: unknown;
+            };
         };
         /** AuditPage */
         AuditPage: {
@@ -4862,6 +4973,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_page_api_workspaces__workspace_id__audit_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AuditExportCursor"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditExportPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_export_api_workspaces__workspace_id__audit_export_check_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuditCheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditCheckOut"];
                 };
             };
             /** @description Validation Error */

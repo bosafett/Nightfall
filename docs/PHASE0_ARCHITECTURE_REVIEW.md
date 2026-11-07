@@ -692,7 +692,7 @@ Owner decisions, final. Where earlier sections disagree, this section wins.
 | D3 | **BLACKSITE runs on the lab machine, host-only.** Remote administration through an authenticated SSH tunnel. Nothing public. The hosted (Vercel) app must not become an execution gateway into the lab. | `nightfall-blacksite` listener (separate app, loopback only, peer and `Host` checks, feature flag off by default, refused on the hosted platform). Lab operations and lab playbook runs are created, approved and cancelled only through it; the hosted app's database role can read lab records but not act on them. See `docs/blacksite-deployment.md`. |
 | D4 | **Independent review** of sensitive security functionality, by someone other than its implementer (person or agent). Tests and self-review are not sign-off. | BLACKSITE refuses lab execution until `NIGHTFALL_BLACKSITE_REVIEW_REF` is set. The software can't verify a review happened; the reference is the owner's attestation and should name a signed document in `docs/reviews/`. |
 | — | **Repository stays public.** Vercel free tier stays; no hosting migration or paid services. | §11.1 and §12 superseded. No paid AI calls during development. |
-| — | **Rename to JANUS / JNS.OS**, display level. | Product name in UI, reports, API title, User-Agent and docs. Internal identifiers unchanged (package, `NIGHTFALL_*` variables, `nightfall_*` roles, cookie name), so deployments keep working. Agent prompt text still says NIGHTFALL; changing it means a prompt-version bump and is deferred. |
+| — | **Rename to JANUS / JNS.OS**, display level. | Product name in UI, reports, API title, User-Agent and docs. Internal identifiers unchanged (package, `NIGHTFALL_*` variables, `nightfall_*` roles, cookie name), so deployments keep working. Agent prompt text now says JANUS too (prompt version `agents/2026.11-3`, 2026-11-07). |
 
 **Lab boundary (recommended and adopted for D3).** The lab worker already pulls jobs from the database; previously the
 hosted app could create and approve those jobs, which made it a gateway into the lab. Now only BLACKSITE can (API
@@ -801,5 +801,19 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - Read-only and computed on request: a flag never changes a finding. A person reviews it and sets the status.
   - UI: a "Contradicted by newer evidence" panel on Findings and a notice on the finding page. BLACK ICE stays a label
     in the sidebar.
+- **SWORD: agent prompt rename (done).** The agents' ground rules name JANUS instead of NIGHTFALL; the prompt
+  version is now `agents/2026.11-3`, so tasks show which wording they ran with. No benchmark was re-run.
+- **SWORD: audit export with a hash chain (F7, partly addressed; no migration).**
+  - `POST /api/workspaces/{ws}/audit/export` (owner and admin, paged with the returned cursor) returns every audit
+    event of the workspace, oldest first. Each record carries `hash = sha256(previous hash + canonical record)`,
+    starting from a per-workspace genesis value. The page downloads it as NDJSON (SYSTEM → Audit Log → Export).
+  - `POST …/audit/export/check` takes the last record of a kept export and recomputes the chain from the start. It
+    reports `missing` (that event was deleted), `position` (earlier events were added or removed) or `hash` (an
+    earlier event was changed). Exports and checks are audit events.
+  - This **detects** changes made with the owner credential, as long as the owner keeps the file outside this
+    system. It doesn't **prevent** them: that still needs append-only storage outside the database (an external
+    service, so an owner decision). Limits: redacted fields aren't covered, sign-in events without a workspace aren't
+    included, and events from the last five minutes wait for the next export.
+- **SWORD: ZAP baseline:** not started. It needs owner decisions on where the ZAP daemon runs (it can't run on Vercel) and its own tool review before it may contact targets.
 - **Next:** SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).

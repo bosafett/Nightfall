@@ -90,6 +90,13 @@ test.describe("as the owner", () => {
     await expect(page.getByTestId("integrity")).toContainText("Audit writes");
     await expect(page.getByTestId("integrity")).toContainText("Never connected");
     await expect(page.locator("main").getByRole("navigation", { name: "Filter by category" })).toBeVisible();
+    // The chained export downloads as NDJSON (events from the last five minutes wait, so it may be short).
+    const download = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export audit log" }).click();
+    const file = await (await download).path();
+    const header = JSON.parse((await import("node:fs")).readFileSync(file, "utf8").split("\n")[0] ?? "");
+    expect(header.format).toBe("janus-audit-export/v1");
+    await expect(page.getByText(/Exported \d+ events/)).toBeVisible();
     // Unbuilt divisions are collapsible labels, never links.
     const shield = nav.getByRole("button", { name: /SHIELD/ });
     await expect(shield).toHaveAttribute("aria-expanded", "false");

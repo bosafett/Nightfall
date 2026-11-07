@@ -70,3 +70,5 @@ export type AuditEvent = S["AuditEventOut"];
 export type Watchtower = S["WatchtowerOut"];
 export type BlackBox = S["BlackBoxOut"];
 export type BlackBoxVerify = S["VerifyOut"];
+export type AuditExportPage = S["AuditExportPage"];
+export type AuditExportCheck = S["AuditCheckOut"];

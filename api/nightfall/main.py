@@ -18,6 +18,7 @@ from nightfall.blackbox.routes import router as blackbox_router
 from nightfall.blackice.routes import router as blackice_router
 from nightfall.blackops.routes import router as blackops_router
 from nightfall.config import get_settings
+from nightfall.core.audit.export import router as audit_export_router
 from nightfall.core.audit.routes import router as audit_router
 from nightfall.core.db.session import get_engine
 from nightfall.core.identity.routes import router as auth_router
@@ -181,6 +182,7 @@ ROUTERS = (
     blackops_router,
     warroom_router,
     audit_router,
+    audit_export_router,
     watchtower_router,
     blackbox_router,
     internal_router,

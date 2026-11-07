@@ -769,6 +769,74 @@
         "title": "AttackPathStatus",
         "type": "string"
       },
+      "AuditCheckIn": {
+        "additionalProperties": false,
+        "properties": {
+          "hash": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Hash",
+            "type": "string"
+          },
+          "position": {
+            "minimum": 1.0,
+            "title": "Position",
+            "type": "integer"
+          },
+          "through_id": {
+            "format": "uuid",
+            "title": "Through Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "through_id",
+          "position",
+          "hash"
+        ],
+        "title": "AuditCheckIn",
+        "type": "object"
+      },
+      "AuditCheckOut": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "events_checked": {
+            "title": "Events Checked",
+            "type": "integer"
+          },
+          "match": {
+            "title": "Match",
+            "type": "boolean"
+          },
+          "problem": {
+            "anyOf": [
+              {
+                "enum": [
+                  "missing",
+                  "position",
+                  "hash"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Problem"
+          }
+        },
+        "required": [
+          "match",
+          "problem",
+          "detail",
+          "events_checked"
+        ],
+        "title": "AuditCheckOut",
+        "type": "object"
+      },
       "AuditEventOut": {
         "additionalProperties": false,
         "properties": {
@@ -846,6 +914,113 @@
           "occurred_at"
         ],
         "title": "AuditEventOut",
+        "type": "object"
+      },
+      "AuditExportCursor": {
+        "additionalProperties": false,
+        "properties": {
+          "after": {
+            "format": "uuid",
+            "title": "After",
+            "type": "string"
+          },
+          "cutoff": {
+            "format": "date-time",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "prev": {
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Prev",
+            "type": "string"
+          }
+        },
+        "required": [
+          "after",
+          "position",
+          "prev",
+          "cutoff"
+        ],
+        "title": "AuditExportCursor",
+        "type": "object"
+      },
+      "AuditExportPage": {
+        "additionalProperties": false,
+        "properties": {
+          "cutoff": {
+            "format": "date-time",
+            "title": "Cutoff",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "genesis": {
+            "title": "Genesis",
+            "type": "string"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuditExportCursor"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "records": {
+            "items": {
+              "$ref": "#/components/schemas/AuditExportRecord"
+            },
+            "title": "Records",
+            "type": "array"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "workspace_id",
+          "genesis",
+          "cutoff",
+          "records",
+          "next"
+        ],
+        "title": "AuditExportPage",
+        "type": "object"
+      },
+      "AuditExportRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "hash": {
+            "title": "Hash",
+            "type": "string"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "record": {
+            "additionalProperties": true,
+            "title": "Record",
+            "type": "object"
+          }
+        },
+        "required": [
+          "position",
+          "hash",
+          "record"
+        ],
+        "title": "AuditExportRecord",
         "type": "object"
       },
       "AuditPage": {
@@ -8276,6 +8451,121 @@
           }
         },
         "summary": "Audit Log",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/audit/export": {
+      "post": {
+        "description": "One page of the chained export. Call again with `next` until it is null.",
+        "operationId": "export_page_api_workspaces__workspace_id__audit_export_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/AuditExportCursor"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Cursor"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditExportPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Page",
+        "tags": [
+          "audit"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/audit/export/check": {
+      "post": {
+        "description": "Recompute the chain up to the last record of a kept export and compare.",
+        "operationId": "check_export_api_workspaces__workspace_id__audit_export_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuditCheckIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditCheckOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Export",
         "tags": [
           "audit"
         ]

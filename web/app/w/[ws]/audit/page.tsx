@@ -4,6 +4,7 @@ import { ApiError, apiGet } from "@/lib/api/server";
 import type { AuditPage, Watchtower } from "@/lib/api/types";
 import { formatDateTime, formatRelative } from "@/lib/format";
 import { Alert, Badge, PageHeader, Panel, cx } from "@/components/ui/primitives";
+import { AuditExport } from "@/components/audit/AuditExport";
 
 export const metadata: Metadata = { title: "Audit Log" };
 
@@ -78,6 +79,7 @@ export default async function AuditLogPage({ params, searchParams }: {
       <PageHeader title="Audit Log" subtitle="Every recorded action in this workspace, newest first. Read-only." />
       <div className="space-y-6">
         {tower && <Integrity tower={tower} />}
+        <Panel title="Export"><AuditExport ws={ws} /></Panel>
         <Panel title="Events">
           <nav aria-label="Filter by category" className="mb-4 flex flex-wrap gap-2 text-sm">
             {[undefined, ...page.categories].map((c) => (
