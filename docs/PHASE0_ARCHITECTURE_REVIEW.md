@@ -858,6 +858,8 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - The proof is stored with the check instead of in the evidence table, because the app role can't write evidence
     (only workers can). It is hashed and insert-only all the same.
   - Profile B stays off: the catalog still refuses it. UI: a "Proof of control" panel on each project.
+- **NEXUS: workflow orchestration (design only).** `docs/designs/2026-11-nexus.md`, for review with five owner
+  decisions. Nothing is built; NEXUS stays a Planned label.
     Scripts DejaVu lacks (e.g. CJK) don't render; adding them needs a larger font.
 - **BLACK OPS Profile B: design written, not built** (`docs/designs/2026-11-blackops-profile-b.md`). Gates: proof
   of control over the target (F3), designated test identities, a recorded independent review plus an enable flag,
