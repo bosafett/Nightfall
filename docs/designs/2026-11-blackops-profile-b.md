@@ -261,3 +261,13 @@ Profile B adds:
 3. **Who reviews it:** the review reference that will go in `NIGHTFALL_PROFILE_B_REVIEW_REF`.
 4. **Lockout testing:** allowed as an opt-in per identity, or left out of v1.
 5. **POST to forms in playbook 6:** only operator-marked safe forms (recommended), or none in v1.
+
+## 12. Owner decisions (2026-11-07)
+
+1. **Design:** approved for independent review, as written.
+2. **Where it runs:** a self-hosted worker only. The hosted platform shows Profile B as unavailable.
+3. **Reviewer:** to be named later. Until a review is recorded, `NIGHTFALL_PROFILE_B_REVIEW_REF` stays empty and
+   Profile B stays off, even once it's built.
+4. **Lockout testing:** left out of v1. §11 gave no recommendation here, so the more cautious option was recorded. It
+   can be added later as a per-identity opt-in, capped at 5 attempts, as described in §4.
+5. **POST to forms (playbook 6):** only forms the operator marks safe.
