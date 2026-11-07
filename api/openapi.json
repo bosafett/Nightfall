@@ -266,6 +266,22 @@
             ],
             "title": "Model"
           },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "anthropic",
+                  "ollama",
+                  "fixture"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
           "usage_days": {
             "title": "Usage Days",
             "type": "integer"
@@ -274,6 +290,7 @@
         "required": [
           "ai_enabled",
           "model",
+          "provider",
           "usage_days",
           "agents"
         ],

@@ -18,9 +18,14 @@ Optional:
   NIGHTFALL_CRON_SECRET             bearer secret for the scheduled drain endpoint.
   NIGHTFALL_RATE_LIMIT_BACKEND      "memory" (default, one API process) or "postgres" (many
                                     instances, e.g. serverless).
-  NIGHTFALL_AI_PROVIDER             "none" (default: agents off) or "anthropic" (needs
+  NIGHTFALL_AI_PROVIDER             "none" (default: agents off), "ollama" (a local model on a
+                                    self-hosted machine; no paid calls) or "anthropic" (needs
                                     ANTHROPIC_API_KEY; worker only).
-  NIGHTFALL_AI_MODEL                model id (default claude-opus-5-5).
+  NIGHTFALL_AI_MODEL                model id (default claude-opus-5-5; required for ollama,
+                                    e.g. "qwen3:14b").
+  NIGHTFALL_OLLAMA_URL              Ollama endpoint (default http://127.0.0.1:11434). Must be
+                                    loopback, a private address or a single-label host name
+                                    (e.g. a compose service), so assessment data stays local.
   NIGHTFALL_WORKER_DATABASE_URL     worker connection (role nightfall_worker).
   NIGHTFALL_COLLECTOR_MODE          "live" (default) or "fixture" (tests only: canned results,
                                     labelled as fixture evidence; never contacts the network).
@@ -64,7 +69,7 @@ import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Literal, cast
 
 
 class ConfigError(RuntimeError):
@@ -88,8 +93,9 @@ class Settings:
     on_demand_worker: bool = False
     cron_secret: str | None = None
     rate_limit_backend: Literal["memory", "postgres"] = "memory"
-    ai_provider: Literal["none", "anthropic", "fixture"] = "none"
+    ai_provider: Literal["none", "anthropic", "ollama", "fixture"] = "none"
     ai_model: str = "claude-opus-5-5"
+    ollama_url: str = "http://127.0.0.1:11434"
     tool_sandbox: Literal["uid", "none"] = "uid"
     tool_user: str = "nftool"
     egress_port: int = 3128
@@ -117,6 +123,28 @@ def _require(name: str) -> str:
     if not value:
         raise ConfigError(f"{name} is not set")
     return value
+
+
+def _local_url(url: str) -> str:
+    """The Ollama endpoint must stay on this machine or network: assessment data is sent to it."""
+    from urllib.parse import urlsplit
+
+    parts = urlsplit(url)
+    host = parts.hostname or ""
+    if parts.scheme not in ("http", "https") or not host or parts.path not in ("", "/"):
+        raise ConfigError("NIGHTFALL_OLLAMA_URL must be http(s)://host[:port]")
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        local = host == "localhost" or "." not in host
+    else:
+        local = ip.is_loopback or ip.is_private
+    if not local:
+        raise ConfigError(
+            "NIGHTFALL_OLLAMA_URL must be loopback, a private address or a single-label host "
+            "name, so assessment data stays local"
+        )
+    return f"{parts.scheme}://{parts.netloc}"
 
 
 def _sqlalchemy_url(url: str) -> str:
@@ -173,11 +201,22 @@ def load_settings() -> Settings:
     if rl not in ("memory", "postgres"):
         raise ConfigError("NIGHTFALL_RATE_LIMIT_BACKEND must be 'memory' or 'postgres'")
     ai = os.environ.get("NIGHTFALL_AI_PROVIDER", "none").strip() or "none"
-    if ai not in ("none", "anthropic", "fixture"):
-        raise ConfigError("NIGHTFALL_AI_PROVIDER must be 'none' or 'anthropic'")
+    if ai not in ("none", "anthropic", "ollama", "fixture"):
+        raise ConfigError("NIGHTFALL_AI_PROVIDER must be 'none', 'ollama' or 'anthropic'")
     if ai == "fixture" and mode != "fixture":
         raise ConfigError("NIGHTFALL_AI_PROVIDER=fixture is for tests (fixture collector mode)")
-    ai_model = os.environ.get("NIGHTFALL_AI_MODEL", "claude-opus-5-5").strip() or "claude-opus-5-5"
+    raw_model = os.environ.get("NIGHTFALL_AI_MODEL", "").strip()
+    ai_model = raw_model or "claude-opus-5-5"
+    ollama_url = os.environ.get("NIGHTFALL_OLLAMA_URL", "").strip() or "http://127.0.0.1:11434"
+    if ai == "ollama":
+        if on_demand:
+            raise ConfigError(
+                "NIGHTFALL_AI_PROVIDER=ollama needs a self-hosted worker; the hosted platform "
+                "(on-demand worker) can't reach a local model."
+            )
+        if not raw_model:
+            raise ConfigError("NIGHTFALL_AI_PROVIDER=ollama needs NIGHTFALL_AI_MODEL")
+        ollama_url = _local_url(ollama_url)
     raw_lab = os.environ.get("NIGHTFALL_LAB_NETWORKS", "").strip() or "172.30.99.0/24"
     try:
         lab_networks = tuple(
@@ -227,8 +266,9 @@ def load_settings() -> Settings:
         on_demand_worker=on_demand,
         cron_secret=cron_secret,
         rate_limit_backend="postgres" if rl == "postgres" else "memory",
-        ai_provider="anthropic" if ai == "anthropic" else "fixture" if ai == "fixture" else "none",
+        ai_provider=cast(Literal["none", "anthropic", "ollama", "fixture"], ai),
         ai_model=ai_model,
+        ollama_url=ollama_url,
         lab_networks=lab_networks,
         worker_mode="lab" if worker_mode == "lab" else "standard",
         blacksite_enabled=blacksite,

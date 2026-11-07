@@ -814,6 +814,17 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     system. It doesn't **prevent** them: that still needs append-only storage outside the database (an external
     service, so an owner decision). Limits: redacted fields aren't covered, sign-in events without a workspace aren't
     included, and events from the last five minutes wait for the next export.
-- **SWORD: ZAP baseline:** not started. It needs owner decisions on where the ZAP daemon runs (it can't run on Vercel) and its own tool review before it may contact targets.
+- **Local AI provider: Ollama (done, no migration).**
+  - `NIGHTFALL_AI_PROVIDER=ollama` with `NIGHTFALL_AI_MODEL` (required, e.g. `qwen3:14b`) and `NIGHTFALL_OLLAMA_URL`
+    (default `http://127.0.0.1:11434`). No paid calls. AI stays off (`none`) by default and on Vercel.
+  - The endpoint must be loopback, a private address or a single-label host name (a compose service), and the
+    client ignores proxy settings from the environment, so assessment data stays on the owner's machines. The
+    hosted platform (on-demand worker) refuses this setting, because it can't reach a local model.
+  - The agent's output schema is sent as Ollama's `format`, with temperature 0. An answer that doesn't validate
+    against the schema, or was cut off, is rejected whole; nothing is repaired or partly applied. The gateway's
+    checks and the "only a person can verify" rule are unchanged.
+  - The Agents page shows "Local model (Ollama): <model>". No model was run and no benchmark was done here:
+    which local model is good enough for each agent needs measuring later, when benchmarks are allowed.
+- **SWORD: ZAP baseline:** skipped for now by the owner (2026-11-07). It needs owner decisions on where the ZAP daemon runs (it can't run on Vercel) and its own tool review before it may contact targets.
 - **Next:** SHIELD/AEGIS monitoring needs an owner decision on recurring execution first (it would be the first
   unattended activity against targets, and the hosted free tier has no background runner).

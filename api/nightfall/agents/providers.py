@@ -2,8 +2,11 @@
 
 AnthropicProvider: Claude through the official SDK, structured outputs (the response is
 validated against the agent's output model), server-side refusal fallback. Configured by
-NIGHTFALL_AI_PROVIDER=anthropic and ANTHROPIC_API_KEY. With NIGHTFALL_AI_PROVIDER=none
-(default) agents are off and everything else works.
+NIGHTFALL_AI_PROVIDER=anthropic and ANTHROPIC_API_KEY.
+OllamaProvider: a local model through Ollama's chat API with a JSON-schema output format
+(NIGHTFALL_AI_PROVIDER=ollama, NIGHTFALL_AI_MODEL, NIGHTFALL_OLLAMA_URL). No paid calls, and the
+endpoint must be local (config.py), so assessment data stays on the owner's machines.
+With NIGHTFALL_AI_PROVIDER=none (default) agents are off and everything else works.
 
 Assessment data leaves the deployment when a hosted provider is used: only the delimited
 data blocks a task needs are sent, never credentials, sessions or other workspaces' data.
@@ -106,6 +109,72 @@ class AnthropicProvider:
             provider=self.name,
             input_tokens=response.usage.input_tokens,
             output_tokens=response.usage.output_tokens,
+            latency_ms=latency,
+        )
+
+
+class OllamaProvider:
+    """Local models via Ollama. The answer is validated against the agent's output model;
+    anything that doesn't validate is rejected, never repaired or partly applied."""
+
+    name = "ollama"
+
+    def __init__(self, model: str, url: str, timeout: float = 600.0) -> None:
+        import httpx
+
+        self.model = model
+        self._httpx = httpx
+        # trust_env=False: never send assessment data through a proxy from the environment.
+        self.client = httpx.Client(base_url=url, timeout=timeout, trust_env=False)
+
+    def generate(self, request: GenerationRequest[T]) -> GenerationResult[T]:
+        from pydantic import ValidationError
+
+        h = self._httpx
+        started = time.monotonic()
+        try:
+            r = self.client.post(
+                "/api/chat",
+                json={
+                    "model": self.model,
+                    "stream": False,
+                    "format": request.output_model.model_json_schema(),
+                    "options": {"temperature": 0, "num_predict": request.max_tokens},
+                    "messages": [
+                        {"role": "system", "content": request.system},
+                        {"role": "user", "content": request.user},
+                    ],
+                },
+            )
+        except h.TimeoutException as exc:
+            raise ProviderError("The local model took too long to answer.") from exc
+        except h.HTTPError as exc:
+            msg = "The local model server (Ollama) couldn't be reached."
+            raise ProviderUnavailable(msg) from exc
+        latency = int((time.monotonic() - started) * 1000)
+        if r.status_code == 404:
+            raise ProviderUnavailable(f"Ollama doesn't have the model {self.model!r}.")
+        if r.status_code != 200:
+            raise ProviderError(f"The local model server returned {r.status_code}.")
+        try:
+            body = r.json()
+            content = str(body["message"]["content"])
+        except (ValueError, KeyError, TypeError) as exc:
+            raise ProviderError("The local model server returned an unreadable answer.") from exc
+        if body.get("done_reason") == "length":
+            raise ProviderError("The model's answer was cut off; nothing was applied.")
+        try:
+            parsed = request.output_model.model_validate_json(content)
+        except ValidationError as exc:
+            raise ProviderError(
+                "The model's answer didn't match the required format; nothing was applied."
+            ) from exc
+        return GenerationResult(
+            parsed=parsed,
+            model=str(body.get("model") or self.model),
+            provider=self.name,
+            input_tokens=int(body.get("prompt_eval_count") or 0),
+            output_tokens=int(body.get("eval_count") or 0),
             latency_ms=latency,
         )
 
@@ -253,6 +322,8 @@ def get_provider() -> Provider | None:
     s = get_settings()
     if s.ai_provider == "anthropic":
         return AnthropicProvider(model=s.ai_model)
+    if s.ai_provider == "ollama":
+        return OllamaProvider(model=s.ai_model, url=s.ollama_url)
     if s.ai_provider == "fixture":
         return FixtureProvider()
     return None

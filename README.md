@@ -138,9 +138,14 @@ database user.
 
 ## AI agents (Phase 5)
 
-Off by default (`NIGHTFALL_AI_PROVIDER=none`). To turn them on, set `NIGHTFALL_AI_PROVIDER=anthropic` and
-`ANTHROPIC_API_KEY`; the model is `NIGHTFALL_AI_MODEL` (default `claude-opus-5-5`). Project data in the agents'
-prompts is then sent to Anthropic.
+Off by default (`NIGHTFALL_AI_PROVIDER=none`), and off on the hosted (Vercel) deployment. Two ways to turn them on:
+
+- **Local, free (recommended):** run [Ollama](https://ollama.com) on your own machine and a self-hosted worker
+  with `NIGHTFALL_AI_PROVIDER=ollama`, `NIGHTFALL_AI_MODEL=<a model you've pulled, e.g. qwen3:14b>` and, if it
+  isn't on the same machine, `NIGHTFALL_OLLAMA_URL=http://<private address>:11434`. The URL must be loopback, a
+  private address or a single-label host name, so project data never leaves your machines.
+- **Hosted, paid:** `NIGHTFALL_AI_PROVIDER=anthropic` and `ANTHROPIC_API_KEY`; the model is `NIGHTFALL_AI_MODEL`
+  (default `claude-opus-5-5`). Project data in the agents' prompts is then sent to Anthropic.
 
 - The agents:
   - Director splits an objective into tasks for the other agents.

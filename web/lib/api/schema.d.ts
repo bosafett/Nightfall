@@ -1570,6 +1570,8 @@ export interface components {
             ai_enabled: boolean;
             /** Model */
             model: string | null;
+            /** Provider */
+            provider: ("anthropic" | "ollama" | "fixture") | null;
             /** Usage Days */
             usage_days: number;
         };

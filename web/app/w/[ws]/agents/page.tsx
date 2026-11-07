@@ -21,7 +21,7 @@ export default async function AgentsPage({ params }: { params: Promise<{ ws: str
     <>
       <PageHeader
         title="AI agents"
-        subtitle={info.ai_enabled ? `Model: ${info.model}` : "AI is off on this deployment"}
+        subtitle={info.ai_enabled ? `${info.provider === "ollama" ? "Local model (Ollama)" : "Model"}: ${info.model}` : "AI is off on this deployment"}
         actions={<Badge tone={info.ai_enabled ? "green" : "gray"}>{info.ai_enabled ? "AI on" : "AI off"}</Badge>}
       />
       <AutoRefresh ws={ws} active={open} />

@@ -54,6 +54,7 @@ class AgentOut(Model):
 class AgentsOut(Model):
     ai_enabled: bool
     model: str | None
+    provider: Literal["anthropic", "ollama", "fixture"] | None
     usage_days: int
     agents: list[AgentOut]
 
@@ -122,6 +123,7 @@ def list_agents(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) 
     return AgentsOut(
         ai_enabled=enabled,
         model=s.ai_model if enabled else None,
+        provider=None if s.ai_provider == "none" else s.ai_provider,
         usage_days=USAGE_DAYS,
         agents=[
             AgentOut(
