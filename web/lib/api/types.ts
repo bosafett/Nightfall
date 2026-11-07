@@ -34,6 +34,7 @@ export type ScopeCheck = S["CheckOut"];
 export type OwnershipClaim = S["ClaimOut"];
 export type Chronicle = S["ChronicleOut"];
 export type Workflows = S["WorkflowsOut"];
+export type TestIdentities = S["IdentitiesOut"];
 export type WorkflowRun = S["WorkflowRunOut"];
 export type WorkflowRunDetail = S["WorkflowRunDetail"];
 export type WorkflowStep = S["WorkflowStepOut"];

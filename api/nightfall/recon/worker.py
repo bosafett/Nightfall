@@ -44,6 +44,7 @@ from nightfall.core.db.models import (
     ApprovalDecision,
     Operation,
     OperationStatus,
+    PlaybookRun,
     Project,
     RiskClass,
     Scope,
@@ -217,7 +218,20 @@ class Worker:
             else:
                 decision = evaluate(snapshot(db, current), op.target_value, now)
                 decision_ok, reason = decision.allowed, decision.reason
-            if decision_ok and op.risk_class is not RiskClass.PASSIVE:
+            # Profile B never runs on the lab worker (lab scopes are Profile C only).
+            run = (
+                db.get(PlaybookRun, op.playbook_run_id)
+                if op.playbook_run_id and not self.lab
+                else None
+            )
+            profile_b_run = run is not None and run.profile == "validation"
+            if decision_ok and profile_b_run and run is not None:
+                # Profile B: every gate again, immediately before anything is sent.
+                from nightfall.blackops import profile_b
+
+                if why := profile_b.worker_check(db, get_settings(), run, now):
+                    decision_ok, reason = False, why
+            if decision_ok and (op.risk_class is not RiskClass.PASSIVE or profile_b_run):
                 approval = db.scalar(
                     select(Approval).where(
                         Approval.operation_id == op.id,
@@ -227,7 +241,9 @@ class Worker:
                 )
                 if approval is None:
                     decision_ok, reason = False, "No valid approval for this operation."
-                elif expired := approval_expired(approval.decided_at, op.is_lab, now):
+                elif expired := approval_expired(
+                    approval.decided_at, op.is_lab, now, profile_b=profile_b_run
+                ):
                     decision_ok, reason = False, expired
             pinned = db.get(Scope, op.scope_id)
             if decision_ok and (

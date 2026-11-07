@@ -12,16 +12,25 @@ from datetime import datetime, timedelta
 from nightfall.scope.lab import LAB_APPROVAL_TTL_HOURS
 
 LIVE_APPROVAL_TTL_HOURS = 72
+PROFILE_B_APPROVAL_TTL_HOURS = 24  # design G4
 
 
-def approval_ttl(is_lab: bool) -> timedelta:
-    return timedelta(hours=LAB_APPROVAL_TTL_HOURS if is_lab else LIVE_APPROVAL_TTL_HOURS)
+def _hours(is_lab: bool, profile_b: bool) -> int:
+    if profile_b:
+        return PROFILE_B_APPROVAL_TTL_HOURS
+    return LAB_APPROVAL_TTL_HOURS if is_lab else LIVE_APPROVAL_TTL_HOURS
 
 
-def approval_expired(decided_at: datetime, is_lab: bool, now: datetime) -> str | None:
+def approval_ttl(is_lab: bool, profile_b: bool = False) -> timedelta:
+    return timedelta(hours=_hours(is_lab, profile_b))
+
+
+def approval_expired(
+    decided_at: datetime, is_lab: bool, now: datetime, profile_b: bool = False
+) -> str | None:
     """The refusal reason when an approval is too old to act on, else None."""
-    if decided_at >= now - approval_ttl(is_lab):
+    if decided_at >= now - approval_ttl(is_lab, profile_b):
         return None
-    hours = LAB_APPROVAL_TTL_HOURS if is_lab else LIVE_APPROVAL_TTL_HOURS
-    kind = "lab approvals" if is_lab else "approvals"
+    hours = _hours(is_lab, profile_b)
+    kind = "Profile B approvals" if profile_b else "lab approvals" if is_lab else "approvals"
     return f"The approval is more than {hours} hours old ({kind} expire). Request it again."

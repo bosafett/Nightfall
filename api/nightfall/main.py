@@ -16,6 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from nightfall.agents.routes import router as agents_router
 from nightfall.blackbox.routes import router as blackbox_router
 from nightfall.blackice.routes import router as blackice_router
+from nightfall.blackops.identities import router as identities_router
 from nightfall.blackops.routes import router as blackops_router
 from nightfall.chronicle.routes import router as chronicle_router
 from nightfall.config import get_settings
@@ -179,6 +180,7 @@ ROUTERS = (
     ownership_router,
     chronicle_router,
     nexus_router,
+    identities_router,
     recon_router,
     findings_router,
     paths_router,

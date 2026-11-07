@@ -29,6 +29,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from nightfall.blackops import profile_b
 from nightfall.blackops.catalog import (
     PLAYBOOKS,
     PROFILES,
@@ -353,6 +354,7 @@ class ProposedStep(Model):
 class PreflightIn(Model):
     playbook_id: Annotated[str, StringConstraints(max_length=64)]
     target: Annotated[str, StringConstraints(max_length=300)]
+    identity_ids: list[uuid.UUID] = []  # Profile B only: designated test identities
 
 
 class PreflightOut(Model):
@@ -372,6 +374,7 @@ class PreflightOut(Model):
 class _Preflight:
     out: PreflightOut
     scope: Scope | None
+    proof_check_id: uuid.UUID | None = None  # Profile B: the passing proof-of-control check
 
     @property
     def first_failure(self) -> PreflightCheckOut | None:
@@ -394,9 +397,11 @@ def preflight(
     p: Playbook,
     raw_target: str,
     blacksite: bool = False,
+    identity_ids: list[uuid.UUID] | None = None,
 ) -> _Preflight:
     """The checks a launch must pass. Read-only; the launch route runs it again itself."""
     checks: list[PreflightCheckOut] = []
+    proof_check_id: uuid.UUID | None = None
 
     def add(key: str, label: str, ok: bool, detail: str) -> None:
         checks.append(
@@ -438,9 +443,16 @@ def preflight(
 
     profile: Profile | None = None
     if scope is not None:
-        profile = Profile.LAB if scope.is_lab else Profile.LIVE
+        profile = (
+            Profile.LAB
+            if scope.is_lab
+            else Profile.VALIDATION
+            if p.profiles == (Profile.VALIDATION,)
+            else Profile.LIVE
+        )
         info = PROFILES[profile]
-        ok = info.available and profile in p.profiles
+        # Profile B's availability is its gates, checked below.
+        ok = (info.available or profile is Profile.VALIDATION) and profile in p.profiles
         where_ok = (profile is Profile.LAB) == blacksite  # D3: lab work only via BLACKSITE
         add(
             "profile",
@@ -463,6 +475,41 @@ def preflight(
                 bool(ref),
                 f"Recorded: {ref}." if ref else "Lab execution stays off until it is recorded.",
             )
+
+    if profile is Profile.VALIDATION and scope is not None:
+        settings = get_settings()
+        why = profile_b.unavailable_reason(settings)
+        add(
+            "profile_b",
+            "Profile B gates",
+            why is None,
+            f"Enabled; review {settings.profile_b_review_ref}; self-hosted worker."
+            if why is None
+            else why,
+        )
+        proof = profile_b.control_proof(db, scope, target, utcnow()) if decision.allowed else None
+        proof_check_id = proof.id if proof else None
+        add(
+            "control",
+            "Proof of control",
+            proof is not None,
+            f"Checked {proof.checked_at:%Y-%m-%d %H:%M} UTC against scope v{scope.version}."
+            if proof
+            else f"Prove control of {target} (DNS record or file) and check it against scope "
+            f"v{scope.version}; a check must have passed in the last 24 hours.",
+        )
+        ids = identity_ids or []
+        problem = profile_b.identity_problems(db, ctx.workspace_id, target, ids)
+        if problem is None and len(ids) < p.identities:
+            problem = f"This playbook needs {p.identities} test identit" + (
+                "y." if p.identities == 1 else "ies."
+            )
+        add(
+            "identities",
+            "Test identities",
+            problem is None,
+            problem or (f"{len(ids)} active identity(ies) for {target}." if ids else "None used."),
+        )
 
     ttype = _target_type(target)
     if ttype is TargetType.HOSTNAME and TargetType.DOMAIN in p.target_types:
@@ -530,6 +577,12 @@ def preflight(
             status="info",
             detail="Needs approval by someone other than you before anything runs."
             + (" Lab approvals expire after 24 hours." if profile is Profile.LAB else "")
+            + (
+                " Profile B: approve with two-factor in the last 15 minutes; the approval "
+                "expires after 24 hours."
+                if profile is Profile.VALIDATION
+                else ""
+            )
             if needs_approval
             else "Passive only: runs as soon as it is launched.",
         )
@@ -557,6 +610,7 @@ def preflight(
             ],
         ),
         scope=scope,
+        proof_check_id=proof_check_id,
     )
 
 
@@ -579,7 +633,9 @@ def run_preflight(
 ) -> PreflightOut:
     _project(db, ctx, project_id)
     p = _playbook(body.playbook_id)
-    return preflight(db, ctx, project_id, p, body.target, is_blacksite(request)).out
+    return preflight(
+        db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids
+    ).out
 
 
 # --- Runs ----------------------------------------------------------------------------
@@ -811,7 +867,7 @@ def launch_run(
             "definition_changed",
             f"The playbook is now version {p.version}; run the preflight again.",
         )
-    pre = preflight(db, ctx, project_id, p, body.target, is_blacksite(request))
+    pre = preflight(db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids)
     failure = pre.first_failure
     scope, profile, target = pre.scope, pre.out.profile, pre.out.target
     if failure is not None or scope is None or profile is None:
@@ -827,6 +883,10 @@ def launch_run(
         profile=profile.value,
         target_value=target,
         requested_by_user_id=ctx.user_id,
+        identity_ids=list(body.identity_ids) if profile is Profile.VALIDATION else [],
+        ownership_check_ids=[pre.proof_check_id]
+        if profile is Profile.VALIDATION and pre.proof_check_id
+        else [],
     )
     needs_approval = p.needs_approval(profile)
     try:

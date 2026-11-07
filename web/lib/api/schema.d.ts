@@ -1542,6 +1542,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/test-identities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Identities */
+        get: operations["list_identities_api_workspaces__workspace_id__test_identities_get"];
+        put?: never;
+        /** Register Identity */
+        post: operations["register_identity_api_workspaces__workspace_id__test_identities_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/test-identities/{identity_id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retire Identity */
+        post: operations["retire_identity_api_workspaces__workspace_id__test_identities__identity_id__retire_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/war-room": {
         parameters: {
             query?: never;
@@ -3042,6 +3077,81 @@ export interface components {
              */
             status: "online" | "offline" | "never" | "on_demand";
         };
+        /** IdentitiesOut */
+        IdentitiesOut: {
+            /** Can Register */
+            can_register: boolean;
+            /** Identities */
+            identities: components["schemas"]["IdentityOut"][];
+            /** Unavailable Reason */
+            unavailable_reason: string | null;
+        };
+        /** IdentityIn */
+        IdentityIn: {
+            /** Attest */
+            attest: boolean;
+            /** Attestation */
+            attestation: string;
+            /** Label */
+            label: string;
+            /**
+             * Login Method
+             * @enum {string}
+             */
+            login_method: "form" | "basic";
+            /**
+             * Login Path
+             * @default /
+             */
+            login_path: string;
+            /** Origin */
+            origin: string;
+            /** Password */
+            password: string;
+            /**
+             * Role Description
+             * @default
+             */
+            role_description: string;
+            /** Username */
+            username: string;
+        };
+        /** IdentityOut */
+        IdentityOut: {
+            /** Attestation */
+            attestation: string;
+            /**
+             * Attested At
+             * Format: date-time
+             */
+            attested_at: string;
+            /** Attested By */
+            attested_by: string;
+            /**
+             * Credential
+             * @constant
+             */
+            credential: "set";
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Lockout Test Allowed */
+            lockout_test_allowed: boolean;
+            /** Login Method */
+            login_method: string;
+            /** Login Path */
+            login_path: string;
+            /** Origin */
+            origin: string;
+            /** Retired At */
+            retired_at: string | null;
+            /** Role Description */
+            role_description: string;
+        };
         /** InFlight */
         InFlight: {
             /** Detail */
@@ -3138,6 +3248,11 @@ export interface components {
         LaunchIn: {
             /** Definition Sha256 */
             definition_sha256: string;
+            /**
+             * Identity Ids
+             * @default []
+             */
+            identity_ids: string[];
             /** Playbook Id */
             playbook_id: string;
             /** Target */
@@ -3665,6 +3780,11 @@ export interface components {
         };
         /** PreflightIn */
         PreflightIn: {
+            /**
+             * Identity Ids
+             * @default []
+             */
+            identity_ids: string[];
             /** Playbook Id */
             playbook_id: string;
             /** Target */
@@ -8255,6 +8375,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SourcesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_identities_api_workspaces__workspace_id__test_identities_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentitiesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_identity_api_workspaces__workspace_id__test_identities_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentityIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retire_identity_api_workspaces__workspace_id__test_identities__identity_id__retire_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                identity_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IdentityOut"];
                 };
             };
             /** @description Validation Error */

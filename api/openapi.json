@@ -3357,6 +3357,189 @@
         "title": "Heartbeat",
         "type": "object"
       },
+      "IdentitiesOut": {
+        "additionalProperties": false,
+        "properties": {
+          "can_register": {
+            "title": "Can Register",
+            "type": "boolean"
+          },
+          "identities": {
+            "items": {
+              "$ref": "#/components/schemas/IdentityOut"
+            },
+            "title": "Identities",
+            "type": "array"
+          },
+          "unavailable_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unavailable Reason"
+          }
+        },
+        "required": [
+          "identities",
+          "can_register",
+          "unavailable_reason"
+        ],
+        "title": "IdentitiesOut",
+        "type": "object"
+      },
+      "IdentityIn": {
+        "additionalProperties": false,
+        "properties": {
+          "attest": {
+            "title": "Attest",
+            "type": "boolean"
+          },
+          "attestation": {
+            "maxLength": 1000,
+            "minLength": 10,
+            "title": "Attestation",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "login_method": {
+            "enum": [
+              "form",
+              "basic"
+            ],
+            "title": "Login Method",
+            "type": "string"
+          },
+          "login_path": {
+            "default": "/",
+            "maxLength": 500,
+            "title": "Login Path",
+            "type": "string"
+          },
+          "origin": {
+            "maxLength": 300,
+            "title": "Origin",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Password",
+            "type": "string"
+          },
+          "role_description": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Role Description",
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "origin",
+          "label",
+          "login_method",
+          "username",
+          "password",
+          "attestation",
+          "attest"
+        ],
+        "title": "IdentityIn",
+        "type": "object"
+      },
+      "IdentityOut": {
+        "additionalProperties": false,
+        "properties": {
+          "attestation": {
+            "title": "Attestation",
+            "type": "string"
+          },
+          "attested_at": {
+            "format": "date-time",
+            "title": "Attested At",
+            "type": "string"
+          },
+          "attested_by": {
+            "title": "Attested By",
+            "type": "string"
+          },
+          "credential": {
+            "const": "set",
+            "title": "Credential",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "lockout_test_allowed": {
+            "title": "Lockout Test Allowed",
+            "type": "boolean"
+          },
+          "login_method": {
+            "title": "Login Method",
+            "type": "string"
+          },
+          "login_path": {
+            "title": "Login Path",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retired At"
+          },
+          "role_description": {
+            "title": "Role Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "origin",
+          "label",
+          "role_description",
+          "login_method",
+          "login_path",
+          "credential",
+          "attestation",
+          "attested_by",
+          "attested_at",
+          "lockout_test_allowed",
+          "retired_at"
+        ],
+        "title": "IdentityOut",
+        "type": "object"
+      },
       "InFlight": {
         "additionalProperties": false,
         "properties": {
@@ -3573,6 +3756,15 @@
             "maxLength": 64,
             "title": "Definition Sha256",
             "type": "string"
+          },
+          "identity_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Identity Ids",
+            "type": "array"
           },
           "playbook_id": {
             "maxLength": 64,
@@ -5007,6 +5199,15 @@
       "PreflightIn": {
         "additionalProperties": false,
         "properties": {
+          "identity_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Identity Ids",
+            "type": "array"
+          },
           "playbook_id": {
             "maxLength": 64,
             "title": "Playbook Id",
@@ -14162,6 +14363,153 @@
         "summary": "Sources",
         "tags": [
           "black-ice"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/test-identities": {
+      "get": {
+        "operationId": "list_identities_api_workspaces__workspace_id__test_identities_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentitiesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Identities",
+        "tags": [
+          "blackops"
+        ]
+      },
+      "post": {
+        "operationId": "register_identity_api_workspaces__workspace_id__test_identities_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentityIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Identity",
+        "tags": [
+          "blackops"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/test-identities/{identity_id}/retire": {
+      "post": {
+        "operationId": "retire_identity_api_workspaces__workspace_id__test_identities__identity_id__retire_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "identity_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Identity Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IdentityOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retire Identity",
+        "tags": [
+          "blackops"
         ]
       }
     },

@@ -235,6 +235,17 @@ def bootstrap_owner(a: argparse.Namespace) -> None:
     )
 
 
+def profile_b_keygen(a: argparse.Namespace) -> None:
+    """A key pair for sealing Profile B test credentials. Needs no database."""
+    from nightfall.blackops.profile_b import generate_keypair
+
+    public, private = generate_keypair()
+    print("Set on the API (Vercel) and on the self-hosted worker:")
+    print(f"  NIGHTFALL_PROFILE_B_PUBLIC_KEY={public}")
+    print("Set on the self-hosted worker ONLY (never on the hosted platform):")
+    print(f"  NIGHTFALL_PROFILE_B_PRIVATE_KEY={private}")
+
+
 def main(argv: list[str] | None = None) -> None:
     p = argparse.ArgumentParser(prog="nightfall-admin")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -246,6 +257,7 @@ def main(argv: list[str] | None = None) -> None:
     c.set_defaults(fn=create_owner)
     sub.add_parser("bootstrap-roles").set_defaults(fn=bootstrap_roles)
     sub.add_parser("bootstrap-owner").set_defaults(fn=bootstrap_owner)
+    sub.add_parser("profile-b-keygen").set_defaults(fn=profile_b_keygen)
     for name, fn in (("reset-password", reset_password), ("reset-mfa", reset_mfa)):
         s = sub.add_parser(name)
         s.add_argument("--email", required=True)

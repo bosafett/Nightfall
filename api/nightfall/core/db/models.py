@@ -415,6 +415,27 @@ class Operation(Base):
     updated_at: Mapped[datetime] = _updated()
 
 
+class TestIdentity(Base):
+    """Profile B (migration 0019). The sealed credential column is deliberately not mapped:
+    the app role can't select it. Only the worker reads it (profile_b.load_secret)."""
+
+    __tablename__ = "test_identities"
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True)
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    origin: Mapped[str]
+    label: Mapped[str]
+    role_description: Mapped[str] = mapped_column(server_default=text("''"))
+    login_method: Mapped[str]
+    login_path: Mapped[str] = mapped_column(server_default=text("'/'"))
+    attestation: Mapped[str]
+    attested_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    attested_at: Mapped[datetime] = _created()
+    lockout_test_allowed: Mapped[bool] = mapped_column(server_default=text("false"))
+    retired_at: Mapped[datetime | None]
+    retired_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
+
+
 class PlaybookRun(Base):
     """BLACK OPS (migration 0012): one run of a versioned playbook. Insert-only."""
 
@@ -430,6 +451,13 @@ class PlaybookRun(Base):
     target_value: Mapped[str]
     requested_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = _created()
+    # Profile B (migration 0019): ids only; credentials stay in test_identities.
+    identity_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), server_default=text("'{}'")
+    )
+    ownership_check_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), server_default=text("'{}'")
+    )
 
 
 class PlaybookSetting(Base):

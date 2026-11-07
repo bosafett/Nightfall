@@ -271,3 +271,38 @@ Profile B adds:
 4. **Lockout testing:** left out of v1. §11 gave no recommendation here, so the more cautious option was recorded. It
    can be added later as a per-identity opt-in, capped at 5 attempts, as described in §4.
 5. **POST to forms (playbook 6):** only forms the operator marks safe.
+
+## 13. Step 2 as built (2026-11-07, migration 0019)
+
+- **Credentials are sealed, not just encrypted.**
+  - The API seals each credential to the self-hosted worker's X25519 public key: an ephemeral key agreement, then
+    HKDF-SHA256 and AES-256-GCM, bound to the identity id and workspace id.
+  - Only the worker holds the private key (`NIGHTFALL_PROFILE_B_PRIVATE_KEY`), and configuration refuses that key on
+    the hosted platform. The hosted API can store a credential but never read one back.
+  - This is stronger than §2's "key derived from the deployment secret".
+  - `nightfall-admin profile-b-keygen` makes a key pair.
+- **Database rules:**
+  - The app role can insert the sealed column but has no SELECT on it (column grants). Only the worker role reads it.
+  - Identities can only be retired, never edited or revived.
+  - `lockout_test_allowed` is constrained to false (decision 4).
+- **Registering identities:** owner only (`identities.manage`), with fresh two-factor and an explicit attestation.
+  Responses and audit events carry `<test-identity:label>`, never the credential. UI: BLACKSITE → BLACK OPS → Test
+  identities.
+- **Gates G1–G5**, in the preflight and at launch:
+  - G3: the enable flag and the review reference;
+  - G5: refused on the hosted platform;
+  - the worker key must be configured;
+  - G1: a passing proof-of-control check of a covering claim, for this scope version, in the last 24 hours;
+  - G2: the identities are active, belong to this workspace, and are registered for the target's origin, with as many
+    as the playbook needs.
+- **G4:** Profile B approvals expire after 24 hours. Approval already requires fresh two-factor.
+- **In the database:** `playbook_runs` accepts profile `validation` only on a non-lab scope, with at least one passing
+  check of that scope version from the last 24 hours, and only active identities of the workspace for the target
+  (trigger).
+- **The worker re-checks** every gate immediately before sending anything. A retired identity, a stale proof, a
+  changed scope, a missing worker key or an old approval each deny the operation, with the reason.
+- **Still not done (step 3 and after):**
+  - no Profile B playbook ships, and the catalog test asserts it;
+  - moderate-risk operations outside the lab are still refused by the schema;
+  - the egress proxy's per-target pinning for logins, request budgets, stop conditions and credential redaction in
+    evidence arrive with the first playbook (7).

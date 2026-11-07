@@ -68,8 +68,9 @@ PROFILES: dict[Profile, ProfileInfo] = {
         "Controlled validation",
         "Designated test accounts and controlled input testing on authorized targets.",
         False,
-        "Not built. It needs designated test identities, ownership verification of the "
-        "target and its own independent authorization review (review F2, F3).",
+        "Not built yet: proof of control, test identities and the run gates exist, but no "
+        "playbook uses them (step 3). It also needs its recorded independent review, the "
+        "worker key and a self-hosted worker.",
     ),
     Profile.LAB: ProfileInfo(
         "C",
@@ -150,6 +151,7 @@ class Playbook:
     cleanup: str
     tests: tuple[str, ...]  # automated tests that exercise this playbook (tests/...::name)
     changelog: tuple[Change, ...]
+    identities: int = 0  # Profile B: designated test identities the run needs (0 to 5)
 
     @property
     def risk_class(self) -> RiskClass:
@@ -180,6 +182,8 @@ class Playbook:
             "target_types": [t.value for t in self.target_types],
             "limits": list(self.limits),
             "cleanup": self.cleanup,
+            # Only when used, so existing fingerprints don't change.
+            **({"identities": self.identities} if self.identities else {}),
         }
 
     @property
@@ -362,9 +366,9 @@ PLAYBOOKS: dict[str, Playbook] = {
 }
 
 
-def check_catalog() -> None:
+def check_catalog(playbooks: dict[str, Playbook] | None = None) -> None:
     """Fails loudly if a definition refers to anything that isn't a registered tool."""
-    for p in PLAYBOOKS.values():
+    for p in (PLAYBOOKS if playbooks is None else playbooks).values():
         if not p.steps or len(p.steps) > 20:
             raise ValueError(f"{p.id}: 1 to 20 steps")
         for s in p.steps:
@@ -372,11 +376,14 @@ def check_catalog() -> None:
                 raise ValueError(f"{p.id}: unknown tool {s.tool!r}")
             if Profile.LAB in p.profiles and s.tool not in LAB_TOOLS:
                 raise ValueError(f"{p.id}: {s.tool!r} can't run in the lab")
-        if Profile.VALIDATION in p.profiles:
-            raise ValueError(f"{p.id}: profile B isn't available")
+        if Profile.VALIDATION in p.profiles and p.profiles != (Profile.VALIDATION,):
+            raise ValueError(f"{p.id}: a Profile B playbook supports only Profile B")
+        if not 0 <= p.identities <= 5 or (p.identities and Profile.VALIDATION not in p.profiles):
+            raise ValueError(f"{p.id}: test identities are for Profile B playbooks only")
         if p.risk_class is RiskClass.HIGH:
             raise ValueError(f"{p.id}: high-risk steps are never allowed")
         if p.risk_class is RiskClass.MODERATE and p.profiles != (Profile.LAB,):
+            # Profile B's moderate-risk steps arrive with its first playbook (step 3).
             raise ValueError(f"{p.id}: moderate risk is lab-only")
 
 

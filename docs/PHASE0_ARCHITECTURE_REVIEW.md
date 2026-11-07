@@ -872,6 +872,12 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - UI: a History panel on each project and on each operation page (that operation, its evidence and linked
     findings). CHRONICLE is labelled "In Projects" in the sidebar. Not yet: before-and-after comparisons, incident
     timelines (they need SHIELD) and NEXUS run history (it needs NEXUS).
+- **BLACK OPS Profile B step 2: test identities and run gates (built, switched off; migration 0019).** Design §12–§13.
+  - **Credentials:** test-account credentials are sealed to the self-hosted worker's public key. The hosted API can
+    store them but never read them, and the app role has no SELECT on the sealed column.
+  - **Gates G1–G5** are checked in the preflight, at launch (with a database trigger for the proof and the
+    identities), and again by the worker before anything is sent. Profile B approvals expire after 24 hours.
+  - **Not yet:** no Profile B playbook ships yet (step 3).
 - **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
   member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
   it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel

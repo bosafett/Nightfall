@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { PlaybookLibrary, PlaybookRun } from "@/lib/api/types";
+import type { PlaybookLibrary, PlaybookRun, TestIdentities as Identities } from "@/lib/api/types";
 import { membership } from "@/lib/workspace";
 import { Library } from "@/components/blackops/Library";
 import { RunsTable } from "@/components/blackops/RunsTable";
+import { TestIdentities } from "@/components/blackops/TestIdentities";
 import { AutoRefresh } from "@/components/recon/AutoRefresh";
 import { Alert, Badge, PageHeader, Panel } from "@/components/ui/primitives";
 
@@ -22,9 +23,10 @@ export default async function BlackOps({ params }: { params: Promise<{ ws: strin
       </>
     );
   }
-  const [lib, runs] = await Promise.all([
+  const [lib, runs, identities] = await Promise.all([
     apiGet<PlaybookLibrary>(`/workspaces/${ws}/blackops/playbooks`),
     apiGet<PlaybookRun[]>(`/workspaces/${ws}/blackops/runs?limit=25`),
+    apiGet<Identities>(`/workspaces/${ws}/test-identities`),
   ]);
   return (
     <>
@@ -45,8 +47,11 @@ export default async function BlackOps({ params }: { params: Promise<{ ws: strin
       <Panel title="Playbook library" className="mb-6">
         <Library ws={ws} playbooks={lib.playbooks} />
       </Panel>
-      <Panel title="Execution history">
+      <Panel title="Execution history" className="mb-6">
         <RunsTable ws={ws} runs={runs} />
+      </Panel>
+      <Panel title="Test identities (Profile B)">
+        <TestIdentities ws={ws} data={identities} />
       </Panel>
     </>
   );

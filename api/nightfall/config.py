@@ -60,6 +60,13 @@ Optional:
   NIGHTFALL_BLACKSITE_DB_PASSWORD   (bootstrap-roles only) enables the BLACKSITE role's login.
   NIGHTFALL_LAB_PACK1_REVIEW_REF    reference of the recorded independent review of lab tool
                                     pack 1. Without it (and BLACKSITE) the pack is unavailable.
+  NIGHTFALL_PROFILE_B_ENABLED       "true" to allow Profile B (controlled validation). Also needs
+                                    the review reference, the worker key and a self-hosted
+                                    worker; refused on the hosted platform.
+  NIGHTFALL_PROFILE_B_REVIEW_REF    reference of Profile B's recorded independent review.
+  NIGHTFALL_PROFILE_B_PUBLIC_KEY    base64 X25519 public key test credentials are sealed to
+                                    (`nightfall profile-b-keygen` makes a pair).
+  NIGHTFALL_PROFILE_B_PRIVATE_KEY   (self-hosted worker only) the matching private key.
   NIGHTFALL_LAB_PACK1_DIR           (lab worker) the pack's templates, from the lab tool image
                                     (default /opt/nuclei-pack1), checked against pack1.json.
 """
@@ -122,6 +129,11 @@ class Settings:
     # Lab tool pack 1 (docs/designs/2026-11-lab-tool-pack-1.md): off without its own review.
     lab_pack1_review_ref: str | None = None
     lab_pack1_dir: Path = Path("/opt/nuclei-pack1")
+    # Profile B (docs/designs/2026-11-blackops-profile-b.md): off without all of these.
+    profile_b_enabled: bool = False
+    profile_b_review_ref: str | None = None
+    profile_b_public_key: str | None = None  # API and worker: seals test credentials
+    profile_b_private_key: str | None = None  # self-hosted worker only: opens them
     version: str = "0.1.0"
 
 
@@ -251,6 +263,22 @@ def load_settings() -> Settings:
         raise ConfigError("NIGHTFALL_BLACKSITE_ALLOWED_PEERS must be loopback or private ranges")
     review_ref = os.environ.get("NIGHTFALL_BLACKSITE_REVIEW_REF", "").strip()[:200]
     pack1_ref = os.environ.get("NIGHTFALL_LAB_PACK1_REVIEW_REF", "").strip()[:200]
+    pb_enabled = os.environ.get("NIGHTFALL_PROFILE_B_ENABLED", "false").strip().lower() == "true"
+    pb_public = os.environ.get("NIGHTFALL_PROFILE_B_PUBLIC_KEY", "").strip() or None
+    pb_private = os.environ.get("NIGHTFALL_PROFILE_B_PRIVATE_KEY", "").strip() or None
+    for name, value in (("PUBLIC", pb_public), ("PRIVATE", pb_private)):
+        if value is not None:
+            try:
+                ok = len(base64.b64decode(value, validate=True)) == 32
+            except binascii.Error:
+                ok = False
+            if not ok:
+                raise ConfigError(f"NIGHTFALL_PROFILE_B_{name}_KEY must be a base64 X25519 key")
+    if pb_private and on_demand:
+        raise ConfigError(
+            "NIGHTFALL_PROFILE_B_PRIVATE_KEY belongs on the self-hosted worker only, never on "
+            "the hosted platform"
+        )
     pack1_dir = Path(os.environ.get("NIGHTFALL_LAB_PACK1_DIR", "/opt/nuclei-pack1").strip())
     if not pack1_dir.is_absolute():
         raise ConfigError("NIGHTFALL_LAB_PACK1_DIR must be an absolute path")
@@ -289,6 +317,11 @@ def load_settings() -> Settings:
         blacksite_review_ref=review_ref or None,
         lab_pack1_review_ref=pack1_ref or None,
         lab_pack1_dir=pack1_dir,
+        profile_b_enabled=pb_enabled,
+        profile_b_review_ref=os.environ.get("NIGHTFALL_PROFILE_B_REVIEW_REF", "").strip()[:200]
+        or None,
+        profile_b_public_key=pb_public,
+        profile_b_private_key=pb_private,
     )
 
 
