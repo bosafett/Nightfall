@@ -45,6 +45,13 @@ services:
       NIGHTFALL_SECRET_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
       NIGHTFALL_DATABASE_URL: postgresql://unused@unused/unused
       NIGHTFALL_WORKER_DATABASE_URL: "postgresql://nightfall_lab_worker:${LAB_DB_PASSWORD:?set LAB_DB_PASSWORD in lab.env}@${DB_HOST:?set DB_HOST in lab.env}/${DB_NAME:-neondb}?sslmode=require"
+      # Reviews and switches the worker re-checks before lab tool pack 1 runs (empty = off).
+      # See docs/reviews/packets/README.md: "SELF:" references only count while
+      # SELF_REVIEW_UNTIL hasn't passed, and are always labelled "not independent".
+      NIGHTFALL_BLACKSITE_ENABLED: "${BLACKSITE_ENABLED:-false}"
+      NIGHTFALL_BLACKSITE_REVIEW_REF: "${BLACKSITE_REVIEW_REF:-}"
+      NIGHTFALL_LAB_PACK1_REVIEW_REF: "${LAB_PACK1_REVIEW_REF:-}"
+      NIGHTFALL_SELF_REVIEW_UNTIL: "${SELF_REVIEW_UNTIL:-}"
 
   # OWASP Juice Shop (MIT), an intentionally vulnerable web app for practice.
   # Only on lab-net, fixed address, no published ports.

@@ -29,3 +29,5 @@ var/
 
 # Isolated lab machine settings (secrets)
 infra/lab/lab.env
+infra/lab/blacksite.env
+api/.venv-blacksite/

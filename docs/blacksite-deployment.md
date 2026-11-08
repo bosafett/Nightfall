@@ -3,9 +3,10 @@
 BLACKSITE is the host-only control point for lab work. It runs on the lab machine, never on Vercel. Owner decisions
 D1 (single operator), D3 (host-only) and D4 (independent review) are in `docs/PHASE0_ARCHITECTURE_REVIEW.md` §17.
 
-> **Not enabled yet.** Phase 1 is implemented and tested, but not independently reviewed or deployed. Leave
-> `NIGHTFALL_BLACKSITE_ENABLED` unset until the review in `docs/reviews/2026-11-blacksite-authorization-model.md` §9 is
-> signed by someone who didn't build it.
+> **Not reviewed yet.** Implemented and tested, but not independently reviewed. Lab execution stays off until a
+> review reference is recorded (`NIGHTFALL_BLACKSITE_REVIEW_REF`). Owner decision 2026-11-08: while the owner is the
+> only person on the project, a `SELF:` reference with `NIGHTFALL_SELF_REVIEW_UNTIL` (at most 90 days) may switch it
+> on, always labelled "not independent". Windows setup with a start script: `infra/lab/README.md`.
 
 ## Network architecture
 

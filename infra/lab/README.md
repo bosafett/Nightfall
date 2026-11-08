@@ -57,13 +57,60 @@ Run each command in PowerShell from `infra\lab` and compare the result:
 
 If any check doesn't match, stop the lab (`docker compose --env-file lab.env down`) and send me the output.
 
+## The BLACKSITE console (same machine)
+
+Lab work is requested, approved and launched only from BLACKSITE, a small console that runs on this machine and
+listens on `127.0.0.1:8443`, so only this machine can open it. Background:
+`docs/blacksite-deployment.md`.
+
+1. **Turn on its database login.** Generate another password (same PowerShell one-liner as step 3). In Vercel, add it
+   as `NIGHTFALL_BLACKSITE_DB_PASSWORD`, then redeploy.
+2. **Install Python 3.13** if you don't have it: `winget install Python.Python.3.13`.
+3. **Fill in the settings.** In `infra\lab`, copy `blacksite.env.example` to `blacksite.env` and fill in:
+   - the database URL, with that password and the same `DB_HOST` as in `lab.env`;
+   - `NIGHTFALL_SECRET_KEY`: the **same value** as in Vercel (Environment Variables → `NIGHTFALL_SECRET_KEY`). It's
+     needed so your two-factor code works here. Treat it like a password.
+4. **Start it:**
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\start-blacksite.ps1
+   ```
+   The first run sets up Python (a few minutes). It prints `BLACKSITE REFUSED TO START: …` and stops if a check fails.
+   Send me that line if it does.
+5. **Open** `http://127.0.0.1:8443/` on this machine and sign in with your JANUS email, password and authenticator
+   code. The status line shows whether lab execution is on, and which review switched it on.
+
+## Switching lab execution on
+
+Out of the box everything here is **off**: the lab worker and console run, but refuse to execute lab work. Each
+switch needs a recorded review (see `docs/reviews/packets/`). While you're the only person on the project, you can
+use the temporary self-review mode:
+
+1. Do the self-review with the packet (BLACKSITE first) and save it as
+   `docs/reviews/<date>-blacksite-self-review.md`.
+2. Set the **same values** in both `blacksite.env` and `lab.env`:
+
+   | `blacksite.env` | `lab.env` | Value |
+   |---|---|---|
+   | `NIGHTFALL_SELF_REVIEW_UNTIL` | `SELF_REVIEW_UNTIL` | a date at most 90 days ahead, e.g. `2027-01-31` |
+   | `NIGHTFALL_BLACKSITE_REVIEW_REF` | `BLACKSITE_REVIEW_REF` | `SELF:<date> owner, docs/reviews/<file>` |
+   | (already `true`) | `BLACKSITE_ENABLED` | `true` |
+   | `NIGHTFALL_LAB_PACK1_REVIEW_REF` | `LAB_PACK1_REVIEW_REF` | only after its own self-review (packet 2) |
+
+3. Restart both: Ctrl+C and run `start-blacksite.ps1` again, then
+   `docker compose --env-file lab.env up -d`.
+
+JANUS shows "self-review, NOT independent" wherever this is in effect, and records it on every lab run. After the
+date passes, lab execution switches itself off again. With an independent reviewer later, use their reference
+(without `SELF:`) instead.
+
 ## Using the lab in NIGHTFALL
 
 1. **Create a lab scope.** In a project, start a new scope version and switch it to **Lab**. Add the target
    **IP** `172.30.99.10` (Juice Shop). Lab scopes accept only addresses inside `172.30.99.0/24`. Hostnames
    and outside addresses are refused, and normal scopes can't name lab addresses. Authorize it.
 2. **Request a run.** Request **Technology identification** or the **curated checks** on `172.30.99.10`.
-   Every lab run waits for a second person's approval, the same as a real target.
+   Every lab run waits for an explicit approval in BLACKSITE (under the single-operator policy, you approve your own,
+   with a fresh two-factor code).
 3. **What happens next.** Once approved, your lab machine picks it up within seconds. Lab approvals are good
    for 24 hours: if the lab machine is off longer than that, the job is refused and needs a new request. Its results are stored
    as **lab (simulation) evidence** and kept apart from real-world results.
