@@ -83,6 +83,8 @@ class RunContext:
     # Profile B: the run's designated test identity, opened by the worker for this run only
     # (label, origin, login_method, login_path, username, password). Never stored or logged.
     identity: dict[str, str] | None = field(default=None, repr=False)
+    # Every identity of the run, in the order given at launch (playbook 8: higher, lower).
+    identities: list[dict[str, str]] | None = field(default=None, repr=False)
 
 
 class Collector(Protocol):
@@ -628,6 +630,7 @@ PACK_LABELS = {
 # Defined after CollectorResult and RunContext, which they import.
 from nightfall.blacksite.probes import Probe  # noqa: E402
 from nightfall.recon import posture  # noqa: E402
+from nightfall.recon.access_audit import AccessAudit  # noqa: E402
 from nightfall.recon.auth_audit import AuthAudit  # noqa: E402
 
 
@@ -649,13 +652,14 @@ def collectors(mode: str, nuclei_scan: NucleiScan | None = None) -> dict[str, Co
         "tls": posture.TlsAudit(),
         "headers": posture.HeaderAudit(),
         "auth-audit": AuthAudit(),  # Profile B only; gated by its playbook run and the worker
+        "access-audit": AccessAudit(),
     }
 
 
 # Tools the isolated lab worker runs (they contact a target directly; the passive ones need
 # public records the lab has no route to).
 PACK_TOOLS = tuple(f"{pack1.TOOL_PREFIX}{g}" for g in pack1.GROUPS)
-PROFILE_B_TOOLS = ("auth-audit",)
+PROFILE_B_TOOLS = ("auth-audit", "access-audit")
 # Tools that run only as playbook steps, never as a single collection request.
 PLAYBOOK_ONLY = frozenset({*PACK_TOOLS, *PROFILE_B_TOOLS})
 LAB_TOOLS = frozenset({"http", "nuclei", "tls", "headers", *PACK_TOOLS})
@@ -706,4 +710,5 @@ TOOLS: dict[str, tuple[str, RiskClass]] = {
     "headers": (posture.HeaderAudit.label, RiskClass.LOW),
     **{f"{pack1.TOOL_PREFIX}{g}": (PACK_LABELS[g], RiskClass.MODERATE) for g in pack1.GROUPS},
     "auth-audit": ("Authentication configuration audit (Profile B)", RiskClass.MODERATE),
+    "access-audit": ("Access-control assessment (Profile B)", RiskClass.MODERATE),
 }

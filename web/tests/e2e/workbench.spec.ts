@@ -533,7 +533,7 @@ test.describe("as the owner", () => {
     // Profile B test identities: no worker key on this deployment, so nothing can be stored.
     await expect(page.getByTestId("test-identities")).toContainText("needs the worker key");
     const list = page.getByTestId("playbook-list");
-    await expect(list.getByRole("listitem")).toHaveCount(7);
+    await expect(list.getByRole("listitem")).toHaveCount(8);
     await page.getByTestId("playbook-search").fill("tls");
     await expect(list.getByRole("listitem")).toHaveCount(1);
     await expect(list).toContainText("TLS Configuration Audit");

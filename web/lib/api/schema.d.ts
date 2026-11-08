@@ -3253,6 +3253,11 @@ export interface components {
              * @default []
              */
             identity_ids: string[];
+            /**
+             * Paths
+             * @default []
+             */
+            paths: string[];
             /** Playbook Id */
             playbook_id: string;
             /** Target */
@@ -3713,6 +3718,8 @@ export interface components {
             steps: components["schemas"]["PlaybookStepOut"][];
             /** Summary */
             summary: string;
+            /** Takes Paths */
+            takes_paths: boolean;
             /** Target Types */
             target_types: components["schemas"]["TargetType"][];
             /** Tests */
@@ -3751,6 +3758,8 @@ export interface components {
             steps: components["schemas"]["PlaybookStepOut"][];
             /** Summary */
             summary: string;
+            /** Takes Paths */
+            takes_paths: boolean;
             /** Target Types */
             target_types: components["schemas"]["TargetType"][];
             /** Version */
@@ -3789,6 +3798,11 @@ export interface components {
              * @default []
              */
             identity_ids: string[];
+            /**
+             * Paths
+             * @default []
+             */
+            paths: string[];
             /** Playbook Id */
             playbook_id: string;
             /** Target */

@@ -266,22 +266,24 @@ class Worker:
                 from nightfall.blackops import profile_b
                 from nightfall.core.db.models import TestIdentity
 
-                ident = db.get(TestIdentity, run.identity_ids[0])
                 try:
-                    if ident is None:
-                        raise profile_b.SealError("The test identity wasn't found.")
-                    secret = profile_b.load_secret(db, get_settings(), ident)
-                    run_ctx = dataclasses.replace(
-                        run_ctx,
-                        identity={
-                            "label": ident.label,
-                            "origin": ident.origin,
-                            "login_method": ident.login_method,
-                            "login_path": ident.login_path,
-                            "username": secret.get("username", ""),
-                            "password": secret.get("password", ""),
-                        },
-                    )
+                    opened = []
+                    for ident_id in run.identity_ids:
+                        ident = db.get(TestIdentity, ident_id)
+                        if ident is None:
+                            raise profile_b.SealError("A test identity wasn't found.")
+                        secret = profile_b.load_secret(db, get_settings(), ident)
+                        opened.append(
+                            {
+                                "label": ident.label,
+                                "origin": ident.origin,
+                                "login_method": ident.login_method,
+                                "login_path": ident.login_path,
+                                "username": secret.get("username", ""),
+                                "password": secret.get("password", ""),
+                            }
+                        )
+                    run_ctx = dataclasses.replace(run_ctx, identity=opened[0], identities=opened)
                 except profile_b.SealError as exc:
                     decision_ok, reason = False, str(exc)
             tool = self.tools.get(op.tool)

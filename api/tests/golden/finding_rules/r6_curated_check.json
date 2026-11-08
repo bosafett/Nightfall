@@ -19,7 +19,7 @@
       }
     ]
   },
-  "ruleset": "findings/2026.11-5",
+  "ruleset": "findings/2026.11-6",
   "expected": [
     {
       "check_id": "web.git-metadata-exposed",

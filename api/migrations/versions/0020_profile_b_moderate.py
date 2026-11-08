@@ -44,8 +44,9 @@ CREATE TRIGGER operations_moderate_guard BEFORE INSERT OR UPDATE ON operations
 DOWNGRADE = r"""
 DROP TRIGGER operations_moderate_guard ON operations;
 DROP FUNCTION nf_operation_moderate_guard();
+-- NOT VALID: enforced for new rows; Profile B operations recorded before the downgrade stay.
 ALTER TABLE operations ADD CONSTRAINT operations_moderate_only_in_lab
-  CHECK (risk_class <> 'moderate' OR is_lab);
+  CHECK (risk_class <> 'moderate' OR is_lab) NOT VALID;
 """
 
 

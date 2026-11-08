@@ -129,7 +129,9 @@ BEGIN
 END $$;
 ALTER TABLE playbook_runs DROP CONSTRAINT playbook_runs_validation_inputs;
 ALTER TABLE playbook_runs DROP CONSTRAINT playbook_runs_profile_check;
-ALTER TABLE playbook_runs ADD CONSTRAINT playbook_runs_profile_check CHECK (profile IN ('live', 'lab'));
+-- NOT VALID: enforced for new rows; Profile B runs recorded before the downgrade stay.
+ALTER TABLE playbook_runs ADD CONSTRAINT playbook_runs_profile_check
+  CHECK (profile IN ('live', 'lab')) NOT VALID;
 ALTER TABLE playbook_runs DROP COLUMN ownership_check_ids;
 ALTER TABLE playbook_runs DROP COLUMN identity_ids;
 REVOKE SELECT ON playbook_runs FROM nightfall_worker;

@@ -885,6 +885,12 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - **Requests:** GET only, except one POST to the registered login path; at most 200 requests at 1 per second;
     stops on a 429, repeated server errors or any sign of lockout. Credentials and session values are never stored.
   - **Schema:** moderate risk outside the lab is allowed only as a step of a Profile B run.
+- **BLACK OPS Profile B step 4: playbook 8, Access-Control Assessment (built, switched off; no migration).** Design
+  §15.
+  - **What it does:** GETs up to 50 operator-registered paths as a higher-role identity, a lower-role identity and
+    with no session, and compares statuses and content hashes. Findings R25 (lower role received it) and R26 (no
+    session needed).
+  - **What's stored:** no content, cookie values or credentials.
 - **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
   member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
   it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel

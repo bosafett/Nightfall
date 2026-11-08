@@ -29,6 +29,7 @@ import json
 import re
 import time
 from collections.abc import Callable
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from typing import Any
 from urllib.parse import urlencode, urljoin, urlsplit
@@ -196,6 +197,83 @@ class _Session:
         return ex
 
 
+@dataclass
+class SignedIn:
+    pre: dict[str, str]  # cookies before sign-in (values in memory only)
+    set_at_login: list[tuple[str, str, dict[str, Any]]]
+    jar: dict[str, str]  # cookies after sign-in
+    landing: str  # where sign-in sent the browser, on this host
+    headers: dict[str, str]  # extra request headers (HTTP basic)
+
+
+def sign_in_form(s: _Session, ident: dict[str, str]) -> SignedIn:
+    """Signs in through the login form on the identity's registered login path: one GET of
+    the page, one POST to that same path. Raises StopRun if that isn't possible."""
+    path = ident["login_path"]
+    host = s.host
+    first = s.send("GET", "https", path, note="login page")
+    if first is None or first.status != 200:
+        raise StopRun("The login page didn't load over HTTPS.")
+    form = login_form(page(first.body))
+    if form is None:
+        raise StopRun("No login form with a password field on the registered login path.")
+    base = f"https://{host}{path}"
+    action = urljoin(base, form["action"] or path)
+    parts = urlsplit(action)
+    if parts.hostname != host or (parts.path or "/") != path or form["method"] != "post":
+        raise StopRun(
+            "The form doesn't POST to the registered login path; register that path "
+            "instead (only that endpoint may receive a POST)."
+        )
+    pre = {n: v for n, v, _ in _set_cookies(first)}
+    fields: dict[str, str] = {}
+    user_field = pw_field = None
+    for i in form["inputs"]:
+        if not i["name"]:
+            continue
+        if i["type"] == "password" and pw_field is None:
+            pw_field = i["name"]
+        elif i["type"] in ("text", "email") and user_field is None:
+            user_field = i["name"]
+        elif i["type"] in ("hidden", "submit"):
+            fields[i["name"]] = i["value"]
+    if not user_field or not pw_field:
+        raise StopRun("The login form has no username field.")
+    fields[user_field], fields[pw_field] = ident["username"], ident["password"]
+    login = s.send(
+        "POST", "https", path, jar=pre,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        body=urlencode(fields).encode(), note="sign in as <test-identity>",
+    )  # fmt: skip
+    if login is None:
+        raise StopRun("The login request failed.")
+    set_at_login = _set_cookies(login)
+    jar = {**pre, **{n: v for n, v, _ in set_at_login}}
+    landing = path
+    if login.location:
+        loc = urlsplit(urljoin(base, login.location))
+        if loc.hostname == host:
+            landing = loc.path or "/"
+    failed = (login.status == 200 and login_form(page(login.body)) is not None) or (
+        login.status in (401, 403)
+    )
+    if failed or landing == path and login.status in (301, 302, 303):
+        raise StopRun("Sign-in didn't succeed with the test identity.")
+    return SignedIn(pre, set_at_login, jar, landing, {})
+
+
+def sign_in(s: _Session, ident: dict[str, str]) -> SignedIn:
+    """A signed-in session for either login method (playbook 8 uses both identities)."""
+    if ident["login_method"] == "basic":
+        token = base64.b64encode(f"{ident['username']}:{ident['password']}".encode()).decode()
+        headers = {"Authorization": f"Basic {token}"}
+        ok = s.send("GET", "https", ident["login_path"], headers=headers, note="sign in (basic)")
+        if ok is None or ok.status >= 400:
+            raise StopRun("Sign-in didn't succeed with the test identity.")
+        return SignedIn({}, [], {}, "/", headers)
+    return sign_in_form(s, ident)
+
+
 class AuthAudit:
     key = "auth-audit"
     label = "Authentication configuration audit (Profile B)"
@@ -304,54 +382,13 @@ class AuthAudit:
             )
         else:
             r["login_over_http"] = False  # plain HTTP refused: fine
-        first = s.send("GET", "https", path, note="login page")
-        if first is None or first.status != 200:
-            raise StopRun("The login page didn't load over HTTPS.")
-        form = login_form(page(first.body))
-        if form is None:
-            raise StopRun("No login form with a password field on the registered login path.")
-        base = f"https://{host}{path}"
-        action = urljoin(base, form["action"] or path)
-        parts = urlsplit(action)
-        if parts.hostname != host or (parts.path or "/") != path or form["method"] != "post":
-            raise StopRun(
-                "The form doesn't POST to the registered login path; register that path "
-                "instead (only that endpoint may receive a POST)."
-            )
-        pre = {n: v for n, v, _ in _set_cookies(first)}
-        fields: dict[str, str] = {}
-        user_field = pw_field = None
-        for i in form["inputs"]:
-            if not i["name"]:
-                continue
-            if i["type"] == "password" and pw_field is None:
-                pw_field = i["name"]
-            elif i["type"] in ("text", "email") and user_field is None:
-                user_field = i["name"]
-            elif i["type"] in ("hidden", "submit"):
-                fields[i["name"]] = i["value"]
-        if not user_field or not pw_field:
-            raise StopRun("The login form has no username field.")
-        fields[user_field], fields[pw_field] = ident["username"], ident["password"]
-        login = s.send(
-            "POST", "https", path, jar=pre,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            body=urlencode(fields).encode(), note="sign in as <test-identity>",
-        )  # fmt: skip
-        if login is None:
-            raise StopRun("The login request failed.")
-        set_at_login = _set_cookies(login)
-        jar = {**pre, **{n: v for n, v, _ in set_at_login}}
-        landing = path
-        if login.location:
-            loc = urlsplit(urljoin(base, login.location))
-            if loc.hostname == host:
-                landing = loc.path or "/"
-        failed = (login.status == 200 and login_form(page(login.body)) is not None) or (
-            login.status in (401, 403)
+        signed = sign_in_form(s, ident)
+        pre, set_at_login, jar, landing = (
+            signed.pre,
+            signed.set_at_login,
+            signed.jar,
+            signed.landing,
         )
-        if failed or landing == path and login.status in (301, 302, 303):
-            raise StopRun("Sign-in didn't succeed with the test identity.")
         r["cookies"] = [a for _, _, a in set_at_login]
         r["rotated"] = bool(set_at_login) and all(
             pre.get(n) != v for n, v, _ in set_at_login if n in pre

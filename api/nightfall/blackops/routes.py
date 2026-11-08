@@ -129,6 +129,7 @@ class PlaybookOut(Model):
     steps: list[PlaybookStepOut]
     needs_approval_live: bool
     identities_required: int  # Profile B: designated test identities a run needs
+    takes_paths: bool  # Profile B playbook 8: operator-registered paths
     enabled: bool
     availability: Literal["available", "disabled", "blocked"]
     blocked_reason: str | None
@@ -204,6 +205,7 @@ def _out(p: Playbook, enabled: bool) -> PlaybookOut:
         profiles=list(p.profiles),
         lab_only=p.profiles == (Profile.LAB,),
         identities_required=p.identities,
+        takes_paths=p.takes_paths,
         target_types=list(p.target_types),
         steps=[
             PlaybookStepOut(
@@ -360,6 +362,8 @@ class PreflightIn(Model):
     playbook_id: Annotated[str, StringConstraints(max_length=64)]
     target: Annotated[str, StringConstraints(max_length=300)]
     identity_ids: list[uuid.UUID] = []  # Profile B only: designated test identities
+    # Profile B playbook 8 only: paths on the target that belong to the higher role.
+    paths: list[Annotated[str, StringConstraints(max_length=500)]] = []
 
 
 class PreflightOut(Model):
@@ -403,6 +407,7 @@ def preflight(
     raw_target: str,
     blacksite: bool = False,
     identity_ids: list[uuid.UUID] | None = None,
+    paths: list[str] | None = None,
 ) -> _Preflight:
     """The checks a launch must pass. Read-only; the launch route runs it again itself."""
     checks: list[PreflightCheckOut] = []
@@ -509,6 +514,14 @@ def preflight(
             problem = f"This playbook needs {p.identities} test identit" + (
                 "y." if p.identities == 1 else "ies."
             )
+        if p.takes_paths:
+            from nightfall.recon.access_audit import valid_paths
+
+            try:
+                n = len(valid_paths(paths or []))
+                add("paths", "Registered paths", True, f"{n} path(s) on {target}.")
+            except ValueError as exc:
+                add("paths", "Registered paths", False, str(exc))
         add(
             "identities",
             "Test identities",
@@ -639,7 +652,7 @@ def run_preflight(
     _project(db, ctx, project_id)
     p = _playbook(body.playbook_id)
     return preflight(
-        db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids
+        db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids, body.paths
     ).out
 
 
@@ -872,7 +885,9 @@ def launch_run(
             "definition_changed",
             f"The playbook is now version {p.version}; run the preflight again.",
         )
-    pre = preflight(db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids)
+    pre = preflight(
+        db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids, body.paths
+    )
     failure = pre.first_failure
     scope, profile, target = pre.scope, pre.out.profile, pre.out.target
     if failure is not None or scope is None or profile is None:
@@ -908,7 +923,12 @@ def launch_run(
                         tool=step.tool,
                         risk_class=risk,
                         target_value=target,
-                        params={"method": label, "playbook": f"{p.id}@{p.version}", "step": i},
+                        params={
+                            "method": label,
+                            "playbook": f"{p.id}@{p.version}",
+                            "step": i,
+                            **({"paths": list(dict.fromkeys(body.paths))} if p.takes_paths else {}),
+                        },
                         requested_by_user_id=ctx.user_id,
                         is_lab=profile is Profile.LAB,
                         playbook_run_id=run.id,

@@ -3766,6 +3766,15 @@
             "title": "Identity Ids",
             "type": "array"
           },
+          "paths": {
+            "default": [],
+            "items": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
           "playbook_id": {
             "maxLength": 64,
             "title": "Playbook Id",
@@ -4981,6 +4990,10 @@
             "title": "Summary",
             "type": "string"
           },
+          "takes_paths": {
+            "title": "Takes Paths",
+            "type": "boolean"
+          },
           "target_types": {
             "items": {
               "$ref": "#/components/schemas/TargetType"
@@ -5014,6 +5027,7 @@
           "steps",
           "needs_approval_live",
           "identities_required",
+          "takes_paths",
           "enabled",
           "availability",
           "blocked_reason",
@@ -5106,6 +5120,10 @@
             "title": "Summary",
             "type": "string"
           },
+          "takes_paths": {
+            "title": "Takes Paths",
+            "type": "boolean"
+          },
           "target_types": {
             "items": {
               "$ref": "#/components/schemas/TargetType"
@@ -5132,6 +5150,7 @@
           "steps",
           "needs_approval_live",
           "identities_required",
+          "takes_paths",
           "enabled",
           "availability",
           "blocked_reason"
@@ -5216,6 +5235,15 @@
               "type": "string"
             },
             "title": "Identity Ids",
+            "type": "array"
+          },
+          "paths": {
+            "default": [],
+            "items": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "title": "Paths",
             "type": "array"
           },
           "playbook_id": {

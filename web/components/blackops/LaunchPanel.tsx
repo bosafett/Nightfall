@@ -7,7 +7,7 @@ import type { PlaybookDetail, PlaybookRunDetail, Preflight, Project, TestIdentit
 import { profileLabel, riskLabel, riskTone } from "@/lib/blackops";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { useAction } from "@/components/ui/useAction";
-import { Alert, Badge, Button, Field, Input, Select } from "@/components/ui/primitives";
+import { Alert, Badge, Button, Field, Input, Select, Textarea } from "@/components/ui/primitives";
 
 const mark = { pass: "✓ Pass", fail: "✕ Fail", info: "ℹ Note" } as const;
 const markTone = { pass: "text-green", fail: "text-crimson-text", info: "text-muted" } as const;
@@ -25,13 +25,15 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
   const [target, setTarget] = useState("");
   const [pre, setPre] = useState<Preflight | null>(null);
   const [chosen, setChosen] = useState<string[]>([]);
+  const [pathsText, setPathsText] = useState("");
+  const paths = pathsText.split("\n").map((p) => p.trim()).filter(Boolean);
   const profileB = playbook.profiles.includes("validation");
   const host = target.trim().toLowerCase().replace(/\.$/, "");
   const usable = (identities ?? []).filter((i) => !i.retired_at && i.origin.replace("https://", "").split(":")[0] === host);
 
   async function check() {
     const res = await run(() => api<Preflight>(`/workspaces/${ws}/blackops/projects/${projectId}/preflight`, {
-      method: "POST", body: { playbook_id: playbook.id, target, identity_ids: chosen },
+      method: "POST", body: { playbook_id: playbook.id, target, identity_ids: chosen.filter(Boolean), paths },
     }), { refresh: false });
     setPre(res ?? null);
   }
@@ -54,15 +56,32 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
           <legend className="text-sm font-medium">Test identities ({playbook.identities_required} needed)</legend>
           {usable.length === 0
             ? <p className="text-xs text-muted">No active test identity is registered for {host || "this target"}. Register one under Test identities on the BLACK OPS page.</p>
-            : usable.map((i) => (
-              <label key={i.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={chosen.includes(i.id)} onChange={(e) => {
-                  setPre(null);
-                  setChosen((c) => (e.target.checked ? [...c, i.id] : c.filter((x) => x !== i.id)));
-                }} />
-                {i.label} <span className="text-xs text-muted">{i.role_description}</span>
-              </label>
-            ))}
+            : playbook.identities_required >= 2
+              ? (["Higher-role identity", "Lower-role identity"] as const).map((label, n) => (
+                <Field key={label} label={label}>
+                  <Select value={chosen[n] ?? ""} onChange={(e) => {
+                    setPre(null);
+                    setChosen((c) => { const next = [...c]; next[n] = e.target.value; return next; });
+                  }}>
+                    <option value="">Choose…</option>
+                    {usable.map((i) => <option key={i.id} value={i.id}>{i.label}{i.role_description && ` (${i.role_description})`}</option>)}
+                  </Select>
+                </Field>
+              ))
+              : usable.map((i) => (
+                <label key={i.id} className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={chosen.includes(i.id)} onChange={(e) => {
+                    setPre(null);
+                    setChosen((c) => (e.target.checked ? [...c, i.id] : c.filter((x) => x !== i.id)));
+                  }} />
+                  {i.label} <span className="text-xs text-muted">{i.role_description}</span>
+                </label>
+              ))}
+          {playbook.takes_paths && (
+            <Field label="Paths that belong to the higher role" hint="One per line, on this target only, like /admin/users. Up to 50. You choose them; nothing is guessed.">
+              <Textarea rows={4} value={pathsText} onChange={(e) => { setPathsText(e.target.value); setPre(null); }} className="font-mono" data-testid="launch-paths" />
+            </Field>
+          )}
         </fieldset>
       )}
       <Button onClick={check} disabled={busy || !target.trim() || !projectId} data-testid="run-preflight">{busy ? "Checking…" : "Run preflight"}</Button>
@@ -100,7 +119,7 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
                   setError(null);
                   const r = await api<PlaybookRunDetail>(`/workspaces/${ws}/blackops/projects/${projectId}/runs`, {
                     method: "POST",
-                    body: { playbook_id: playbook.id, target, identity_ids: chosen, version: pre.version, definition_sha256: pre.definition_sha256 },
+                    body: { playbook_id: playbook.id, target, identity_ids: chosen.filter(Boolean), paths, version: pre.version, definition_sha256: pre.definition_sha256 },
                   });
                   router.push(`/w/${ws}/blacksite/ops/runs/${r.id}`);
                 }} />

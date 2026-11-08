@@ -14,7 +14,7 @@ from typing import Any
 
 from nightfall.core.db.models import Confidence, Severity
 
-RULESET = "findings/2026.11-5"
+RULESET = "findings/2026.11-6"
 
 
 @dataclass(frozen=True)
@@ -278,6 +278,63 @@ def _from_auth(a: dict[str, Any]) -> list[Draft]:
     return drafts
 
 
+MAX_ACCESS_FINDINGS = 50
+
+
+def _path_slug(path: str) -> str:
+    return re.sub(r"[^A-Za-z0-9/_.-]+", "_", path)[:150]
+
+
+def _from_access(a: dict[str, Any]) -> list[Draft]:
+    """R25-R26: Profile B access-control assessment (playbook 8). A path counts only where
+    the higher-role identity itself got the page; exact content matches are high confidence,
+    a different page with status 200 is medium (a person checks what it shows)."""
+    drafts: list[Draft] = []
+    hi, lo = a.get("higher", "the higher identity"), a.get("lower", "the lower identity")
+    for row in (a.get("paths") or [])[:MAX_ACCESS_FINDINGS]:
+        if not isinstance(row, dict) or not row.get("baseline"):
+            continue
+        path = str(row.get("path", "?"))[:500]
+        if row.get("lower_access"):
+            same = bool(row.get("lower_same"))
+            how = (
+                ", with identical content."
+                if same
+                else ", with different content (it may be a partial or generic page: check "
+                "what it shows)."
+            )
+            drafts.append(
+                Draft(
+                    f"access.lower-role.{_path_slug(path)}",
+                    "R25-access-lower-role",
+                    f"Lower-privilege identity received {path}",
+                    Severity.HIGH if same else Severity.MEDIUM,
+                    Confidence.HIGH if same else Confidence.MEDIUM,
+                    f"{path} was registered as belonging to the higher role. {hi} received it "
+                    f"and so did {lo}{how}",
+                    "Users with a lower role may see or use what only a higher role should.",
+                    "Enforce the role check on the server for this path and the data it serves.",
+                )
+            )
+        if row.get("anonymous_access"):
+            same = bool(row.get("anonymous_same"))
+            how = ", with the same content." if same else " (different content: check it)."
+            drafts.append(
+                Draft(
+                    f"access.no-session.{_path_slug(path)}",
+                    "R26-access-no-session",
+                    f"{path} is available without signing in",
+                    Severity.HIGH if same else Severity.MEDIUM,
+                    Confidence.HIGH if same else Confidence.MEDIUM,
+                    f"{path} was registered as belonging to the higher role, but a request "
+                    f"with no session received it{how}",
+                    "Anyone who knows or guesses the address can see it.",
+                    "Require an authenticated session with the right role for this path.",
+                )
+            )
+    return drafts
+
+
 HSTS_MIN_AGE = 15_552_000  # 180 days
 MAX_COOKIE_FINDINGS = 10
 
@@ -288,8 +345,10 @@ def from_posture(posture: dict[str, Any] | None, now: datetime) -> list[Draft]:
     tls = posture.get("tls")
     headers = posture.get("headers")
     auth = posture.get("auth")
+    access = posture.get("access")
     return (
         (_from_auth(auth) if isinstance(auth, dict) else [])
+        + (_from_access(access) if isinstance(access, dict) else [])
         + (_from_tls(tls, now) if isinstance(tls, dict) else [])
         + (_from_headers(headers) if isinstance(headers, dict) else [])
     )
