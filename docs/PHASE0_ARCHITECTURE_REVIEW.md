@@ -898,6 +898,11 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     confirm) and R28 (error page shows a stack trace or a database error).
   - **POST:** only to forms the operator marks safe.
   - **Status:** Profile B's three playbooks are all built.
+- **SHIELD v1 and AEGIS overview (design only).** `docs/designs/2026-11-shield-aegis.md`.
+  - **Owner decisions (2026-11-08):** scheduled runs through Vercel Cron (the existing daily, secret-protected call);
+    standing authorizations of at most 30 days for passive and low-risk checks; the v1 monitors (certificates and TLS,
+    headers, CT names, DNS, reopened findings); in-app alerts only.
+  - **Still to decide:** four questions in §11.
 - **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
   member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
   it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel
