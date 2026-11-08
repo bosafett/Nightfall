@@ -898,10 +898,16 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     confirm) and R28 (error page shows a stack trace or a database error).
   - **POST:** only to forms the operator marks safe.
   - **Status:** Profile B's three playbooks are all built.
-- **WARPATH v1 (design only).** `docs/designs/2026-11-warpath.md`.
-  - **Owner decisions (2026-11-08):** a purple-team exercise runner with manual detection scoring; MITRE ATT&CK
-    technique tags; a person starts every step; missed detections raise SHIELD alerts.
-  - **Still to decide:** four questions in §11.
+- **WARPATH v1: purple-team exercises in the lab (built, switched off; migration 0022).** Design and decisions:
+  `docs/designs/2026-11-warpath.md` (§12 as built).
+  - **Plans:** lab playbook steps, each tagged with an ATT&CK technique (Enterprise 20.0, pinned) that the playbook
+    really performs. Analysts draft; the owner approves, which freezes the plan by hash and runs nothing.
+  - **Running:** a NEXUS plan-driven run. A person starts each attack step from BLACKSITE, through the normal lab
+    preflight and approval.
+  - **Scoring:** defenders score each step (attack result; detected, partly detected or missed; time to detect). Missed
+    and partial detections raise SHIELD `detection.gap` alerts.
+  - **Scorecard:** a per-exercise scorecard with a tactic matrix.
+  - **Scope:** v1 covers reconnaissance and probing, because those are the lab playbooks that exist.
 - **SHIELD v1 and AEGIS overview (done, migration 0021).** Design and decisions:
   `docs/designs/2026-11-shield-aegis.md` (§12 lists how the build differs from it).
   - **Standing monitor authorizations:** owner only, with fresh two-factor. Daily passive and low-risk checks (CT, DNS,

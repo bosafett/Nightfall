@@ -799,6 +799,33 @@
         "title": "AttackPathStatus",
         "type": "string"
       },
+      "AttackTechniqueOut": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "tactics": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Tactics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "tactics"
+        ],
+        "title": "AttackTechniqueOut",
+        "type": "object"
+      },
       "AuditCheckIn": {
         "additionalProperties": false,
         "properties": {
@@ -8349,6 +8376,616 @@
         "title": "WarRoomSummary",
         "type": "object"
       },
+      "WarpathCatalogueOut": {
+        "additionalProperties": false,
+        "properties": {
+          "attribution": {
+            "title": "Attribution",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "playbooks": {
+            "items": {
+              "$ref": "#/components/schemas/WarpathCataloguePlaybook"
+            },
+            "title": "Playbooks",
+            "type": "array"
+          },
+          "release": {
+            "title": "Release",
+            "type": "string"
+          },
+          "released": {
+            "title": "Released",
+            "type": "string"
+          }
+        },
+        "required": [
+          "release",
+          "released",
+          "attribution",
+          "playbooks",
+          "note"
+        ],
+        "title": "WarpathCatalogueOut",
+        "type": "object"
+      },
+      "WarpathCataloguePlaybook": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "techniques": {
+            "items": {
+              "$ref": "#/components/schemas/AttackTechniqueOut"
+            },
+            "title": "Techniques",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "techniques"
+        ],
+        "title": "WarpathCataloguePlaybook",
+        "type": "object"
+      },
+      "WarpathExerciseDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "attack_release": {
+            "title": "Attack Release",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "plan_sha256": {
+            "title": "Plan Sha256",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "scorecard": {
+            "$ref": "#/components/schemas/WarpathScorecardOut"
+          },
+          "source_path_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/WarpathStepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "workflow_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Run Id"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "name",
+          "objective",
+          "source_path_id",
+          "state",
+          "plan_sha256",
+          "created_by",
+          "created_at",
+          "approved_by",
+          "approved_at",
+          "workflow_run_id",
+          "attack_release",
+          "steps",
+          "scorecard"
+        ],
+        "title": "WarpathExerciseDetail",
+        "type": "object"
+      },
+      "WarpathExerciseIn": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "objective": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Objective",
+            "type": "string"
+          },
+          "source_path_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path Id"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/WarpathPlanStep"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "steps"
+        ],
+        "title": "WarpathExerciseIn",
+        "type": "object"
+      },
+      "WarpathExerciseOut": {
+        "additionalProperties": false,
+        "properties": {
+          "approved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "attack_release": {
+            "title": "Attack Release",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "objective": {
+            "title": "Objective",
+            "type": "string"
+          },
+          "plan_sha256": {
+            "title": "Plan Sha256",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "source_path_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Path Id"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "workflow_run_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflow Run Id"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "name",
+          "objective",
+          "source_path_id",
+          "state",
+          "plan_sha256",
+          "created_by",
+          "created_at",
+          "approved_by",
+          "approved_at",
+          "workflow_run_id",
+          "attack_release"
+        ],
+        "title": "WarpathExerciseOut",
+        "type": "object"
+      },
+      "WarpathPlanStep": {
+        "additionalProperties": false,
+        "properties": {
+          "expected_detection": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Expected Detection",
+            "type": "string"
+          },
+          "playbook_id": {
+            "maxLength": 64,
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 300,
+            "title": "Target",
+            "type": "string"
+          },
+          "technique_id": {
+            "pattern": "^T\\d{4}(\\.\\d{3})?$",
+            "title": "Technique Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook_id",
+          "target",
+          "technique_id"
+        ],
+        "title": "WarpathPlanStep",
+        "type": "object"
+      },
+      "WarpathScoreIn": {
+        "additionalProperties": false,
+        "properties": {
+          "attack_result": {
+            "enum": [
+              "succeeded",
+              "failed",
+              "blocked"
+            ],
+            "title": "Attack Result",
+            "type": "string"
+          },
+          "detection": {
+            "enum": [
+              "detected",
+              "partial",
+              "missed",
+              "not_applicable"
+            ],
+            "title": "Detection",
+            "type": "string"
+          },
+          "minutes_to_detect": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes To Detect"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attack_result",
+          "detection"
+        ],
+        "title": "WarpathScoreIn",
+        "type": "object"
+      },
+      "WarpathScoreOut": {
+        "additionalProperties": false,
+        "properties": {
+          "attack_result": {
+            "title": "Attack Result",
+            "type": "string"
+          },
+          "detection": {
+            "title": "Detection",
+            "type": "string"
+          },
+          "minutes_to_detect": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Minutes To Detect"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "scored_at": {
+            "format": "date-time",
+            "title": "Scored At",
+            "type": "string"
+          },
+          "scored_by": {
+            "title": "Scored By",
+            "type": "string"
+          }
+        },
+        "required": [
+          "attack_result",
+          "detection",
+          "minutes_to_detect",
+          "note",
+          "scored_by",
+          "scored_at"
+        ],
+        "title": "WarpathScoreOut",
+        "type": "object"
+      },
+      "WarpathScorecardOut": {
+        "additionalProperties": false,
+        "properties": {
+          "attacks_blocked": {
+            "title": "Attacks Blocked",
+            "type": "integer"
+          },
+          "attacks_succeeded": {
+            "title": "Attacks Succeeded",
+            "type": "integer"
+          },
+          "by_tactic": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "By Tactic",
+            "type": "object"
+          },
+          "detected": {
+            "title": "Detected",
+            "type": "integer"
+          },
+          "median_minutes_to_detect": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Minutes To Detect"
+          },
+          "missed": {
+            "title": "Missed",
+            "type": "integer"
+          },
+          "partial": {
+            "title": "Partial",
+            "type": "integer"
+          },
+          "scored": {
+            "title": "Scored",
+            "type": "integer"
+          },
+          "steps": {
+            "title": "Steps",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "steps",
+          "scored",
+          "attacks_succeeded",
+          "attacks_blocked",
+          "detected",
+          "partial",
+          "missed",
+          "median_minutes_to_detect",
+          "by_tactic"
+        ],
+        "title": "WarpathScorecardOut",
+        "type": "object"
+      },
+      "WarpathStepOut": {
+        "additionalProperties": false,
+        "properties": {
+          "attack_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attack State"
+          },
+          "expected_detection": {
+            "title": "Expected Detection",
+            "type": "string"
+          },
+          "playbook_id": {
+            "title": "Playbook Id",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/WarpathScoreOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "score_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score State"
+          },
+          "step": {
+            "title": "Step",
+            "type": "integer"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "technique": {
+            "$ref": "#/components/schemas/AttackTechniqueOut"
+          }
+        },
+        "required": [
+          "step",
+          "playbook_id",
+          "target",
+          "technique",
+          "expected_detection",
+          "attack_state",
+          "score_state",
+          "score"
+        ],
+        "title": "WarpathStepOut",
+        "type": "object"
+      },
       "WatchtowerOut": {
         "additionalProperties": false,
         "properties": {
@@ -14605,6 +15242,69 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/warpath/exercises": {
+      "post": {
+        "operationId": "create_exercise_api_workspaces__workspace_id__projects__project_id__warpath_exercises_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarpathExerciseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Exercise",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/projects/{project_id}/workflows": {
       "post": {
         "description": "Starting a run approves nothing: each step that contacts a target is started by a\nperson and approved through the normal flow when it's due.",
@@ -15673,6 +16373,520 @@
         "summary": "War Room Summary",
         "tags": [
           "war-room"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/catalogue": {
+      "get": {
+        "operationId": "catalogue_api_workspaces__workspace_id__warpath_catalogue_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathCatalogueOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Catalogue",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/exercises": {
+      "get": {
+        "operationId": "list_exercises_api_workspaces__workspace_id__warpath_exercises_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/WarpathExerciseOut"
+                  },
+                  "title": "Response List Exercises Api Workspaces  Workspace Id  Warpath Exercises Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Exercises",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}": {
+      "delete": {
+        "operationId": "delete_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Exercise",
+        "tags": [
+          "warpath"
+        ]
+      },
+      "get": {
+        "operationId": "get_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Exercise",
+        "tags": [
+          "warpath"
+        ]
+      },
+      "put": {
+        "operationId": "update_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarpathExerciseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Exercise",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/approve": {
+      "post": {
+        "description": "Freezes the plan. Runs nothing: each attack step still needs its own lab approval.",
+        "operationId": "approve_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Exercise",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/cancel": {
+      "post": {
+        "operationId": "cancel_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Exercise",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/start": {
+      "post": {
+        "description": "Creates the NEXUS run. Its attack steps can only be started from BLACKSITE.",
+        "operationId": "start_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start Exercise",
+        "tags": [
+          "warpath"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/steps/{step}/score": {
+      "post": {
+        "operationId": "score_step_api_workspaces__workspace_id__warpath_exercises__exercise_id__steps__step__score_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "exercise_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Exercise Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "step",
+            "required": true,
+            "schema": {
+              "title": "Step",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarpathScoreIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarpathExerciseDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Score Step",
+        "tags": [
+          "warpath"
         ]
       }
     },

@@ -612,6 +612,14 @@ test.describe("as the owner", () => {
     await noHorizontalScroll(page);
   });
 
+  test("WARPATH: page, ATT&CK attribution, and plans need a lab scope", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/warpath`);
+    await expect(page.getByRole("heading", { level: 1, name: "WARPATH" })).toBeVisible();
+    await expect(page.getByTestId("attack-attribution")).toContainText("ATT&CK Enterprise 20.0");
+    await expect(page.getByText(/need a project with an active lab scope/)).toBeVisible();
+    await noHorizontalScroll(page);
+  });
+
   test("mobile: drawer navigation, no horizontal scroll", async ({ browser }) => {
     const ctx = await browser.newContext({ storageState: STATE, viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const page = await ctx.newPage();

@@ -41,7 +41,13 @@ from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission, has_permission
 from nightfall.findings.routes import ref
 from nightfall.nexus import engine
-from nightfall.nexus.definitions import EXECUTING, UNAVAILABLE, WORKFLOWS, WorkflowDef
+from nightfall.nexus.definitions import (
+    EXECUTING,
+    UNAVAILABLE,
+    WARPATH_ID,
+    WORKFLOWS,
+    WorkflowDef,
+)
 from nightfall.scope.engine import evaluate
 from nightfall.scope.repository import active_scope, snapshot
 
@@ -201,6 +207,8 @@ def _names(db: Session, ids: set[uuid.UUID | None]) -> dict[uuid.UUID, str]:
 
 
 def _subject(run: WorkflowRun, db: Session) -> str:
+    if run.inputs.get("exercise_name"):
+        return str(run.inputs["exercise_name"])
     if run.inputs.get("target"):
         return str(run.inputs["target"])
     ids = run.inputs.get("finding_ids") or []
@@ -213,7 +221,10 @@ def _run_out(
 ) -> WorkflowRunOut:
     steps = steps if steps is not None else engine.steps_of(db, run)
     project = db.get(Project, run.project_id)
-    wf = WORKFLOWS.get(run.definition_id)
+    try:
+        wf: WorkflowDef | None = engine.definition(run)
+    except KeyError:
+        wf = None
     current = next((s for s in steps if s.state not in engine.FINAL), None)
     names = _names(db, {run.started_by_user_id})
     return WorkflowRunOut(
@@ -526,6 +537,10 @@ def complete_review(
     engine.advance(db, run.id, ctx)
     _running(run)
     step = _step(db, run, key)
+    if run.definition_id == WARPATH_ID:
+        raise api_error(
+            409, "score_required", "Score this step on the WARPATH exercise page instead."
+        )
     if step.kind != "review" or step.state != S.RUNNING:
         raise api_error(409, "not_waiting", "This step isn't waiting for a review.")
     step.state, step.finished_at = S.SUCCEEDED, utcnow()

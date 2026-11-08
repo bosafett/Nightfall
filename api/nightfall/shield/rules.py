@@ -39,6 +39,8 @@ RECOMMEND: dict[str, str] = {
     "monitor.expiring": "Renew the authorization if this monitoring should continue.",
     "monitor.ended": "Monitoring stopped. Authorize again (for the new scope version, if it "
     "changed) to resume it.",
+    "detection.gap": "Add or tune a detection for this technique (log source, rule, alert "
+    "routing), then run the WARPATH step again to confirm it's caught.",
 }
 
 

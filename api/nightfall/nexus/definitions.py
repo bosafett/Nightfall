@@ -244,3 +244,50 @@ WORKFLOWS: dict[str, WorkflowDef] = {
 
 for _w in WORKFLOWS.values():
     validate(_w)
+
+
+# --- Plan-driven runs (WARPATH) ---------------------------------------------------------------
+
+WARPATH_ID = "warpath-exercise"
+
+
+def warpath_definition(plan: list[dict[str, Any]], plan_sha256: str) -> WorkflowDef:
+    """A WARPATH exercise as a NEXUS definition. The rules are fixed here, in code: each
+    plan step becomes a lab playbook step a person starts (normal lab preflight and
+    approval) followed by a review step where a defender scores detection; each step waits
+    for the previous one. The plan, approved and hashed, only supplies the sequence."""
+    steps: list[StepDef] = []
+    for i, p in enumerate(plan, start=1):
+        prev = (f"s{i - 1}_score",) if i > 1 else ()
+        steps += [
+            StepDef(
+                f"s{i}_attack",
+                f"Step {i}: {p['technique_id']} via {p['playbook_id']} on {p['target']}",
+                "playbook",
+                f"Runs the lab playbook {p['playbook_id']} on {p['target']} "
+                f"(ATT&CK {p['technique_id']}). Its operations need lab approval as usual.",
+                depends_on=prev,
+                params={"playbook_id": p["playbook_id"], "target": p["target"]},
+            ),
+            StepDef(
+                f"s{i}_score",
+                f"Step {i}: score detection",
+                "review",
+                "A defender records whether the activity was detected (detected, partly, "
+                f"missed). Expected: {p.get('expected_detection') or 'not stated'}.",
+                depends_on=(f"s{i}_attack",),
+            ),
+        ]
+    w = WorkflowDef(
+        id=WARPATH_ID,
+        name="WARPATH exercise",
+        version=f"1.0.0+{plan_sha256[:12]}",
+        summary="A purple-team exercise in the lab: attack steps a person starts, each "
+        "followed by a detection score.",
+        starts_from="target",
+        steps=tuple(steps),
+        deadline=timedelta(days=30),
+        tests=("tests/test_warpath.py::test_exercise_end_to_end",),
+    )
+    validate(w)
+    return w

@@ -13,7 +13,7 @@ export type NavGroup = {
   collapsible?: { open: boolean };
 };
 export type IconName =
-  | "command" | "target" | "recon" | "findings" | "graph" | "warroom" | "blacksite" | "reports" | "settings" | "agents" | "audit" | "blackbox" | "nexus" | "shield" | "alert";
+  | "command" | "target" | "recon" | "findings" | "graph" | "warroom" | "blacksite" | "reports" | "settings" | "agents" | "audit" | "blackbox" | "nexus" | "shield" | "alert" | "warpath";
 
 const planned = (key: string, label: string): PlannedItem =>
   ({ key, label, planned: true, tag: "Planned", title: "Not built yet" });
@@ -30,7 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { key: "graph", label: "Attack Graph", href: (ws) => `/w/${ws}/attack-graph`, icon: "graph", phase: 4 },
     { key: "findings", label: "Findings", href: (ws) => `/w/${ws}/findings`, icon: "findings", phase: 4 },
     { key: "reports", label: "Reports", href: (ws) => `/w/${ws}/reports`, icon: "reports", phase: 4 },
-    planned("warpath", "WARPATH"),
+    { key: "warpath", label: "WARPATH", href: (ws) => `/w/${ws}/warpath`, icon: "warpath" },
   ] },
   { key: "shield", label: "SHIELD", description: "Defensive operations", collapsible: { open: false }, items: [
     { key: "aegis", label: "AEGIS Overview", href: (ws) => `/w/${ws}/shield`, icon: "shield" },

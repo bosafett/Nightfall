@@ -849,3 +849,40 @@ class Alert(Base):
     resolved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     resolved_at: Mapped[datetime | None]
     note: Mapped[str] = mapped_column(server_default=text("''"))
+
+
+class WarpathExercise(Base):
+    """WARPATH (migration 0022): a purple-team exercise plan; frozen once approved."""
+
+    __tablename__ = "warpath_exercises"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    name: Mapped[str]
+    objective: Mapped[str] = mapped_column(server_default=text("''"))
+    source_path_id: Mapped[uuid.UUID | None]
+    plan: Mapped[list[dict[str, Any]]] = mapped_column(JSONB)
+    plan_sha256: Mapped[str]
+    state: Mapped[str] = mapped_column(server_default=text("'draft'"))
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    approved_at: Mapped[datetime | None]
+    workflow_run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("workflow_runs.id"))
+
+
+class WarpathScore(Base):
+    """Insert-only (migration 0022): the latest row per step counts."""
+
+    __tablename__ = "warpath_scores"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    exercise_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("warpath_exercises.id"))
+    step: Mapped[int]
+    technique_id: Mapped[str]
+    attack_result: Mapped[str]
+    detection: Mapped[str]
+    minutes_to_detect: Mapped[int | None]
+    note: Mapped[str] = mapped_column(server_default=text("''"))
+    scored_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    scored_at: Mapped[datetime] = _created()

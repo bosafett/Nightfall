@@ -14,6 +14,7 @@ const paths: Record<Name, React.ReactNode> = {
   blacksite: (<><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M7 8h10M7 12h10M7 16h6" /></>),
   agents: (<><rect x="5" y="8" width="14" height="11" rx="2" /><path d="M12 4v4M9 13h.01M15 13h.01M9 16h6" /></>),
   audit: (<><path d="M6 3h12v18H6z" /><path d="M9 8h6M9 12h6M9 16h3" /></>),
+  warpath: (<><path d="M4 4l10 10M14 4L4 14M17 17l3 3M6 18l2-2M16 6l2-2" /><circle cx="17" cy="17" r="1.5" /></>),
   nexus: (<><circle cx="5" cy="12" r="2" /><circle cx="19" cy="6" r="2" /><circle cx="19" cy="18" r="2" /><path d="M7 12h4l6-5M11 12l6 5" /></>),
   blackbox: (<><rect x="4" y="6" width="16" height="13" rx="1" /><path d="M4 10h16M10 14h4" /></>),
   lock: (<><rect x="5" y="11" width="14" height="10" rx="1" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></>),

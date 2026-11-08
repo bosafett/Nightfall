@@ -1435,6 +1435,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/warpath/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Exercise */
+        post: operations["create_exercise_api_workspaces__workspace_id__projects__project_id__warpath_exercises_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects/{project_id}/workflows": {
         parameters: {
             query?: never;
@@ -1753,6 +1770,133 @@ export interface paths {
         get: operations["war_room_summary_api_workspaces__workspace_id__war_room_summary_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/catalogue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Catalogue */
+        get: operations["catalogue_api_workspaces__workspace_id__warpath_catalogue_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/exercises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Exercises */
+        get: operations["list_exercises_api_workspaces__workspace_id__warpath_exercises_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Exercise */
+        get: operations["get_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__get"];
+        /** Update Exercise */
+        put: operations["update_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__put"];
+        post?: never;
+        /** Delete Exercise */
+        delete: operations["delete_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Exercise
+         * @description Freezes the plan. Runs nothing: each attack step still needs its own lab approval.
+         */
+        post: operations["approve_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Exercise */
+        post: operations["cancel_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Exercise
+         * @description Creates the NEXUS run. Its attack steps can only be started from BLACKSITE.
+         */
+        post: operations["start_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/warpath/exercises/{exercise_id}/steps/{step}/score": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Score Step */
+        post: operations["score_step_api_workspaces__workspace_id__warpath_exercises__exercise_id__steps__step__score_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2256,6 +2400,15 @@ export interface components {
          * @enum {string}
          */
         AttackPathStatus: "hypothesis" | "validated" | "rejected";
+        /** AttackTechniqueOut */
+        AttackTechniqueOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Tactics */
+            tactics: string[];
+        };
         /** AuditCheckIn */
         AuditCheckIn: {
             /** Hash */
@@ -5053,6 +5206,219 @@ export interface components {
             awaiting_total: number;
             /** Awaiting You */
             awaiting_you: number;
+        };
+        /** WarpathCatalogueOut */
+        WarpathCatalogueOut: {
+            /** Attribution */
+            attribution: string;
+            /** Note */
+            note: string;
+            /** Playbooks */
+            playbooks: components["schemas"]["WarpathCataloguePlaybook"][];
+            /** Release */
+            release: string;
+            /** Released */
+            released: string;
+        };
+        /** WarpathCataloguePlaybook */
+        WarpathCataloguePlaybook: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Techniques */
+            techniques: components["schemas"]["AttackTechniqueOut"][];
+        };
+        /** WarpathExerciseDetail */
+        WarpathExerciseDetail: {
+            /** Approved At */
+            approved_at: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Attack Release */
+            attack_release: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Objective */
+            objective: string;
+            /** Plan Sha256 */
+            plan_sha256: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            scorecard: components["schemas"]["WarpathScorecardOut"];
+            /** Source Path Id */
+            source_path_id: string | null;
+            /** State */
+            state: string;
+            /** Steps */
+            steps: components["schemas"]["WarpathStepOut"][];
+            /** Workflow Run Id */
+            workflow_run_id: string | null;
+        };
+        /** WarpathExerciseIn */
+        WarpathExerciseIn: {
+            /** Name */
+            name: string;
+            /**
+             * Objective
+             * @default
+             */
+            objective: string;
+            /** Source Path Id */
+            source_path_id?: string | null;
+            /** Steps */
+            steps: components["schemas"]["WarpathPlanStep"][];
+        };
+        /** WarpathExerciseOut */
+        WarpathExerciseOut: {
+            /** Approved At */
+            approved_at: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /** Attack Release */
+            attack_release: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Objective */
+            objective: string;
+            /** Plan Sha256 */
+            plan_sha256: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /** Source Path Id */
+            source_path_id: string | null;
+            /** State */
+            state: string;
+            /** Workflow Run Id */
+            workflow_run_id: string | null;
+        };
+        /** WarpathPlanStep */
+        WarpathPlanStep: {
+            /**
+             * Expected Detection
+             * @default
+             */
+            expected_detection: string;
+            /** Playbook Id */
+            playbook_id: string;
+            /** Target */
+            target: string;
+            /** Technique Id */
+            technique_id: string;
+        };
+        /** WarpathScoreIn */
+        WarpathScoreIn: {
+            /**
+             * Attack Result
+             * @enum {string}
+             */
+            attack_result: "succeeded" | "failed" | "blocked";
+            /**
+             * Detection
+             * @enum {string}
+             */
+            detection: "detected" | "partial" | "missed" | "not_applicable";
+            /** Minutes To Detect */
+            minutes_to_detect?: number | null;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** WarpathScoreOut */
+        WarpathScoreOut: {
+            /** Attack Result */
+            attack_result: string;
+            /** Detection */
+            detection: string;
+            /** Minutes To Detect */
+            minutes_to_detect: number | null;
+            /** Note */
+            note: string;
+            /**
+             * Scored At
+             * Format: date-time
+             */
+            scored_at: string;
+            /** Scored By */
+            scored_by: string;
+        };
+        /** WarpathScorecardOut */
+        WarpathScorecardOut: {
+            /** Attacks Blocked */
+            attacks_blocked: number;
+            /** Attacks Succeeded */
+            attacks_succeeded: number;
+            /** By Tactic */
+            by_tactic: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** Detected */
+            detected: number;
+            /** Median Minutes To Detect */
+            median_minutes_to_detect: number | null;
+            /** Missed */
+            missed: number;
+            /** Partial */
+            partial: number;
+            /** Scored */
+            scored: number;
+            /** Steps */
+            steps: number;
+        };
+        /** WarpathStepOut */
+        WarpathStepOut: {
+            /** Attack State */
+            attack_state: string | null;
+            /** Expected Detection */
+            expected_detection: string;
+            /** Playbook Id */
+            playbook_id: string;
+            score: components["schemas"]["WarpathScoreOut"] | null;
+            /** Score State */
+            score_state: string | null;
+            /** Step */
+            step: number;
+            /** Target */
+            target: string;
+            technique: components["schemas"]["AttackTechniqueOut"];
         };
         /** WatchtowerOut */
         WatchtowerOut: {
@@ -8528,6 +8894,42 @@ export interface operations {
             };
         };
     };
+    create_exercise_api_workspaces__workspace_id__projects__project_id__warpath_exercises_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarpathExerciseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     start_workflow_api_workspaces__workspace_id__projects__project_id__workflows_post: {
         parameters: {
             query?: never;
@@ -9171,6 +9573,302 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WarRoomSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    catalogue_api_workspaces__workspace_id__warpath_catalogue_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathCatalogueOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_exercises_api_workspaces__workspace_id__warpath_exercises_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+                state?: string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarpathExerciseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_exercise_api_workspaces__workspace_id__warpath_exercises__exercise_id__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    score_step_api_workspaces__workspace_id__warpath_exercises__exercise_id__steps__step__score_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: string;
+                step: number;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WarpathScoreIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WarpathExerciseDetail"];
                 };
             };
             /** @description Validation Error */

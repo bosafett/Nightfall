@@ -141,7 +141,7 @@ function render() {
   const app = $("app");
   if (!state.me) return replace(app, signInView());
   if (!state.ws) return replace(app, el("div", { class: "panel" }, el("h1", {}, "Restricted"), el("p", { class: "muted" }, "BLACKSITE is limited to workspace owners.")));
-  const tabs = [["probes", "Probe deck"], ["approvals", "Approvals"], ["playbooks", "Lab playbooks"]];
+  const tabs = [["probes", "Probe deck"], ["approvals", "Approvals"], ["playbooks", "Lab playbooks"], ["warpath", "WARPATH"]];
   replace(app,
     el("div", { class: "tabs", role: "tablist" }, tabs.map(([k, label]) =>
       el("button", { role: "tab", "aria-selected": String(state.tab === k), onclick: () => { state.tab = k; render(); reload(); } }, label))),
@@ -154,6 +154,7 @@ async function reload() {
   try {
     if (state.tab === "probes") await renderProbes();
     else if (state.tab === "approvals") await renderApprovals();
+    else if (state.tab === "warpath") await renderWarpath();
     else await renderPlaybooks();
   } catch (e) {
     replace($("view"), el("p", { class: "error", role: "alert" }, e.message));
@@ -390,6 +391,35 @@ async function renderPlaybooks() {
         el("td", {}, `${r.playbook_name} v${r.playbook_version}`), el("td", { class: "mono" }, r.target), el("td", {}, statusTag(r.status)),
         el("td", {}, `${r.steps.filter((s) => s.status === "succeeded").length}/${r.steps.length}`), el("td", { class: "muted" }, when(r.created_at)),
         el("td", {}, ["awaiting_approval", "running"].includes(r.status) ? el("button", { class: "small", onclick: () => act(err, () => api(wsPath(`/blackops/runs/${r.id}/cancel`), { method: "POST" })) }, "Cancel") : null)))))))));
+}
+
+// --- WARPATH --------------------------------------------------------------------------
+// Running exercises' attack steps are started here only (lab runs never start from the
+// hosted app). Starting a step runs the normal lab preflight; its operations then wait in
+// Approvals. Scoring detection happens in the main app.
+async function renderWarpath() {
+  const exercises = await api(wsPath("/warpath/exercises?state=running"));
+  const runs = await Promise.all(exercises.map((x) => api(wsPath(`/workflow-runs/${x.workflow_run_id}`))));
+  const err = el("p", { class: "error", role: "alert" });
+  const startButton = (x, st) => el("button", { class: "small primary", onclick: () => act(err, async () => {
+    if (!confirm(`Start "${st.label}"? It runs the lab preflight; its operations then wait for approval.`)) return;
+    await api(wsPath(`/workflow-runs/${x.workflow_run_id}/steps/${st.key}/start`), { method: "POST" });
+  }) }, "Start step");
+  const stepRow = (x, st) => el("tr", {},
+    el("td", {}, st.label),
+    el("td", {}, statusTag(st.state)),
+    el("td", { class: "muted" }, st.detail),
+    el("td", {}, ["ready", "blocked"].includes(st.state) ? startButton(x, st) : null));
+  const exercisePanel = (x, run) => el("div", { class: "panel" },
+    el("h3", {}, x.name),
+    el("p", { class: "muted" }, x.project_name),
+    el("div", { class: "table-wrap" },
+      el("table", {}, el("tbody", {}, run.steps.filter((st) => st.kind === "playbook").map((st) => stepRow(x, st))))));
+  replace($("view"), el("section", { class: "panel", "aria-label": "WARPATH" },
+    el("div", { class: "row" }, el("h2", {}, "WARPATH exercises"), el("button", { class: "small", onclick: () => reload() }, "Refresh")),
+    el("p", { class: "muted" }, "Start each attack step yourself. Its lab operations need approval under Approvals; score detection in the main app afterwards."),
+    err,
+    exercises.length === 0 ? el("p", { class: "muted" }, "No running exercise.") : exercises.map((x, i) => exercisePanel(x, runs[i]))));
 }
 
 document.addEventListener("DOMContentLoaded", boot);

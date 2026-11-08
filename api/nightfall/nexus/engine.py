@@ -39,7 +39,14 @@ from nightfall.core.db.models import (
     WorkflowStepState,
 )
 from nightfall.core.tenancy.deps import WorkspaceContext
-from nightfall.nexus.definitions import EXECUTING, WORKFLOWS, StepDef, WorkflowDef
+from nightfall.nexus.definitions import (
+    EXECUTING,
+    WARPATH_ID,
+    WORKFLOWS,
+    StepDef,
+    WorkflowDef,
+    warpath_definition,
+)
 
 S = WorkflowStepState
 DONE = (S.SUCCEEDED, S.SKIPPED)
@@ -59,6 +66,8 @@ class StepRefused(Exception):
 
 
 def definition(run: WorkflowRun) -> WorkflowDef:
+    if run.definition_id == WARPATH_ID:  # plan-driven: rules in code, sequence from the plan
+        return warpath_definition(run.inputs["plan"], run.inputs["plan_sha256"])
     return WORKFLOWS[run.definition_id]
 
 
@@ -393,7 +402,13 @@ def start_step(
                 if pid not in PLAYBOOKS:
                     raise StepRefused(f"Playbook {pid} isn't in the catalog.")
                 pr_id, ops = _launch_playbook(
-                    db, ctx, run, pid, run.inputs["target"], request, background
+                    db,
+                    ctx,
+                    run,
+                    pid,
+                    d.params.get("target") or run.inputs["target"],
+                    request,
+                    background,
                 )
                 outputs: dict[str, Any] = {"playbook_run_ids": [pr_id]}
             else:

@@ -51,7 +51,7 @@ describe("navigation", () => {
     expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, "SWORD", "SHIELD", "JANUS CORE", "SYSTEM"]);
     expect(NAV.map((n) => n.label)).toEqual([
       "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports",
-      "AEGIS Overview", "Monitoring", "Alerts & Detection", "BLACK BOX", "NEXUS",
+      "WARPATH", "AEGIS Overview", "Monitoring", "Alerts & Detection", "BLACK BOX", "NEXUS",
       "Agents", "War Room", "Audit Log", "Settings",
     ]);
   });
@@ -59,7 +59,7 @@ describe("navigation", () => {
     const shield = NAV_GROUPS.find((g) => g.key === "shield")!;
     // SHIELD v1: overview, monitoring and alerts are built; the rest stay labels.
     expect(shield.items.filter((i) => !isPlanned(i)).map((i) => i.key)).toEqual(["aegis", "monitoring", "alerts"]);
-    expect(NAV.some((n) => ["warpath", "hunting", "countermeasures", "incidents", "recovery"].includes(n.key))).toBe(false);
+    expect(NAV.some((n) => ["hunting", "countermeasures", "incidents", "recovery"].includes(n.key))).toBe(false);
     expect(new Set(NAV.map((n) => n.href("w"))).size).toBe(NAV.length);
   });
   it("marks only BLACKSITE as restricted", () => {

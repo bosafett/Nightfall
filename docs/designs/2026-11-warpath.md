@@ -1,6 +1,8 @@
 # WARPATH v1: purple-team exercises in the lab (design for review)
 
-Status: **design only, 2026-11-08.** Nothing here is built. WARPATH stays a "Planned" label until a version of this is
+Status: **approved by the owner 2026-11-08 (all §11 decisions as recommended); v1 built and switched off (migration
+0022): it runs only once BLACKSITE is enabled with its review and the lab exists.** §12 lists how the build differs.
+Original status: design only. WARPATH stays a "Planned" label until a version of this is
 approved and built. The owner's decisions on the questions it rests on are in §1.
 
 ## 1. Decisions this design is built on (owner, 2026-11-08)
@@ -177,3 +179,27 @@ Effort: about the size of SHIELD v1. One migration. No paid services and no new 
 3. **Partly detected raises a low-severity SHIELD alert** (recommended), or only "missed" raises alerts.
 4. **Building before the lab exists:** build WARPATH now, switched off, as with Profile B (recommended), or wait until
    BLACKSITE is enabled.
+
+## 12. As built (2026-11-08, migration 0022)
+
+- **Decisions:** all four §11 decisions as recommended. Anyone with `findings.validate` scores; partly detected raises
+  a low-severity alert; built now and switched off.
+- **ATT&CK catalogue:** Enterprise **20.0** (released 2026-10-13), 706 current techniques and sub-techniques, in
+  `api/nightfall/warpath/attack.json`, built by `infra/tools/import_attack.py`, with the source file's SHA-256
+  recorded. 20.1 was only three days old at build time.
+- **Playbook mappings:**
+  - `web-exposure-audit`: T1595.002, T1595.003;
+  - `tls-configuration-audit`: T1595, T1590;
+  - `http-security-assessment`: T1595, T1592.002;
+  - `known-weakness-scan-lab`: T1595.002, T1595.003, T1592.002.
+- **Who does what:** analysts draft plans; the owner approves (fresh two-factor), starts and cancels.
+- **NEXUS plan-driven runs:** `definition_id = warpath-exercise`. The rules are in code; the steps are generated from
+  the approved, hashed plan. NEXUS's generic "mark done" is refused for these review steps, so each one needs a score.
+- **BLACKSITE** re-serves three routes (list exercises, read the run, start a step), and its console has a WARPATH tab.
+  - The BLACKSITE database role may read and advance **WARPATH runs only**, and exercises of lab projects only
+    (restrictive policies).
+  - Started from the hosted app, a step is blocked with the reason "Lab runs are launched from BLACKSITE".
+- **Detection-gap alerts** are raised by the API as the scoring person. The app role may insert alerts of that kind
+  only (a restrictive policy); every other kind stays worker-only.
+- **Rollback:** migration 0022's downgrade drops its policies `IF EXISTS`, and restores the old alert-kind check
+  `NOT VALID`.

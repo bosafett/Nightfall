@@ -37,7 +37,9 @@ from nightfall.core.identity import routes as auth
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
+from nightfall.nexus import routes as nexus
 from nightfall.recon import routes as recon
+from nightfall.warpath import routes as warpath
 
 log = logging.getLogger("nightfall.blacksite")
 
@@ -140,6 +142,10 @@ def _curated() -> list[APIRouter]:
         ("/blackops/runs/{run_id}/approve", blackops.approve_run, ["POST"], 200),
         ("/blackops/runs/{run_id}/reject", blackops.reject_run, ["POST"], 200),
         ("/blackops/runs/{run_id}/cancel", blackops.cancel_run, ["POST"], 200),
+        # WARPATH: lab attack steps are started here only (NEXUS start → lab preflight).
+        ("/warpath/exercises", warpath.list_exercises, ["GET"], 200),
+        ("/workflow-runs/{run_id}", nexus.get_workflow_run, ["GET"], 200),
+        ("/workflow-runs/{run_id}/steps/{key}/start", nexus.start_step, ["POST"], 200),
     ]
     for path, fn, methods, code in ws_routes:
         w.add_api_route(path, fn, methods=methods, status_code=code, response_model=None)
