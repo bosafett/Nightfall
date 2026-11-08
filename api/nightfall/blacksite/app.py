@@ -32,6 +32,7 @@ from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoin
 from nightfall.blackops import routes as blackops
 from nightfall.config import get_settings
 from nightfall.core.audit.writer import record_detached
+from nightfall.core.clock import utcnow
 from nightfall.core.db.session import DB
 from nightfall.core.identity import routes as auth
 from nightfall.core.schemas import Model
@@ -84,8 +85,10 @@ class HostOnly(BaseHTTPMiddleware):
 
 class StatusOut(Model):
     enabled: bool
-    review_recorded: bool
+    review_recorded: bool  # does the recorded review unlock lab execution right now?
     review_reference: str | None
+    review_kind: str  # independent / self / none
+    review_label: str
     database_role: str
     approval_policy: str
     operator: str
@@ -97,15 +100,19 @@ router = APIRouter(prefix="/api/workspaces/{workspace_id}/blacksite", tags=["bla
 
 @router.get("/status", response_model=StatusOut)
 def status(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> StatusOut:
+    from nightfall.control.reviews import review
     from nightfall.core.db.models import Workspace
 
     s = get_settings()
     policy = db.get(Workspace, ctx.workspace_id)
     at = ctx.auth.session.mfa_verified_at
+    r = review(s.blacksite_review_ref, s, utcnow(), "BLACKSITE")
     return StatusOut(
         enabled=s.blacksite_enabled,
-        review_recorded=bool(s.blacksite_review_ref),
-        review_reference=s.blacksite_review_ref,
+        review_recorded=r.ok,
+        review_reference=r.reference,
+        review_kind=r.kind,
+        review_label=r.label if r.ok else (r.problem or r.label),
         database_role=str(db.scalar(text("SELECT current_user"))),
         approval_policy=policy.approval_policy if policy else "single_operator",
         operator=ctx.auth.user.display_name,
@@ -189,6 +196,13 @@ for _path, (_name, _media) in _UI_FILES.items():
     _ui_route(_path, _name, _media)
 
 
+def _review_line(s: Any) -> str:
+    from nightfall.control.reviews import review
+
+    r = review(s.blacksite_review_ref, s, utcnow(), "BLACKSITE")
+    return r.label if r.ok else f"NOT unlocked ({r.problem}): lab execution off"
+
+
 def create_blacksite_app() -> FastAPI:
     from nightfall.main import RequestGuard
 
@@ -244,7 +258,7 @@ def main() -> None:
         "BLACKSITE on %s:%d (review %s)",
         s.blacksite_bind,
         s.blacksite_port,
-        "recorded" if s.blacksite_review_ref else "NOT recorded: lab execution off",
+        _review_line(s),
     )
     uvicorn.run(
         create_blacksite_app(),

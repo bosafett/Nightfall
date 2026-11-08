@@ -33,6 +33,14 @@ export default async function BlackOps({ params }: { params: Promise<{ ws: strin
       <nav className="mb-2 text-sm text-muted"><Link href={`/w/${ws}/blacksite`} className="hover:text-text">BLACKSITE</Link> /</nav>
       <PageHeader title="BLACK OPS" subtitle="Prebuilt operations. Controlled execution. Verifiable results." actions={<Badge tone="crimson">Owner only</Badge>} />
       <AutoRefresh ws={ws} active={runs.some((r) => r.status === "running")} />
+      {lib.self_review_notices.length > 0 && (
+        <Alert tone="yellow">
+          <span data-testid="self-review-notice">
+            Switched on by the owner&apos;s self-review, not an independent review (temporary owner decision):{" "}
+            {lib.self_review_notices.join("; ")}.
+          </span>
+        </Alert>
+      )}
       <div className="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3" data-testid="profiles">
         {lib.profiles.map((p) => (
           <div key={p.key} className="rounded-lg border border-border bg-surface p-3">

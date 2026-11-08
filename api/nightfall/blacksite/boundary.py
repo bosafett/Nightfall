@@ -14,9 +14,18 @@ from __future__ import annotations
 from fastapi import Request
 
 from nightfall.config import get_settings
+from nightfall.control.reviews import Review
 from nightfall.core.audit.writer import record_detached
 from nightfall.core.errors import api_error
 from nightfall.core.tenancy.deps import WorkspaceContext, is_blacksite
+
+
+def _review() -> Review:
+    from nightfall.control.reviews import review
+    from nightfall.core.clock import utcnow
+
+    s = get_settings()
+    return review(s.blacksite_review_ref, s, utcnow(), "BLACKSITE")
 
 
 def lab_boundary(
@@ -30,11 +39,11 @@ def lab_boundary(
     elif blacksite and not is_lab:
         reason, code = "blacksite_not_lab", "blacksite_lab_only"
         message = "BLACKSITE acts on lab work only."
-    elif blacksite and executes and not get_settings().blacksite_review_ref:
+    elif blacksite and executes and (r := _review()).ok is False:
         reason, code = "review_not_recorded", "review_required"
         message = (
-            "Lab execution stays off until the independent review is recorded "
-            "(NIGHTFALL_BLACKSITE_REVIEW_REF)."
+            f"Lab execution stays off: {r.problem} Record the review in "
+            "NIGHTFALL_BLACKSITE_REVIEW_REF."
         )
     else:
         return

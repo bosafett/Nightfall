@@ -106,7 +106,7 @@ def test_pack_runs_only_with_review_and_verified_templates(
     s = get_settings()
     assert pack1.unavailable_reason(dataclasses.replace(s, blacksite_enabled=False))
     on = dataclasses.replace(s, blacksite_enabled=True, lab_pack1_review_ref=None)
-    assert "independent review" in (pack1.unavailable_reason(on) or "")
+    assert "no recorded review" in (pack1.unavailable_reason(on) or "")
     assert pack1.unavailable_reason(dataclasses.replace(on, lab_pack1_review_ref="R-1")) is None
 
     root = _fake_pack(tmp_path, monkeypatch)
@@ -122,7 +122,7 @@ def test_pack_runs_only_with_review_and_verified_templates(
     # The collector refuses before running anything when the pack isn't reviewed.
     scan = NucleiPackScan("tech", "/bin/false", Sandbox(), root, require_lock=False)
     monkeypatch.setattr("nightfall.config.get_settings", lambda: on)
-    with pytest.raises(Refused, match="independent review"):
+    with pytest.raises(Refused, match="no recorded review"):
         scan.run("10.0.0.5", RunContext())
 
 

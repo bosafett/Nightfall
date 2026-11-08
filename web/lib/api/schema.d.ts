@@ -3586,6 +3586,11 @@ export interface components {
             playbooks: components["schemas"]["PlaybookOut"][];
             /** Profiles */
             profiles: components["schemas"]["ProfileOut"][];
+            /**
+             * Self Review Notices
+             * @default []
+             */
+            self_review_notices: string[];
         };
         /** LinkIn */
         LinkIn: {

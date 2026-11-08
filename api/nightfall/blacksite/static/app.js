@@ -108,7 +108,7 @@ function renderSession() {
     owned.length > 1 ? el("select", { "aria-label": "Workspace", onchange: (e) => { state.ws = e.target.value; boot(); } },
       owned.map((w) => el("option", { value: w.id, selected: w.id === state.ws }, w.name))) : null,
     el("span", {}, state.me.user.display_name),
-    st ? tag(st.review_recorded ? `Review: ${st.review_reference}` : "Review not recorded: execution off", st.review_recorded ? "ok" : "bad") : null,
+    st ? tag(st.review_recorded ? st.review_label : `Execution off: ${st.review_label}`, !st.review_recorded ? "bad" : st.review_kind === "self" ? "warn" : "ok") : null,
     st ? tag(st.approval_policy === "single_operator" ? "Single operator" : "Two-person", "info") : null,
     fresh ? el("span", { class: "muted" }, `2FA fresh until ${fresh.toLocaleTimeString()}`) : null,
     el("button", { class: "small", onclick: async () => { await call("/api/auth/logout", { method: "POST" }).catch(() => {}); boot(); } }, "Sign out"),

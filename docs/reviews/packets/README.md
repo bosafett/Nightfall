@@ -24,9 +24,15 @@ owner is the only person on the project.
 - **Independent review:** someone who didn't build the system and isn't the owner or a second account of the
   owner. With a completed self-review and these packets, the job is small and bounded. Do the cheapest first
   (lab tool pack 1, then BLACKSITE, then Profile B).
-- **Changing the rule** (letting a self-review unlock a feature) is an owner policy decision. If it's ever made,
-  it should be recorded explicitly, and the app should label those features "self-reviewed, not independent".
-  This packet doesn't assume it.
+- **Temporary self-review mode (owner decision, 2026-11-08):** while the owner is the only person on the project,
+  a review reference starting `SELF:` (e.g. `SELF:2026-11-08 owner, docs/reviews/2026-11-08-blacksite-self-review.md`)
+  switches a feature on, but **only** while `NIGHTFALL_SELF_REVIEW_UNTIL` is set to a date that hasn't passed. That
+  date can be at most 90 days ahead. After it, self-reviews switch nothing on, with no action needed.
+  - **It's never presented as independent.** Preflight checks, the BLACK OPS library, the BLACKSITE console and the
+    audit trail (`review_kind: self`) all say "self-review, not independent".
+  - **Every other gate is unchanged:** owner only, fresh two-factor, lab network, proof of control, sealed
+    credentials, approvals, worker re-checks.
+  - **To end it early,** unset `NIGHTFALL_SELF_REVIEW_UNTIL` or record an independent reference.
 
 ## Before you start
 

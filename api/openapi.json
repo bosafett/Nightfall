@@ -3873,6 +3873,14 @@
             },
             "title": "Profiles",
             "type": "array"
+          },
+          "self_review_notices": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Self Review Notices",
+            "type": "array"
           }
         },
         "required": [

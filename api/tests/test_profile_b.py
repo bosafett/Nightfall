@@ -135,7 +135,7 @@ def test_each_gate_switches_profile_b_off_on_its_own(gates_on: None) -> None:
     assert profile_b.unavailable_reason(s) is None
     for change, words in (
         ({"profile_b_enabled": False}, "switched off"),
-        ({"profile_b_review_ref": None}, "independent review"),
+        ({"profile_b_review_ref": None}, "no recorded review"),
         ({"on_demand_worker": True}, "self-hosted worker"),
         ({"profile_b_public_key": None}, "worker key"),
     ):

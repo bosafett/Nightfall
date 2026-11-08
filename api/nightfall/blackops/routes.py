@@ -160,6 +160,8 @@ class LibraryOut(Model):
     playbooks: list[PlaybookOut]
     can_run: bool
     can_manage: bool
+    # Features currently unlocked by a self-review (temporary owner decision): never independent.
+    self_review_notices: list[str] = []
 
 
 def _unavailable_tools() -> set[str]:
@@ -238,6 +240,7 @@ def list_playbooks(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ
     enabled = _enabled_map(db, ctx)
     pb_reason = profile_b.unavailable_reason(get_settings())
     return LibraryOut(
+        self_review_notices=_self_review_notices(),
         profiles=[
             ProfileOut(
                 key=k,
@@ -403,6 +406,43 @@ def _target_type(value: str) -> TargetType | None:
     return None
 
 
+def _review_record(profile: Profile) -> dict[str, str]:
+    """For the audit trail: which kind of review a lab or Profile B run ran under."""
+    from nightfall.control.reviews import review
+
+    s = get_settings()
+    ref = {Profile.LAB: s.blacksite_review_ref, Profile.VALIDATION: s.profile_b_review_ref}.get(
+        profile
+    )
+    if profile not in (Profile.LAB, Profile.VALIDATION):
+        return {}
+    r = review(ref, s, utcnow(), profile.value)
+    return {"review_kind": r.kind, "review": r.label}
+
+
+def _self_review_notices() -> list[str]:
+    from nightfall.control.reviews import review
+
+    s = get_settings()
+    now = utcnow()
+    out = []
+    for name, ref in (
+        ("BLACKSITE", s.blacksite_review_ref),
+        ("Lab tool pack 1", s.lab_pack1_review_ref),
+        ("Profile B", s.profile_b_review_ref),
+    ):
+        r = review(ref, s, now, name)
+        if r.kind == "self" and r.ok:
+            out.append(f"{name}: {r.label}")
+    return out
+
+
+def _review_label(ref: str | None) -> str:
+    from nightfall.control.reviews import review
+
+    return review(ref, get_settings(), utcnow(), "Profile B").label
+
+
 def preflight(
     db: Session,
     ctx: WorkspaceContext,
@@ -483,12 +523,15 @@ def preflight(
             else "BLACKSITE runs lab work only.",
         )
         if blacksite:
-            ref = get_settings().blacksite_review_ref
+            from nightfall.control.reviews import review
+
+            s_ = get_settings()
+            r = review(s_.blacksite_review_ref, s_, utcnow(), "BLACKSITE")
             add(
                 "review",
-                "Independent review recorded",
-                bool(ref),
-                f"Recorded: {ref}." if ref else "Lab execution stays off until it is recorded.",
+                "Review recorded",
+                r.ok,
+                f"{r.label}." if r.ok else f"{r.problem} Lab execution stays off.",
             )
 
     if profile is Profile.VALIDATION and scope is not None:
@@ -498,7 +541,7 @@ def preflight(
             "profile_b",
             "Profile B gates",
             why is None,
-            f"Enabled; review {settings.profile_b_review_ref}; self-hosted worker."
+            f"Enabled; {_review_label(settings.profile_b_review_ref)}; self-hosted worker."
             if why is None
             else why,
         )
@@ -998,6 +1041,7 @@ def launch_run(
             "target": target,
             "scope_version": scope.version,
             "steps": p.tools,
+            **_review_record(profile),
         },
         **ctx.audit_kwargs(),
     )

@@ -96,10 +96,12 @@ def unavailable_reason(s: Settings) -> str | None:
     """Why the pack can't run here, or None. Same answer for the API and the worker."""
     if not s.blacksite_enabled:
         return "BLACKSITE is off on this deployment."
-    if not s.lab_pack1_review_ref:
-        return (
-            "Lab tool pack 1 has no recorded independent review (NIGHTFALL_LAB_PACK1_REVIEW_REF)."
-        )
+    from nightfall.control.reviews import review
+    from nightfall.core.clock import utcnow
+
+    r = review(s.lab_pack1_review_ref, s, utcnow(), "Lab tool pack 1")
+    if not r.ok:
+        return f"{r.problem} (NIGHTFALL_LAB_PACK1_REVIEW_REF)"
     return None
 
 

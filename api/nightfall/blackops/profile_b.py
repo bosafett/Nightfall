@@ -139,8 +139,12 @@ def unavailable_reason(s: Settings) -> str | None:
     """G3 and G5, plus the key the API needs to accept credentials."""
     if not s.profile_b_enabled:
         return "Profile B is switched off on this deployment (NIGHTFALL_PROFILE_B_ENABLED)."
-    if not s.profile_b_review_ref:
-        return "Profile B has no recorded independent review (NIGHTFALL_PROFILE_B_REVIEW_REF)."
+    from nightfall.control.reviews import review
+    from nightfall.core.clock import utcnow
+
+    r = review(s.profile_b_review_ref, s, utcnow(), "Profile B")
+    if not r.ok:
+        return f"{r.problem} (NIGHTFALL_PROFILE_B_REVIEW_REF)"
     if s.on_demand_worker:
         return "Profile B runs only on a self-hosted worker, not on the hosted platform."
     if not s.profile_b_public_key:

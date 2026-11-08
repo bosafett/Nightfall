@@ -898,6 +898,15 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     confirm) and R28 (error page shows a stack trace or a database error).
   - **POST:** only to forms the operator marks safe.
   - **Status:** Profile B's three playbooks are all built.
+- **Owner decision, 2026-11-08: temporary self-review mode (built; no migration).**
+  - **Why:** the owner is the only person on the project. This explicitly relaxes the earlier rule that only an
+    independent review unlocks BLACKSITE, lab tool pack 1 and Profile B.
+  - **How it works:** a review reference starting `SELF:` counts only while `NIGHTFALL_SELF_REVIEW_UNTIL` (at most 90
+    days ahead) hasn't passed. One rule, `control/reviews.py`, is used by every switch.
+  - **Labelling:** it's always labelled "self-review, not independent", in the preflight, the BLACK OPS library, the
+    BLACKSITE console and the audit trail (`review_kind`).
+  - **Everything else unchanged:** every other gate stays as it was, and independent references work as before.
+    When people join, record independent reviews and let the window lapse.
 - **WARPATH v1: purple-team exercises in the lab (built, switched off; migration 0022).** Design and decisions:
   `docs/designs/2026-11-warpath.md` (§12 as built).
   - **Plans:** lab playbook steps, each tagged with an ATT&CK technique (Enterprise 20.0, pinned) that the playbook

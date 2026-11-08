@@ -67,6 +67,9 @@ Optional:
   NIGHTFALL_PROFILE_B_PUBLIC_KEY    base64 X25519 public key test credentials are sealed to
                                     (`nightfall profile-b-keygen` makes a pair).
   NIGHTFALL_PROFILE_B_PRIVATE_KEY   (self-hosted worker only) the matching private key.
+  NIGHTFALL_SELF_REVIEW_UNTIL       temporary self-review mode (owner decision 2026-11-08): until
+                                    this date (at most 90 days ahead), a review reference starting
+                                    "SELF:" unlocks its feature, always labelled "not independent".
   NIGHTFALL_LAB_PACK1_DIR           (lab worker) the pack's templates, from the lab tool image
                                     (default /opt/nuclei-pack1), checked against pack1.json.
 """
@@ -78,6 +81,7 @@ import binascii
 import ipaddress
 import os
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal, cast
@@ -134,6 +138,9 @@ class Settings:
     profile_b_review_ref: str | None = None
     profile_b_public_key: str | None = None  # API and worker: seals test credentials
     profile_b_private_key: str | None = None  # self-hosted worker only: opens them
+    # Temporary self-review mode (owner decision 2026-11-08; control/reviews.py): "SELF:" review
+    # references unlock features only until this moment, at most 90 days ahead.
+    self_review_until: datetime | None = None
     version: str = "0.1.0"
 
 
@@ -279,6 +286,19 @@ def load_settings() -> Settings:
             "NIGHTFALL_PROFILE_B_PRIVATE_KEY belongs on the self-hosted worker only, never on "
             "the hosted platform"
         )
+    self_until_raw = os.environ.get("NIGHTFALL_SELF_REVIEW_UNTIL", "").strip()
+    self_until: datetime | None = None
+    if self_until_raw:
+        try:
+            self_until = datetime.fromisoformat(self_until_raw)
+        except ValueError as exc:
+            raise ConfigError(
+                "NIGHTFALL_SELF_REVIEW_UNTIL must be a date, e.g. 2026-12-31"
+            ) from exc
+        if self_until.tzinfo is None:
+            self_until = self_until.replace(tzinfo=UTC)
+        if self_until > datetime.now(UTC) + timedelta(days=90):
+            raise ConfigError("NIGHTFALL_SELF_REVIEW_UNTIL may be at most 90 days ahead")
     pack1_dir = Path(os.environ.get("NIGHTFALL_LAB_PACK1_DIR", "/opt/nuclei-pack1").strip())
     if not pack1_dir.is_absolute():
         raise ConfigError("NIGHTFALL_LAB_PACK1_DIR must be an absolute path")
@@ -322,6 +342,7 @@ def load_settings() -> Settings:
         or None,
         profile_b_public_key=pb_public,
         profile_b_private_key=pb_private,
+        self_review_until=self_until,
     )
 
 
