@@ -193,6 +193,15 @@ class Worker:
             op.finished_at = utcnow()
             for k, v in fields.items():
                 setattr(op, k, v)
+            if op.monitor_authorization_id is not None and status in (
+                OperationStatus.FAILED,
+                OperationStatus.DENIED,
+            ):
+                from nightfall.shield.alerts import failed_run
+
+                failed_run(
+                    db, op, str(fields.get("denial_reason") or fields.get("error") or ""), utcnow()
+                )
             record(
                 db,
                 action,
@@ -233,7 +242,14 @@ class Worker:
 
                 if why := profile_b.worker_check(db, get_settings(), run, now):
                     decision_ok, reason = False, why
-            if decision_ok and (op.risk_class is not RiskClass.PASSIVE or profile_b_run):
+            if decision_ok and op.monitor_authorization_id is not None:
+                # SHIELD: a live standing authorization stands in for a per-operation
+                # approval, re-checked now (scope version, target, tool, risk, expiry).
+                from nightfall.shield.control import monitor_problem
+
+                if problem := monitor_problem(db, op, now):
+                    decision_ok, reason = False, problem
+            elif decision_ok and (op.risk_class is not RiskClass.PASSIVE or profile_b_run):
                 approval = db.scalar(
                     select(Approval).where(
                         Approval.operation_id == op.id,
@@ -337,6 +353,21 @@ class Worker:
             op.status = OperationStatus.SUCCEEDED
             op.finished_at = utcnow()
             op.result_summary = {**summary.as_dict(), "findings": findings}
+            if op.monitor_authorization_id is not None:
+                from nightfall.shield.alerts import after_run
+
+                scope_snap = snapshot(db, scope)
+                monitor_snap = after_run(
+                    db,
+                    op,
+                    result,
+                    findings,
+                    summary.evidence_id,
+                    lambda name: evaluate(scope_snap, name, now).allowed,
+                    now,
+                )
+                if monitor_snap is not None:
+                    op.result_summary = {**op.result_summary, "monitor": monitor_snap}
             if op.tool == "nuclei" or op.tool.startswith("nuclei-pack1-"):
                 op.result_summary["checks"] = result.matches
                 op.result_summary["egress"] = result.egress

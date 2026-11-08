@@ -100,7 +100,7 @@ def test_cron_drain_needs_the_secret(client: TestClient, on_demand) -> None:
     assert client.get(url).status_code == 404
     assert client.get(url, headers={"Authorization": "Bearer wrong"}).status_code == 404
     r = client.get(url, headers={"Authorization": f"Bearer {CRON}"})
-    assert r.status_code == 200 and r.json() == {"processed": 0}
+    assert r.status_code == 200 and r.json() == {"scheduled": 0, "processed": 0}
 
 
 def test_cron_drain_is_off_without_a_secret(client: TestClient) -> None:

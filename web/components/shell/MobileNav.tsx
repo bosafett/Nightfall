@@ -5,7 +5,7 @@ import type { Health } from "@/lib/api/types";
 import { Icon } from "@/components/ui/Icon";
 import { SidebarContent, type LabStatus } from "./SidebarContent";
 
-export function MobileNav(props: { ws: string; health: Health | null; lab: LabStatus; version: string }) {
+export function MobileNav(props: { ws: string; health: Health | null; lab: LabStatus; version: string; counts?: Record<string, number> }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="lg:hidden">

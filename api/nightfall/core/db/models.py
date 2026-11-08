@@ -401,6 +401,10 @@ class Operation(Base):
     proposed_by_task_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("agent_tasks.id"))
     is_lab: Mapped[bool] = mapped_column(server_default=text("false"))
     playbook_run_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("playbook_runs.id"))
+    # SHIELD (migration 0021): a scheduled check under a standing authorization.
+    monitor_authorization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("monitor_authorizations.id")
+    )
     playbook_step: Mapped[int | None]
     denial_reason: Mapped[str | None]
     error: Mapped[str | None]
@@ -791,3 +795,57 @@ class WorkflowStepEvent(Base):
     actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     detail: Mapped[str]
     occurred_at: Mapped[datetime] = _created()
+
+
+class MonitorAuthorization(Base):
+    """SHIELD (migration 0021): the owner's standing authorization for daily passive and
+    low-risk checks of one pinned scope version, for at most 30 days."""
+
+    __tablename__ = "monitor_authorizations"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    scope_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scopes.id"))
+    targets: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    checks: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    cadence: Mapped[str] = mapped_column(server_default=text("'daily'"))
+    authorized_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    authorized_at: Mapped[datetime] = _created()
+    expires_at: Mapped[datetime]
+    renews_id: Mapped[uuid.UUID | None]
+    last_run_at: Mapped[datetime | None]
+    ended_at: Mapped[datetime | None]
+    ended_reason: Mapped[str | None]
+    ended_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    end_note: Mapped[str] = mapped_column(server_default=text("''"))
+
+
+class Alert(Base):
+    """SHIELD (migration 0021): raised by the worker; people acknowledge and resolve."""
+
+    __tablename__ = "alerts"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    authorization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("monitor_authorizations.id")
+    )
+    kind: Mapped[str]
+    severity: Mapped[Severity] = mapped_column(_pg_enum(Severity, "severity"))
+    title: Mapped[str]
+    detail: Mapped[str] = mapped_column(server_default=text("''"))
+    target: Mapped[str] = mapped_column(server_default=text("''"))
+    dedupe_key: Mapped[str]
+    evidence_ids: Mapped[list[uuid.UUID]] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), server_default=text("'{}'")
+    )
+    finding_id: Mapped[uuid.UUID | None]
+    rules: Mapped[str]
+    first_seen_at: Mapped[datetime] = _created()
+    last_seen_at: Mapped[datetime] = _created()
+    state: Mapped[str] = mapped_column(server_default=text("'open'"))
+    acknowledged_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    acknowledged_at: Mapped[datetime | None]
+    resolved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    resolved_at: Mapped[datetime | None]
+    note: Mapped[str] = mapped_column(server_default=text("''"))

@@ -21,6 +21,7 @@ class Permission(enum.StrEnum):
     AUDIT_READ = "audit.read"  # audit log, platform integrity (Addendum 5)
     OWNERSHIP_MANAGE = "ownership.manage"  # proof-of-control claims (Profile B G1): owner only
     IDENTITIES_MANAGE = "identities.manage"  # Profile B test identities (G2): owner only
+    MONITORS_MANAGE = "monitors.manage"  # SHIELD standing authorizations: owner only
 
 
 P = Permission
@@ -30,7 +31,14 @@ _ADMIN = _OPERATOR | {P.MEMBERS_MANAGE, P.SCOPE_AUTHORIZE, P.AUDIT_READ}
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.OWNER: frozenset(
-        _ADMIN | {P.PLAYBOOKS_RUN, P.PLAYBOOKS_MANAGE, P.OWNERSHIP_MANAGE, P.IDENTITIES_MANAGE}
+        _ADMIN
+        | {
+            P.PLAYBOOKS_RUN,
+            P.PLAYBOOKS_MANAGE,
+            P.OWNERSHIP_MANAGE,
+            P.IDENTITIES_MANAGE,
+            P.MONITORS_MANAGE,
+        }
     ),
     Role.ADMIN: frozenset(_ADMIN),
     Role.OPERATOR: frozenset(_OPERATOR),

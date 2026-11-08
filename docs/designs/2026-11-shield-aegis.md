@@ -1,6 +1,7 @@
 # SHIELD v1 and AEGIS overview: monitoring your own assets (design for review)
 
-Status: **design only, 2026-11-08.** Nothing here is built. The owner's decisions on the questions it rests on are
+Status: **approved by the owner 2026-11-08 (all §11 decisions as recommended); v1 built (migration 0021).** §12 lists
+how the build differs from this text. Original status: design only. The owner's decisions on the questions it rests on are
 recorded in §1. SHIELD's modules stay "Planned" labels in the sidebar until a version of this is approved and built.
 
 ## 1. Decisions this design is built on (owner, 2026-11-08)
@@ -203,3 +204,23 @@ Effort: about the size of NEXUS v1. One migration. No paid services and no new e
 3. **Certificate-expiry thresholds:** 21, 14 and 7 days (recommended), or other values.
 4. **New CT names outside scope:** raise them as **high**, since they may be look-alike or shadow domains (recommended),
    or as info.
+
+## 12. As built (2026-11-08, migration 0021)
+
+- **Decisions:** all four §11 decisions as recommended: approved; 30 checks a day per workspace; certificate warnings at
+  21, 14 and 7 days; new out-of-scope CT names raised as high.
+- **Code:**
+  - `api/nightfall/shield/`: `rules.py` (detection rules, `alerts/2026.11-1`), `control.py` (the worker's
+    standing-authorization check), `alerts.py` (raising and de-duplicating alerts), `scheduler.py` (the daily run)
+    and `routes.py` (API).
+  - The pages are SHIELD → AEGIS Overview, Monitoring, and Alerts & Detection, plus an open-alerts count on the
+    sidebar.
+- **Cron:** the existing daily call (`/api/internal/worker/drain`, bearer secret) now queues the due checks first,
+  then drains. `vercel.json` didn't change.
+- **Targets** are hostnames from the active, non-lab scope; IP-address targets aren't offered in v1.
+- **First runs:** a check's first run is a baseline. Only the certificate-expiry threshold can fire on it.
+- **Failures:** a failed or refused scheduled check raises `monitor.failed`. An authorization that expires, or whose
+  scope version changes, is ended by the scheduler and raises `monitor.ended`. `monitor.expiring` is raised in the
+  last 7 days.
+- **Not built:** the `headers.regressed` rule is tested against stored results rather than live header runs, and the
+  CT rule against a stub scope check. Both use the same comparison code the worker runs.

@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { apiGet, healthOrNull } from "@/lib/api/server";
-import type { Health, Me, WarRoomSummary, Watchtower } from "@/lib/api/types";
+import type { Health, Me, ShieldAlert, WarRoomSummary, Watchtower } from "@/lib/api/types";
 import { mfaRequired } from "@/lib/labels";
 import { MobileNav } from "@/components/shell/MobileNav";
 import { SidebarContent } from "@/components/shell/SidebarContent";
@@ -24,20 +24,22 @@ export default async function WorkspaceLayout({ children, params }: { children: 
   if (!membership) notFound();
   if (mfaRequired(membership.role) && !me.session.mfa_verified) redirect("/account/security");
   const seesIntegrity = membership.role === "owner" || membership.role === "admin";
-  const [bell, tower] = await Promise.all([
+  const [bell, tower, openAlerts] = await Promise.all([
     apiGet<WarRoomSummary>(`/workspaces/${ws}/war-room/summary`).catch(() => null),
     seesIntegrity ? apiGet<Watchtower>(`/workspaces/${ws}/watchtower`).catch(() => null) : null,
+    apiGet<ShieldAlert[]>(`/workspaces/${ws}/alerts?state=open&limit=500`).catch(() => []),
   ]);
+  const counts = { alerts: openAlerts.length };
   const lab = tower?.lab ?? null;
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-screen border-r border-border bg-surface lg:block">
-        <SidebarContent ws={ws} health={health} lab={lab} version={pkg.version} />
+        <SidebarContent ws={ws} health={health} lab={lab} version={pkg.version} counts={counts} />
       </aside>
       <div className="min-w-0">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-bg/90 px-4 py-3 backdrop-blur sm:px-6">
-          <MobileNav ws={ws} health={health} lab={lab} version={pkg.version} />
+          <MobileNav ws={ws} health={health} lab={lab} version={pkg.version} counts={counts} />
           <span className="flex items-center gap-2 lg:hidden">
             <Image src="/nightfall-mark.svg" alt="" width={28} height={25} />
             <span className="font-bold tracking-[0.12em] text-crimson-text">JANUS</span>

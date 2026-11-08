@@ -50,14 +50,16 @@ describe("navigation", () => {
   it("groups pages into the Addendum 5 divisions", () => {
     expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, "SWORD", "SHIELD", "JANUS CORE", "SYSTEM"]);
     expect(NAV.map((n) => n.label)).toEqual([
-      "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports", "BLACK BOX", "NEXUS",
+      "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports",
+      "AEGIS Overview", "Monitoring", "Alerts & Detection", "BLACK BOX", "NEXUS",
       "Agents", "War Room", "Audit Log", "Settings",
     ]);
   });
   it("never links an unbuilt module", () => {
     const shield = NAV_GROUPS.find((g) => g.key === "shield")!;
-    expect(shield.items.every(isPlanned)).toBe(true);
-    expect(NAV.some((n) => n.key === "warpath" || n.key === "aegis")).toBe(false);
+    // SHIELD v1: overview, monitoring and alerts are built; the rest stay labels.
+    expect(shield.items.filter((i) => !isPlanned(i)).map((i) => i.key)).toEqual(["aegis", "monitoring", "alerts"]);
+    expect(NAV.some((n) => ["warpath", "hunting", "countermeasures", "incidents", "recovery"].includes(n.key))).toBe(false);
     expect(new Set(NAV.map((n) => n.href("w"))).size).toBe(NAV.length);
   });
   it("marks only BLACKSITE as restricted", () => {

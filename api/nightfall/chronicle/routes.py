@@ -81,6 +81,10 @@ SAFE_FIELDS = (
     "step",
     "answer",
     "attempt",
+    "kind",
+    "queued",
+    "checks",
+    "targets",
     "format",
     "sha256",
     "accepted",
@@ -148,6 +152,13 @@ ACTIONS: dict[str, str] = {
     "workflow.checkpoint_answered": "answered a workflow checkpoint",
     "workflow.cancelled": "cancelled a workflow",
     "workflow.finished": "Workflow finished",
+    "monitor.authorized": "authorized scheduled monitoring",
+    "monitor.revoked": "revoked scheduled monitoring",
+    "monitor.ended": "Scheduled monitoring ended",
+    "monitor.run_queued": "Scheduled checks queued",
+    "alert.raised": "SHIELD raised an alert",
+    "alert.acknowledged": "acknowledged an alert",
+    "alert.resolved": "resolved an alert",
 }
 
 

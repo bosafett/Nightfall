@@ -297,6 +297,19 @@
         "title": "AgentsOut",
         "type": "object"
       },
+      "AlertResolveIn": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "title": "AlertResolveIn",
+        "type": "object"
+      },
       "ApprovalDecision": {
         "enum": [
           "approved",
@@ -4114,6 +4127,198 @@
         "title": "MfaSetupOut",
         "type": "object"
       },
+      "MonitorAuthorizationIn": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "items": {
+              "enum": [
+                "ct",
+                "dns",
+                "tls",
+                "headers"
+              ],
+              "type": "string"
+            },
+            "maxItems": 4,
+            "minItems": 1,
+            "title": "Checks",
+            "type": "array"
+          },
+          "days": {
+            "default": 30,
+            "maximum": 30.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "type": "integer"
+          },
+          "targets": {
+            "items": {
+              "maxLength": 253,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "targets",
+          "checks"
+        ],
+        "title": "MonitorAuthorizationIn",
+        "type": "object"
+      },
+      "MonitorAuthorizationOut": {
+        "additionalProperties": false,
+        "properties": {
+          "authorized_at": {
+            "format": "date-time",
+            "title": "Authorized At",
+            "type": "string"
+          },
+          "authorized_by": {
+            "title": "Authorized By",
+            "type": "string"
+          },
+          "cadence": {
+            "title": "Cadence",
+            "type": "string"
+          },
+          "checks": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "checks_per_day": {
+            "title": "Checks Per Day",
+            "type": "integer"
+          },
+          "end_note": {
+            "title": "End Note",
+            "type": "string"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended Reason"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "expiring_soon": {
+            "title": "Expiring Soon",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_run_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Run At"
+          },
+          "live": {
+            "title": "Live",
+            "type": "boolean"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "scope_id": {
+            "format": "uuid",
+            "title": "Scope Id",
+            "type": "string"
+          },
+          "scope_version": {
+            "title": "Scope Version",
+            "type": "integer"
+          },
+          "targets": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Targets",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "scope_id",
+          "scope_version",
+          "targets",
+          "checks",
+          "cadence",
+          "authorized_by",
+          "authorized_at",
+          "expires_at",
+          "last_run_at",
+          "ended_at",
+          "ended_reason",
+          "end_note",
+          "live",
+          "expiring_soon",
+          "checks_per_day"
+        ],
+        "title": "MonitorAuthorizationOut",
+        "type": "object"
+      },
+      "MonitorRevokeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "MonitorRevokeIn",
+        "type": "object"
+      },
       "OkOut": {
         "additionalProperties": false,
         "properties": {
@@ -6936,6 +7141,307 @@
         "title": "Severity",
         "type": "string"
       },
+      "ShieldAlertOut": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "acknowledged_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged By"
+          },
+          "authorization_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Authorization Id"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Id"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "recommendation": {
+            "title": "Recommendation",
+            "type": "string"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "rules": {
+            "title": "Rules",
+            "type": "string"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "project_name",
+          "authorization_id",
+          "kind",
+          "severity",
+          "title",
+          "detail",
+          "target",
+          "recommendation",
+          "evidence_ids",
+          "finding_id",
+          "rules",
+          "first_seen_at",
+          "last_seen_at",
+          "state",
+          "acknowledged_by",
+          "acknowledged_at",
+          "resolved_by",
+          "resolved_at",
+          "note"
+        ],
+        "title": "ShieldAlertOut",
+        "type": "object"
+      },
+      "ShieldOverviewOut": {
+        "additionalProperties": false,
+        "properties": {
+          "alerts_needing_attention": {
+            "items": {
+              "$ref": "#/components/schemas/ShieldAlertOut"
+            },
+            "title": "Alerts Needing Attention",
+            "type": "array"
+          },
+          "authorizations_expiring": {
+            "items": {
+              "$ref": "#/components/schemas/MonitorAuthorizationOut"
+            },
+            "title": "Authorizations Expiring",
+            "type": "array"
+          },
+          "authorizations_live": {
+            "title": "Authorizations Live",
+            "type": "integer"
+          },
+          "checks_failed_24h": {
+            "title": "Checks Failed 24H",
+            "type": "integer"
+          },
+          "checks_per_day_authorized": {
+            "title": "Checks Per Day Authorized",
+            "type": "integer"
+          },
+          "checks_ran_24h": {
+            "title": "Checks Ran 24H",
+            "type": "integer"
+          },
+          "checks_waiting": {
+            "items": {
+              "$ref": "#/components/schemas/ShieldQueuedCheck"
+            },
+            "title": "Checks Waiting",
+            "type": "array"
+          },
+          "daily_cap": {
+            "title": "Daily Cap",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "last_scheduled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Scheduled At"
+          },
+          "open_alerts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Open Alerts",
+            "type": "object"
+          },
+          "projects_unmonitored": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Projects Unmonitored",
+            "type": "array"
+          },
+          "rules": {
+            "title": "Rules",
+            "type": "string"
+          }
+        },
+        "required": [
+          "generated_at",
+          "open_alerts",
+          "alerts_needing_attention",
+          "authorizations_live",
+          "authorizations_expiring",
+          "checks_ran_24h",
+          "checks_failed_24h",
+          "checks_waiting",
+          "last_scheduled_at",
+          "daily_cap",
+          "checks_per_day_authorized",
+          "projects_unmonitored",
+          "rules"
+        ],
+        "title": "ShieldOverviewOut",
+        "type": "object"
+      },
+      "ShieldQueuedCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "hours_waiting": {
+            "title": "Hours Waiting",
+            "type": "number"
+          },
+          "operation_id": {
+            "format": "uuid",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "queued_at": {
+            "format": "date-time",
+            "title": "Queued At",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "tool": {
+            "title": "Tool",
+            "type": "string"
+          }
+        },
+        "required": [
+          "operation_id",
+          "tool",
+          "target",
+          "queued_at",
+          "hours_waiting"
+        ],
+        "title": "ShieldQueuedCheck",
+        "type": "object"
+      },
       "Sort": {
         "enum": [
           "severity",
@@ -9325,6 +9831,221 @@
         "summary": "List Agents",
         "tags": [
           "agents"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/alerts": {
+      "get": {
+        "operationId": "list_alerts_api_workspaces__workspace_id__alerts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "open",
+                    "acknowledged",
+                    "resolved",
+                    "active"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": "active",
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ShieldAlertOut"
+                  },
+                  "title": "Response List Alerts Api Workspaces  Workspace Id  Alerts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Alerts",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/alerts/{alert_id}/acknowledge": {
+      "post": {
+        "operationId": "acknowledge_alert_api_workspaces__workspace_id__alerts__alert_id__acknowledge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Alert Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShieldAlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge Alert",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/alerts/{alert_id}/resolve": {
+      "post": {
+        "operationId": "resolve_alert_api_workspaces__workspace_id__alerts__alert_id__resolve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Alert Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertResolveIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShieldAlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Alert",
+        "tags": [
+          "shield"
         ]
       }
     },
@@ -11816,6 +12537,188 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/monitor-authorizations": {
+      "get": {
+        "operationId": "list_authorizations_api_workspaces__workspace_id__monitor_authorizations_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "project_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/MonitorAuthorizationOut"
+                  },
+                  "title": "Response List Authorizations Api Workspaces  Workspace Id  Monitor Authorizations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Authorizations",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/monitor-authorizations/{auth_id}/renew": {
+      "post": {
+        "description": "A new 30-day authorization with the same contents; the old one ends ('renewed').",
+        "operationId": "renew_monitoring_api_workspaces__workspace_id__monitor_authorizations__auth_id__renew_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auth_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Auth Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorAuthorizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Renew Monitoring",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/monitor-authorizations/{auth_id}/revoke": {
+      "post": {
+        "description": "Queued scheduled checks under it are refused by the worker from now on.",
+        "operationId": "revoke_monitoring_api_workspaces__workspace_id__monitor_authorizations__auth_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "auth_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Auth Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorRevokeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorAuthorizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Monitoring",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/nexus/workflows": {
       "get": {
         "operationId": "list_workflows_api_workspaces__workspace_id__nexus_workflows_get",
@@ -13357,6 +14260,70 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/projects/{project_id}/monitor-authorizations": {
+      "post": {
+        "description": "A standing authorization for daily passive and low-risk checks (at most 30 days).",
+        "operationId": "authorize_monitoring_api_workspaces__workspace_id__projects__project_id__monitor_authorizations_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MonitorAuthorizationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MonitorAuthorizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Authorize Monitoring",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/projects/{project_id}/reports": {
       "get": {
         "operationId": "list_reports_api_workspaces__workspace_id__projects__project_id__reports_get",
@@ -14386,6 +15353,49 @@
         "summary": "Remove Target",
         "tags": [
           "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/overview": {
+      "get": {
+        "operationId": "overview_api_workspaces__workspace_id__shield_overview_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShieldOverviewOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "shield"
         ]
       }
     },

@@ -12,8 +12,9 @@ import { StatusDot, cx } from "@/components/ui/primitives";
 /** `lab` comes from WATCHTOWER (owner and admin only); null means this viewer isn't shown it. */
 export type LabStatus = Watchtower["lab"] | null;
 
-export function SidebarContent({ ws, health, lab, version, onNavigate }: {
+export function SidebarContent({ ws, health, lab, version, onNavigate, counts }: {
   ws: string; health: Health | null; lab: LabStatus; version: string; onNavigate?: () => void;
+  counts?: Record<string, number>;
 }) {
   const pathname = usePathname();
   return (
@@ -28,7 +29,7 @@ export function SidebarContent({ ws, health, lab, version, onNavigate }: {
 
       <nav aria-label="Primary" className="flex-1 overflow-y-auto py-3">
         {NAV_GROUPS.map((group) => (
-          <NavSection key={group.key} group={group} ws={ws} pathname={pathname} onNavigate={onNavigate} />
+          <NavSection key={group.key} group={group} ws={ws} pathname={pathname} onNavigate={onNavigate} counts={counts} />
         ))}
       </nav>
 
@@ -38,14 +39,14 @@ export function SidebarContent({ ws, health, lab, version, onNavigate }: {
   );
 }
 
-function NavSection({ group, ws, pathname, onNavigate }: {
-  group: NavGroup; ws: string; pathname: string; onNavigate?: () => void;
+function NavSection({ group, ws, pathname, onNavigate, counts }: {
+  group: NavGroup; ws: string; pathname: string; onNavigate?: () => void; counts?: Record<string, number>;
 }) {
   const [open, setOpen] = useState(() => !group.collapsible || group.collapsible.open || groupHasActive(group, ws, pathname));
   const listId = `nav-${group.key}`;
   const list = (
     <ul id={listId} hidden={!open}>
-      {group.items.map((item) => <NavRow key={item.key} item={item} ws={ws} pathname={pathname} onNavigate={onNavigate} />)}
+      {group.items.map((item) => <NavRow key={item.key} item={item} ws={ws} pathname={pathname} onNavigate={onNavigate} count={counts?.[item.key]} />)}
     </ul>
   );
   if (group.label === null) return list;
@@ -71,8 +72,8 @@ function NavSection({ group, ws, pathname, onNavigate }: {
   );
 }
 
-function NavRow({ item, ws, pathname, onNavigate }: {
-  item: NavEntry; ws: string; pathname: string; onNavigate?: () => void;
+function NavRow({ item, ws, pathname, onNavigate, count }: {
+  item: NavEntry; ws: string; pathname: string; onNavigate?: () => void; count?: number;
 }) {
   if (isPlanned(item)) {
     return (
@@ -96,6 +97,11 @@ function NavRow({ item, ws, pathname, onNavigate }: {
       >
         <Icon name={item.icon} className={cx("size-5", active && "text-crimson-text")} />
         <span className={cx(item.restricted && "font-mono tracking-wider")}>{item.label}</span>
+        {!!count && (
+          <span className="ml-auto rounded-full bg-crimson px-1.5 text-[11px] font-semibold tabular text-white" data-testid={`nav-count-${item.key}`}>
+            {count}<span className="sr-only"> open</span>
+          </span>
+        )}
         {item.restricted && (
           <span className="ml-auto flex items-center gap-1 text-[10px] uppercase tracking-wider text-muted" title="Restricted: owner access only">
             <Icon name="lock" className="size-3.5" /><span className="sr-only">Restricted</span>

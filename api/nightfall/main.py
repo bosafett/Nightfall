@@ -38,6 +38,7 @@ from nightfall.registry.routes import router as registry_router
 from nightfall.reports.routes import router as reports_router
 from nightfall.scope.ownership import router as ownership_router
 from nightfall.scope.routes import router as scope_router
+from nightfall.shield.routes import router as shield_router
 from nightfall.warroom.routes import router as warroom_router
 from nightfall.watchtower.routes import router as watchtower_router
 
@@ -164,9 +165,10 @@ _cron_auth._nf_authz = True  # type: ignore[attr-defined]  # marker checked by t
 def cron_drain() -> dict[str, int]:
     if not get_settings().on_demand_worker:
         raise HTTPException(status_code=404)
-    from nightfall.serverless import drain
+    from nightfall.serverless import drain, schedule_monitors
 
-    return {"processed": drain(budget_seconds=50.0, max_jobs=10)}
+    queued = schedule_monitors()  # SHIELD: due scheduled checks first, then the queue
+    return {"scheduled": queued, "processed": drain(budget_seconds=45.0, max_jobs=10)}
 
 
 ROUTERS = (
@@ -181,6 +183,7 @@ ROUTERS = (
     chronicle_router,
     nexus_router,
     identities_router,
+    shield_router,
     recon_router,
     findings_router,
     paths_router,

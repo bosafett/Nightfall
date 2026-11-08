@@ -97,12 +97,14 @@ test.describe("as the owner", () => {
     const header = JSON.parse((await import("node:fs")).readFileSync(file, "utf8").split("\n")[0] ?? "");
     expect(header.format).toBe("janus-audit-export/v1");
     await expect(page.getByText(/Exported \d+ events/)).toBeVisible();
-    // Unbuilt divisions are collapsible labels, never links.
+    // SHIELD v1: AEGIS, monitoring and alerts are pages; unbuilt modules stay labels, never links.
     const shield = nav.getByRole("button", { name: /SHIELD/ });
     await expect(shield).toHaveAttribute("aria-expanded", "false");
     await shield.click();
-    await expect(nav.getByText("AEGIS Overview")).toBeVisible();
-    await expect(nav.getByRole("link", { name: /AEGIS/ })).toHaveCount(0);
+    await nav.getByRole("link", { name: "AEGIS Overview" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "AEGIS Overview" })).toBeVisible();
+    await expect(nav.getByText("Threat Hunting")).toBeVisible();
+    await expect(nav.getByRole("link", { name: /Threat Hunting|Countermeasures|Incident Response/ })).toHaveCount(0);
   });
 
   test("BLACKSITE shows a restricted, not-configured state with no execution controls", async ({ page }) => {
@@ -587,6 +589,26 @@ test.describe("as the owner", () => {
     await expect(page.locator("main").getByText("Cancelled", { exact: true }).first()).toBeVisible();
     await page.goto(`${workspaceUrl}/nexus`);
     await expect(page.getByRole("row", { name: /Exposure review.*acme\.test/ })).toContainText("Cancelled");
+    await noHorizontalScroll(page);
+  });
+
+  test("SHIELD: authorize daily monitoring, see it on AEGIS, revoke it", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/shield`);
+    await expect(page.getByRole("heading", { level: 1, name: "AEGIS Overview" })).toBeVisible();
+    await expect(page.getByText("Nothing is monitored.")).toBeVisible();
+    await page.goto(`${workspaceUrl}/shield/monitoring`);
+    await page.getByRole("checkbox", { name: "acme.test" }).check();
+    await page.getByRole("checkbox", { name: /Security headers/ }).uncheck();
+    await expect(page.getByText(/^3 checks a day/)).toBeVisible();
+    await page.getByRole("button", { name: "Authorize monitoring" }).click();
+    const live = page.getByTestId("authorizations");
+    await expect(live).toContainText("Live · scope v1");
+    await page.goto(`${workspaceUrl}/shield`);
+    await expect(page.getByTestId("monitoring-health")).toContainText("3 / 30");
+    await page.goto(`${workspaceUrl}/shield/monitoring`);
+    await page.getByTestId("authorizations").getByRole("button", { name: "Revoke" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Revoke" }).click();
+    await expect(page.getByText("No live authorization: nothing is monitored.")).toBeVisible();
     await noHorizontalScroll(page);
   });
 

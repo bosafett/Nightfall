@@ -898,11 +898,19 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     confirm) and R28 (error page shows a stack trace or a database error).
   - **POST:** only to forms the operator marks safe.
   - **Status:** Profile B's three playbooks are all built.
-- **SHIELD v1 and AEGIS overview (design only).** `docs/designs/2026-11-shield-aegis.md`.
-  - **Owner decisions (2026-11-08):** scheduled runs through Vercel Cron (the existing daily, secret-protected call);
-    standing authorizations of at most 30 days for passive and low-risk checks; the v1 monitors (certificates and TLS,
-    headers, CT names, DNS, reopened findings); in-app alerts only.
-  - **Still to decide:** four questions in §11.
+- **SHIELD v1 and AEGIS overview (done, migration 0021).** Design and decisions:
+  `docs/designs/2026-11-shield-aegis.md` (§12 lists how the build differs from it).
+  - **Standing monitor authorizations:** owner only, with fresh two-factor. Daily passive and low-risk checks (CT, DNS,
+    TLS, headers) of up to 20 in-scope hostnames, for at most 30 days, within 30 checks a day per workspace.
+  - **Enforcement:** the database accepts a scheduled operation only if it matches a live authorization exactly. The
+    worker re-checks it at run time instead of requiring an approval row, and never creates one.
+  - **Scheduling:** the existing daily cron call now queues due checks first; `vercel.json` is unchanged.
+  - **Detection** compares each run with the previous one, using deterministic rules (`alerts/2026.11-1`). It raises
+    alerts for certificates expiring or changed, TLS weakened, headers getting worse, new CT names (high if out of
+    scope), DNS changes, reopened findings, and checks that failed, expired or ended.
+  - **Alerts** are in-app only. People acknowledge and resolve them, and a resolved alert can't change.
+  - **Pages:** SHIELD → AEGIS Overview (open alerts, monitoring health, late checks), Monitoring and Alerts &
+    Detection. Threat hunting, countermeasures, incident response and recovery stay "Planned".
 - **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
   member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
   it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel

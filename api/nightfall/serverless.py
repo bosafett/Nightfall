@@ -142,3 +142,19 @@ def drain(budget_seconds: float = 25.0, max_jobs: int = 3) -> int:
         return ran
     finally:
         _worker_lock.release()
+
+
+def schedule_monitors() -> int:
+    """SHIELD: queue the scheduled checks that are due (worker role). Called by the daily
+    cron before the queue is drained; returns how many checks were queued."""
+    global _worker
+    from nightfall.core.clock import utcnow
+    from nightfall.shield.scheduler import schedule
+
+    with _worker_lock:
+        if _worker is None:
+            from nightfall.recon.worker import build_worker
+
+            _worker = build_worker()
+        sessions = _worker.sessions
+    return schedule(sessions, utcnow())

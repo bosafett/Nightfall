@@ -298,6 +298,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Alerts */
+        get: operations["list_alerts_api_workspaces__workspace_id__alerts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/alerts/{alert_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Acknowledge Alert */
+        post: operations["acknowledge_alert_api_workspaces__workspace_id__alerts__alert_id__acknowledge_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/alerts/{alert_id}/resolve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resolve Alert */
+        post: operations["resolve_alert_api_workspaces__workspace_id__alerts__alert_id__resolve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/assets": {
         parameters: {
             query?: never;
@@ -891,6 +942,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/monitor-authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Authorizations */
+        get: operations["list_authorizations_api_workspaces__workspace_id__monitor_authorizations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/monitor-authorizations/{auth_id}/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renew Monitoring
+         * @description A new 30-day authorization with the same contents; the old one ends ('renewed').
+         */
+        post: operations["renew_monitoring_api_workspaces__workspace_id__monitor_authorizations__auth_id__renew_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/monitor-authorizations/{auth_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Revoke Monitoring
+         * @description Queued scheduled checks under it are refused by the worker from now on.
+         */
+        post: operations["revoke_monitoring_api_workspaces__workspace_id__monitor_authorizations__auth_id__revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/nexus/workflows": {
         parameters: {
             query?: never;
@@ -1248,6 +1356,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/monitor-authorizations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Authorize Monitoring
+         * @description A standing authorization for daily passive and low-risk checks (at most 30 days).
+         */
+        post: operations["authorize_monitoring_api_workspaces__workspace_id__projects__project_id__monitor_authorizations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/projects/{project_id}/reports": {
         parameters: {
             query?: never;
@@ -1520,6 +1648,23 @@ export interface paths {
         post?: never;
         /** Remove Target */
         delete: operations["remove_target_api_workspaces__workspace_id__scopes__scope_id__targets__entry_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Overview */
+        get: operations["overview_api_workspaces__workspace_id__shield_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1892,6 +2037,14 @@ export interface components {
             provider: ("anthropic" | "ollama" | "fixture") | null;
             /** Usage Days */
             usage_days: number;
+        };
+        /** AlertResolveIn */
+        AlertResolveIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
         };
         /**
          * ApprovalDecision
@@ -3393,6 +3546,77 @@ export interface components {
             /** Secret */
             secret: string;
         };
+        /** MonitorAuthorizationIn */
+        MonitorAuthorizationIn: {
+            /** Checks */
+            checks: ("ct" | "dns" | "tls" | "headers")[];
+            /**
+             * Days
+             * @default 30
+             */
+            days: number;
+            /** Targets */
+            targets: string[];
+        };
+        /** MonitorAuthorizationOut */
+        MonitorAuthorizationOut: {
+            /**
+             * Authorized At
+             * Format: date-time
+             */
+            authorized_at: string;
+            /** Authorized By */
+            authorized_by: string;
+            /** Cadence */
+            cadence: string;
+            /** Checks */
+            checks: string[];
+            /** Checks Per Day */
+            checks_per_day: number;
+            /** End Note */
+            end_note: string;
+            /** Ended At */
+            ended_at: string | null;
+            /** Ended Reason */
+            ended_reason: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Expiring Soon */
+            expiring_soon: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Run At */
+            last_run_at: string | null;
+            /** Live */
+            live: boolean;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /**
+             * Scope Id
+             * Format: uuid
+             */
+            scope_id: string;
+            /** Scope Version */
+            scope_version: number;
+            /** Targets */
+            targets: string[];
+        };
+        /** MonitorRevokeIn */
+        MonitorRevokeIn: {
+            /** Reason */
+            reason: string;
+        };
         /** OkOut */
         OkOut: {
             /**
@@ -4460,6 +4684,115 @@ export interface components {
          * @enum {string}
          */
         Severity: "critical" | "high" | "medium" | "low" | "info";
+        /** ShieldAlertOut */
+        ShieldAlertOut: {
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Acknowledged By */
+            acknowledged_by: string | null;
+            /** Authorization Id */
+            authorization_id: string | null;
+            /** Detail */
+            detail: string;
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Finding Id */
+            finding_id: string | null;
+            /**
+             * First Seen At
+             * Format: date-time
+             */
+            first_seen_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /**
+             * Last Seen At
+             * Format: date-time
+             */
+            last_seen_at: string;
+            /** Note */
+            note: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            /** Recommendation */
+            recommendation: string;
+            /** Resolved At */
+            resolved_at: string | null;
+            /** Resolved By */
+            resolved_by: string | null;
+            /** Rules */
+            rules: string;
+            severity: components["schemas"]["Severity"];
+            /** State */
+            state: string;
+            /** Target */
+            target: string;
+            /** Title */
+            title: string;
+        };
+        /** ShieldOverviewOut */
+        ShieldOverviewOut: {
+            /** Alerts Needing Attention */
+            alerts_needing_attention: components["schemas"]["ShieldAlertOut"][];
+            /** Authorizations Expiring */
+            authorizations_expiring: components["schemas"]["MonitorAuthorizationOut"][];
+            /** Authorizations Live */
+            authorizations_live: number;
+            /** Checks Failed 24H */
+            checks_failed_24h: number;
+            /** Checks Per Day Authorized */
+            checks_per_day_authorized: number;
+            /** Checks Ran 24H */
+            checks_ran_24h: number;
+            /** Checks Waiting */
+            checks_waiting: components["schemas"]["ShieldQueuedCheck"][];
+            /** Daily Cap */
+            daily_cap: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Last Scheduled At */
+            last_scheduled_at: string | null;
+            /** Open Alerts */
+            open_alerts: {
+                [key: string]: number;
+            };
+            /** Projects Unmonitored */
+            projects_unmonitored: string[];
+            /** Rules */
+            rules: string;
+        };
+        /** ShieldQueuedCheck */
+        ShieldQueuedCheck: {
+            /** Hours Waiting */
+            hours_waiting: number;
+            /**
+             * Operation Id
+             * Format: uuid
+             */
+            operation_id: string;
+            /**
+             * Queued At
+             * Format: date-time
+             */
+            queued_at: string;
+            /** Target */
+            target: string;
+            /** Tool */
+            tool: string;
+        };
         /**
          * Sort
          * @enum {string}
@@ -5541,6 +5874,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_alerts_api_workspaces__workspace_id__alerts_get: {
+        parameters: {
+            query?: {
+                state?: ("open" | "acknowledged" | "resolved" | "active") | null;
+                project_id?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShieldAlertOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    acknowledge_alert_api_workspaces__workspace_id__alerts__alert_id__acknowledge_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShieldAlertOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_alert_api_workspaces__workspace_id__alerts__alert_id__resolve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertResolveIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShieldAlertOut"];
                 };
             };
             /** @description Validation Error */
@@ -6915,6 +7351,107 @@ export interface operations {
             };
         };
     };
+    list_authorizations_api_workspaces__workspace_id__monitor_authorizations_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorAuthorizationOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    renew_monitoring_api_workspaces__workspace_id__monitor_authorizations__auth_id__renew_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorAuthorizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_monitoring_api_workspaces__workspace_id__monitor_authorizations__auth_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                auth_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitorRevokeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorAuthorizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_workflows_api_workspaces__workspace_id__nexus_workflows_get: {
         parameters: {
             query?: never;
@@ -7791,6 +8328,42 @@ export interface operations {
             };
         };
     };
+    authorize_monitoring_api_workspaces__workspace_id__projects__project_id__monitor_authorizations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MonitorAuthorizationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitorAuthorizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_reports_api_workspaces__workspace_id__projects__project_id__reports_get: {
         parameters: {
             query?: never;
@@ -8376,6 +8949,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScopeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_workspaces__workspace_id__shield_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShieldOverviewOut"];
                 };
             };
             /** @description Validation Error */
