@@ -26,6 +26,6 @@
     ],
     "checks": []
   },
-  "ruleset": "findings/2026.11-6",
+  "ruleset": "findings/2026.11-7",
   "expected": []
 }

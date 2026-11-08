@@ -358,6 +358,7 @@ test.describe("as the owner", () => {
     await page.getByLabel("Collector").selectOption("http");
     await page.getByLabel("Target", { exact: true }).fill("www.acme.test");
     await page.getByRole("button", { name: "Request collection" }).click();
+    await expect(page.getByText(/runs once it is explicitly approved/)).toBeVisible();
     await page.goto(`${workspaceUrl}/recon`);
     await page.getByRole("region").or(page.locator("section")).filter({ hasText: "Awaiting approval" }).first()
       .getByRole("link", { name: "www.acme.test" }).click();
@@ -533,7 +534,7 @@ test.describe("as the owner", () => {
     // Profile B test identities: no worker key on this deployment, so nothing can be stored.
     await expect(page.getByTestId("test-identities")).toContainText("needs the worker key");
     const list = page.getByTestId("playbook-list");
-    await expect(list.getByRole("listitem")).toHaveCount(8);
+    await expect(list.getByRole("listitem")).toHaveCount(9);
     await page.getByTestId("playbook-search").fill("tls");
     await expect(list.getByRole("listitem")).toHaveCount(1);
     await expect(list).toContainText("TLS Configuration Audit");

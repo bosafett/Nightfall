@@ -363,4 +363,23 @@ Profile B adds:
 - **Limits:** the same budgets and stop conditions as playbook 7.
 - **Rollbacks:** migrations 0019 and 0020 now restore their old constraints `NOT VALID` on downgrade, so a rollback
   doesn't fail on Profile B rows that already exist.
-- **Not yet:** playbook 6 (safe input testing), step 5.
+
+## 16. Step 5 as built (2026-11-08, no migration): playbook 6
+
+- **Playbook** `safe-injection-surface-assessment` v1.0.0: Profile B only, a hostname target. No test identity in v1:
+  it tests what an anonymous visitor reaches.
+- **Mapping:** up to 20 pages over GET, starting at `/` and following links on the same host only (other hosts are
+  never fetched). It lists the query parameters seen in links, and the forms.
+- **Payload corpus** `janus-markers/1`: one unique marker per input followed by `'"<jns>`. It's inert in every
+  context; nothing else is ever sent. At most 120 inputs.
+- **POST** only to the form paths the operator marks safe at launch (decision 5). Every other POST form is skipped
+  and recorded as skipped, and GET forms and query parameters use GET.
+- **Results (ruleset `findings/2026.11-7`, unverified):**
+  - R27: the marker came back with its quotes and angle brackets unencoded, a likely cross-site scripting point that
+    a person must confirm (medium severity, medium confidence);
+  - R28: a stack trace or database error that the page didn't show before (low severity; medium for a database
+    error).
+- **Limits:** the same budgets and stop conditions as playbook 7. The evidence keeps paths, parameter names,
+  statuses and yes/no results, never bodies.
+- **Status:** all three Profile B playbooks from §4 exist. Profile B stays off until its review, enable flag, worker
+  key and self-hosted worker are in place.

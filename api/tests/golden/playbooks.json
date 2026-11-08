@@ -3,6 +3,7 @@
   "authentication-configuration-audit@1.0.0": "1cab9db68849196d518583724768299853f9d32706e326fa0aec0ee761e8a0f5",
   "http-security-assessment@1.0.0": "3273724bd575750cda8886870322a70f07df3bf11bcbf81d013b930389cb3734",
   "known-weakness-scan-lab@1.0.0": "b8622ff17cf376996d9af88b5cc3d6451e3859a25ac98064490f34e1b2df012c",
+  "safe-injection-surface-assessment@1.0.0": "0bb2f0c82ba29173c2d0c410738f63d19ec4287d88340c759d56b46053d2d85d",
   "service-fingerprinter@1.0.0": "3bf2c77dd5650231eaf10f26cc3c21378f6abd0c05d1fe1e5099c989a7fa41bd",
   "surface-mapper@1.0.0": "f9b01e3b445fc5c607f3923d626e84b6b9aa7919ea3752c08bd9bd27e04f1448",
   "tls-configuration-audit@1.0.0": "c224203a3d4267d65dc40109230738d27d76e47221d1d42f618fbf5450946d3f",

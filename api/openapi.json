@@ -3780,6 +3780,15 @@
             "title": "Playbook Id",
             "type": "string"
           },
+          "safe_forms": {
+            "default": [],
+            "items": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "title": "Safe Forms",
+            "type": "array"
+          },
           "target": {
             "maxLength": 300,
             "title": "Target",
@@ -4994,6 +5003,10 @@
             "title": "Takes Paths",
             "type": "boolean"
           },
+          "takes_safe_forms": {
+            "title": "Takes Safe Forms",
+            "type": "boolean"
+          },
           "target_types": {
             "items": {
               "$ref": "#/components/schemas/TargetType"
@@ -5028,6 +5041,7 @@
           "needs_approval_live",
           "identities_required",
           "takes_paths",
+          "takes_safe_forms",
           "enabled",
           "availability",
           "blocked_reason",
@@ -5124,6 +5138,10 @@
             "title": "Takes Paths",
             "type": "boolean"
           },
+          "takes_safe_forms": {
+            "title": "Takes Safe Forms",
+            "type": "boolean"
+          },
           "target_types": {
             "items": {
               "$ref": "#/components/schemas/TargetType"
@@ -5151,6 +5169,7 @@
           "needs_approval_live",
           "identities_required",
           "takes_paths",
+          "takes_safe_forms",
           "enabled",
           "availability",
           "blocked_reason"
@@ -5250,6 +5269,15 @@
             "maxLength": 64,
             "title": "Playbook Id",
             "type": "string"
+          },
+          "safe_forms": {
+            "default": [],
+            "items": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "title": "Safe Forms",
+            "type": "array"
           },
           "target": {
             "maxLength": 300,

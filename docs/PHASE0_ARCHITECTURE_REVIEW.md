@@ -891,6 +891,13 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     with no session, and compares statuses and content hashes. Findings R25 (lower role received it) and R26 (no
     session needed).
   - **What's stored:** no content, cookie values or credentials.
+- **BLACK OPS Profile B step 5: playbook 6, Safe Injection Surface Assessment (built, switched off; no migration).**
+  Design §16.
+  - **What it does:** maps up to 20 same-host pages over GET and sends each input one inert marker (corpus
+    `janus-markers/1`). Findings R27 (input reflected unencoded: a likely cross-site scripting point a person must
+    confirm) and R28 (error page shows a stack trace or a database error).
+  - **POST:** only to forms the operator marks safe.
+  - **Status:** Profile B's three playbooks are all built.
 - **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
   member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
   it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel

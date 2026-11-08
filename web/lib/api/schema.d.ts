@@ -3260,6 +3260,11 @@ export interface components {
             paths: string[];
             /** Playbook Id */
             playbook_id: string;
+            /**
+             * Safe Forms
+             * @default []
+             */
+            safe_forms: string[];
             /** Target */
             target: string;
             /** Version */
@@ -3720,6 +3725,8 @@ export interface components {
             summary: string;
             /** Takes Paths */
             takes_paths: boolean;
+            /** Takes Safe Forms */
+            takes_safe_forms: boolean;
             /** Target Types */
             target_types: components["schemas"]["TargetType"][];
             /** Tests */
@@ -3760,6 +3767,8 @@ export interface components {
             summary: string;
             /** Takes Paths */
             takes_paths: boolean;
+            /** Takes Safe Forms */
+            takes_safe_forms: boolean;
             /** Target Types */
             target_types: components["schemas"]["TargetType"][];
             /** Version */
@@ -3805,6 +3814,11 @@ export interface components {
             paths: string[];
             /** Playbook Id */
             playbook_id: string;
+            /**
+             * Safe Forms
+             * @default []
+             */
+            safe_forms: string[];
             /** Target */
             target: string;
         };

@@ -27,13 +27,15 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
   const [chosen, setChosen] = useState<string[]>([]);
   const [pathsText, setPathsText] = useState("");
   const paths = pathsText.split("\n").map((p) => p.trim()).filter(Boolean);
+  const [formsText, setFormsText] = useState("");
+  const safeForms = formsText.split("\n").map((p) => p.trim()).filter(Boolean);
   const profileB = playbook.profiles.includes("validation");
   const host = target.trim().toLowerCase().replace(/\.$/, "");
   const usable = (identities ?? []).filter((i) => !i.retired_at && i.origin.replace("https://", "").split(":")[0] === host);
 
   async function check() {
     const res = await run(() => api<Preflight>(`/workspaces/${ws}/blackops/projects/${projectId}/preflight`, {
-      method: "POST", body: { playbook_id: playbook.id, target, identity_ids: chosen.filter(Boolean), paths },
+      method: "POST", body: { playbook_id: playbook.id, target, identity_ids: chosen.filter(Boolean), paths, safe_forms: safeForms },
     }), { refresh: false });
     setPre(res ?? null);
   }
@@ -53,8 +55,8 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
       </div>
       {profileB && (
         <fieldset className="space-y-1" data-testid="launch-identities">
-          <legend className="text-sm font-medium">Test identities ({playbook.identities_required} needed)</legend>
-          {usable.length === 0
+          {playbook.identities_required > 0 && <legend className="text-sm font-medium">Test identities ({playbook.identities_required} needed)</legend>}
+          {playbook.identities_required === 0 ? null : usable.length === 0
             ? <p className="text-xs text-muted">No active test identity is registered for {host || "this target"}. Register one under Test identities on the BLACK OPS page.</p>
             : playbook.identities_required >= 2
               ? (["Higher-role identity", "Lower-role identity"] as const).map((label, n) => (
@@ -77,6 +79,11 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
                   {i.label} <span className="text-xs text-muted">{i.role_description}</span>
                 </label>
               ))}
+          {playbook.takes_safe_forms && (
+            <Field label="Forms that are safe to POST to (optional)" hint="One form path per line, like /search. Only these receive a POST; other POST forms are skipped. Never mark contact, sign-up or payment forms.">
+              <Textarea rows={2} value={formsText} onChange={(e) => { setFormsText(e.target.value); setPre(null); }} className="font-mono" data-testid="launch-safe-forms" />
+            </Field>
+          )}
           {playbook.takes_paths && (
             <Field label="Paths that belong to the higher role" hint="One per line, on this target only, like /admin/users. Up to 50. You choose them; nothing is guessed.">
               <Textarea rows={4} value={pathsText} onChange={(e) => { setPathsText(e.target.value); setPre(null); }} className="font-mono" data-testid="launch-paths" />
@@ -119,7 +126,7 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
                   setError(null);
                   const r = await api<PlaybookRunDetail>(`/workspaces/${ws}/blackops/projects/${projectId}/runs`, {
                     method: "POST",
-                    body: { playbook_id: playbook.id, target, identity_ids: chosen.filter(Boolean), paths, version: pre.version, definition_sha256: pre.definition_sha256 },
+                    body: { playbook_id: playbook.id, target, identity_ids: chosen.filter(Boolean), paths, safe_forms: safeForms, version: pre.version, definition_sha256: pre.definition_sha256 },
                   });
                   router.push(`/w/${ws}/blacksite/ops/runs/${r.id}`);
                 }} />

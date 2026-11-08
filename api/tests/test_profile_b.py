@@ -146,6 +146,7 @@ def test_shipped_catalog_has_only_the_reviewed_profile_b_playbooks() -> None:
     assert [p.id for p in PLAYBOOKS.values() if Profile.VALIDATION in p.profiles] == [
         "authentication-configuration-audit",
         "access-control-assessment",
+        "safe-injection-surface-assessment",
     ]
     check_catalog({TEST_PLAYBOOK.id: TEST_PLAYBOOK})  # a validation-only definition is valid
     mixed = Playbook(**{**TEST_PLAYBOOK.__dict__, "profiles": (Profile.LIVE, Profile.VALIDATION)})

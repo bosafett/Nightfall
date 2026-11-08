@@ -14,7 +14,7 @@ from typing import Any
 
 from nightfall.core.db.models import Confidence, Severity
 
-RULESET = "findings/2026.11-6"
+RULESET = "findings/2026.11-7"
 
 
 @dataclass(frozen=True)
@@ -335,6 +335,62 @@ def _from_access(a: dict[str, Any]) -> list[Draft]:
     return drafts
 
 
+MAX_INPUT_FINDINGS = 50
+
+
+def _from_inputs(a: dict[str, Any]) -> list[Draft]:
+    """R27-R28: Profile B safe injection surface assessment (playbook 6). A reflected marker
+    is a likely cross-site scripting point, not a demonstrated one: medium confidence."""
+    drafts: list[Draft] = []
+    seen: set[str] = set()
+    for e in (a.get("inputs") or [])[: MAX_INPUT_FINDINGS * 2]:
+        if not isinstance(e, dict) or e.get("skipped") or e.get("error"):
+            continue
+        path, name = str(e.get("path", "?"))[:300], str(e.get("name", "?"))[:100]
+        where = "query parameter" if e.get("where") == "query" else "form field"
+        if e.get("reflected_unencoded"):
+            cid = f"input.reflected-unencoded.{_path_slug(path)}.{_path_slug(name)}"
+            if cid not in seen:
+                seen.add(cid)
+                drafts.append(
+                    Draft(
+                        cid,
+                        "R27-reflected-unencoded",
+                        f"Input reflected without encoding: {name} on {path}",
+                        Severity.MEDIUM,
+                        Confidence.MEDIUM,
+                        f"A unique marker sent in the {where} {name!r} of {path} came back in "
+                        "the page with quotes and angle brackets unencoded. Nothing ran: the "
+                        "marker is inert. A person must confirm whether script could run here.",
+                        "If confirmed, an attacker could run script in a user's browser "
+                        "(cross-site scripting) through a crafted link or form.",
+                        "Encode output for its context (HTML, attribute, JavaScript) and add a "
+                        "Content-Security-Policy.",
+                    )
+                )
+        for err in e.get("error_disclosure") or []:
+            cid = f"input.error-disclosure.{_path_slug(path)}.{err}"
+            if cid in seen:
+                continue
+            seen.add(cid)
+            drafts.append(
+                Draft(
+                    cid,
+                    "R28-error-disclosure",
+                    f"Error page discloses internals on {path} ({err})",
+                    Severity.LOW if err != "sql-error" else Severity.MEDIUM,
+                    Confidence.HIGH,
+                    f"After an inert marker was sent in the {where} {name!r}, the response from "
+                    f"{path} showed a {err.replace('-', ' ')} the page didn't show before.",
+                    "Stack traces and database errors reveal code, versions and queries that "
+                    "help an attacker; a database error suggests input reaches a query unsafely.",
+                    "Show a generic error page in production and log details on the server; "
+                    "use parameterised queries.",
+                )
+            )
+    return drafts[:MAX_INPUT_FINDINGS]
+
+
 HSTS_MIN_AGE = 15_552_000  # 180 days
 MAX_COOKIE_FINDINGS = 10
 
@@ -346,9 +402,11 @@ def from_posture(posture: dict[str, Any] | None, now: datetime) -> list[Draft]:
     headers = posture.get("headers")
     auth = posture.get("auth")
     access = posture.get("access")
+    inputs = posture.get("inputs")
     return (
         (_from_auth(auth) if isinstance(auth, dict) else [])
         + (_from_access(access) if isinstance(access, dict) else [])
+        + (_from_inputs(inputs) if isinstance(inputs, dict) else [])
         + (_from_tls(tls, now) if isinstance(tls, dict) else [])
         + (_from_headers(headers) if isinstance(headers, dict) else [])
     )

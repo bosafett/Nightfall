@@ -130,6 +130,7 @@ class PlaybookOut(Model):
     needs_approval_live: bool
     identities_required: int  # Profile B: designated test identities a run needs
     takes_paths: bool  # Profile B playbook 8: operator-registered paths
+    takes_safe_forms: bool  # Profile B playbook 6: forms marked safe for POST
     enabled: bool
     availability: Literal["available", "disabled", "blocked"]
     blocked_reason: str | None
@@ -206,6 +207,7 @@ def _out(p: Playbook, enabled: bool) -> PlaybookOut:
         lab_only=p.profiles == (Profile.LAB,),
         identities_required=p.identities,
         takes_paths=p.takes_paths,
+        takes_safe_forms=p.takes_safe_forms,
         target_types=list(p.target_types),
         steps=[
             PlaybookStepOut(
@@ -364,6 +366,8 @@ class PreflightIn(Model):
     identity_ids: list[uuid.UUID] = []  # Profile B only: designated test identities
     # Profile B playbook 8 only: paths on the target that belong to the higher role.
     paths: list[Annotated[str, StringConstraints(max_length=500)]] = []
+    # Profile B playbook 6 only: form paths the operator marks safe to POST to (decision 5).
+    safe_forms: list[Annotated[str, StringConstraints(max_length=500)]] = []
 
 
 class PreflightOut(Model):
@@ -408,6 +412,7 @@ def preflight(
     blacksite: bool = False,
     identity_ids: list[uuid.UUID] | None = None,
     paths: list[str] | None = None,
+    safe_forms: list[str] | None = None,
 ) -> _Preflight:
     """The checks a launch must pass. Read-only; the launch route runs it again itself."""
     checks: list[PreflightCheckOut] = []
@@ -522,6 +527,22 @@ def preflight(
                 add("paths", "Registered paths", True, f"{n} path(s) on {target}.")
             except ValueError as exc:
                 add("paths", "Registered paths", False, str(exc))
+        if p.takes_safe_forms:
+            from nightfall.recon.access_audit import valid_paths
+
+            forms = safe_forms or []
+            try:
+                n = len(valid_paths(forms)) if forms else 0
+                add(
+                    "safe_forms",
+                    "Forms marked safe for POST",
+                    n <= 20,
+                    f"{n} form path(s) may receive a POST; other POST forms are skipped."
+                    if n
+                    else "None: POST forms are skipped; only GET forms and links are tested.",
+                )
+            except ValueError as exc:
+                add("safe_forms", "Forms marked safe for POST", False, str(exc))
         add(
             "identities",
             "Test identities",
@@ -652,7 +673,15 @@ def run_preflight(
     _project(db, ctx, project_id)
     p = _playbook(body.playbook_id)
     return preflight(
-        db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids, body.paths
+        db,
+        ctx,
+        project_id,
+        p,
+        body.target,
+        is_blacksite(request),
+        body.identity_ids,
+        body.paths,
+        body.safe_forms,
     ).out
 
 
@@ -886,7 +915,15 @@ def launch_run(
             f"The playbook is now version {p.version}; run the preflight again.",
         )
     pre = preflight(
-        db, ctx, project_id, p, body.target, is_blacksite(request), body.identity_ids, body.paths
+        db,
+        ctx,
+        project_id,
+        p,
+        body.target,
+        is_blacksite(request),
+        body.identity_ids,
+        body.paths,
+        body.safe_forms,
     )
     failure = pre.first_failure
     scope, profile, target = pre.scope, pre.out.profile, pre.out.target
@@ -928,6 +965,11 @@ def launch_run(
                             "playbook": f"{p.id}@{p.version}",
                             "step": i,
                             **({"paths": list(dict.fromkeys(body.paths))} if p.takes_paths else {}),
+                            **(
+                                {"safe_forms": list(dict.fromkeys(body.safe_forms))}
+                                if p.takes_safe_forms
+                                else {}
+                            ),
                         },
                         requested_by_user_id=ctx.user_id,
                         is_lab=profile is Profile.LAB,

@@ -114,6 +114,10 @@ TOOL_DEPENDENCIES: dict[str, tuple[Dependency, ...]] = {
         Dependency("httpx", "BSD-3-Clause", "api/requirements.lock"),
         Dependency("Python html.parser", "PSF-2.0", "runtime image"),
     ),
+    "input-audit": (
+        Dependency("httpx", "BSD-3-Clause", "api/requirements.lock"),
+        Dependency("Python html.parser", "PSF-2.0", "runtime image"),
+    ),
     **{
         f"nuclei-pack1-{g}": (
             Dependency("Nuclei (ProjectDiscovery)", "MIT", "infra/tools/Dockerfile (by digest)"),
@@ -160,6 +164,7 @@ class Playbook:
     changelog: tuple[Change, ...]
     identities: int = 0  # Profile B: designated test identities the run needs (0 to 5)
     takes_paths: bool = False  # Profile B playbook 8: operator-registered paths on the target
+    takes_safe_forms: bool = False  # Profile B playbook 6: form paths the operator marks safe
 
     @property
     def risk_class(self) -> RiskClass:
@@ -193,6 +198,7 @@ class Playbook:
             # Only when used, so existing fingerprints don't change.
             **({"identities": self.identities} if self.identities else {}),
             **({"takes_paths": True} if self.takes_paths else {}),
+            **({"takes_safe_forms": True} if self.takes_safe_forms else {}),
         }
 
     @property
@@ -413,6 +419,46 @@ PLAYBOOKS: dict[str, Playbook] = {
             takes_paths=True,
         ),
         Playbook(
+            id="safe-injection-surface-assessment",
+            name="Safe Injection Surface Assessment",
+            version="1.0.0",
+            category=Category.CONTROLLED_VALIDATION,
+            summary="Maps up to 20 pages, sends each input one inert marker, and reports "
+            "unencoded reflection and error pages that leak internals.",
+            description="Profile B (controlled validation). Maps up to 20 pages of the target "
+            "over GET (same host only), lists query parameters and forms, and sends each input "
+            "one unique marker from a fixed, reviewed corpus (the marker followed by ' \" < "
+            "and >). It reports where the marker comes back unencoded (a likely cross-site "
+            "scripting point a person must confirm) and where an error page newly shows a stack "
+            "trace or database error. POST only to forms you mark safe at launch; no "
+            "exploitation, no data-changing SQL, no time delays, no uploads, no callbacks.",
+            steps=(
+                Step(
+                    "input-audit",
+                    "Map pages over GET; one inert marker per input; POST only to safe forms",
+                ),
+            ),
+            profiles=(Profile.VALIDATION,),
+            target_types=(TargetType.HOSTNAME,),
+            expected_duration="Up to a few minutes (1 request per second)",
+            limits=(
+                "At most 20 pages and 120 inputs; same host only",
+                "One marker per input from a fixed corpus (janus-markers/1); nothing that runs",
+                "POST only to form paths you mark safe; other POST forms are skipped",
+                "At most 200 requests, 1 per second, 30 minutes; stops on a 429, three server "
+                "errors in a row or any sign of a locked account",
+            ),
+            outputs=("Input map and reflection results", "Unverified findings R27-R28"),
+            cleanup="GET requests leave nothing. A safe form you mark (e.g. search) may "
+            "record the marker in the site's own logs or search history.",
+            tests=(
+                "tests/test_input_audit.py::test_marks_reflection_and_error_disclosure",
+                "tests/test_input_audit.py::test_profile_b_input_run_end_to_end",
+            ),
+            changelog=(Change("1.0.0", "2026-11-08", "First reviewed version."),),
+            takes_safe_forms=True,
+        ),
+        Playbook(
             id="known-weakness-scan-lab",
             name="Known-weakness scan (lab)",
             version="1.0.0",
@@ -468,7 +514,7 @@ def check_catalog(playbooks: dict[str, Playbook] | None = None) -> None:
             raise ValueError(f"{p.id}: a Profile B playbook supports only Profile B")
         if not 0 <= p.identities <= 5 or (p.identities and Profile.VALIDATION not in p.profiles):
             raise ValueError(f"{p.id}: test identities are for Profile B playbooks only")
-        if p.takes_paths and Profile.VALIDATION not in p.profiles:
+        if (p.takes_paths or p.takes_safe_forms) and Profile.VALIDATION not in p.profiles:
             raise ValueError(f"{p.id}: registered paths are for Profile B playbooks only")
         if p.risk_class is RiskClass.HIGH:
             raise ValueError(f"{p.id}: high-risk steps are never allowed")
