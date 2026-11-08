@@ -898,6 +898,10 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     confirm) and R28 (error page shows a stack trace or a database error).
   - **POST:** only to forms the operator marks safe.
   - **Status:** Profile B's three playbooks are all built.
+- **WARPATH v1 (design only).** `docs/designs/2026-11-warpath.md`.
+  - **Owner decisions (2026-11-08):** a purple-team exercise runner with manual detection scoring; MITRE ATT&CK
+    technique tags; a person starts every step; missed detections raise SHIELD alerts.
+  - **Still to decide:** four questions in §11.
 - **SHIELD v1 and AEGIS overview (done, migration 0021).** Design and decisions:
   `docs/designs/2026-11-shield-aegis.md` (§12 lists how the build differs from it).
   - **Standing monitor authorizations:** owner only, with fresh two-factor. Daily passive and low-risk checks (CT, DNS,
