@@ -3690,6 +3690,8 @@ export interface components {
             expected_duration: string;
             /** Id */
             id: string;
+            /** Identities Required */
+            identities_required: number;
             /** Lab Only */
             lab_only: boolean;
             /** Limits */
@@ -3734,6 +3736,8 @@ export interface components {
             enabled: boolean;
             /** Id */
             id: string;
+            /** Identities Required */
+            identities_required: number;
             /** Lab Only */
             lab_only: boolean;
             /** Name */

@@ -38,7 +38,7 @@ from nightfall.core.evidence_store import EvidenceStore, IntegrityError, read_fr
 from nightfall.core.schemas import Model, OkOut
 from nightfall.core.tenancy.deps import WorkspaceContext, may_approve_own, ws_permission
 from nightfall.core.tenancy.permissions import Permission
-from nightfall.recon.collectors import LAB_TOOLS, PACK_TOOLS, TOOLS
+from nightfall.recon.collectors import LAB_TOOLS, PLAYBOOK_ONLY, TOOLS
 from nightfall.registry.assets import EvidenceSummary, evidence_summary
 from nightfall.scope.engine import evaluate
 from nightfall.scope.repository import active_scope, snapshot
@@ -164,11 +164,11 @@ def _get_op(db: Session, ctx: WorkspaceContext, op_id: uuid.UUID) -> Any:
 
 @router.get("/recon/tools", response_model=list[ToolOut])
 def list_tools(ctx: WorkspaceContext = ws_permission(Permission.READ)) -> list[ToolOut]:
-    # Lab tool pack 1 runs only through its lab playbook, never as a single collection.
+    # Lab tool pack 1 and Profile B tools run only as playbook steps, never as a collection.
     return [
         ToolOut(key=k, label=label, risk_class=risk)
         for k, (label, risk) in TOOLS.items()
-        if k not in PACK_TOOLS
+        if k not in PLAYBOOK_ONLY
     ]
 
 

@@ -142,8 +142,10 @@ def test_each_gate_switches_profile_b_off_on_its_own(gates_on: None) -> None:
         assert words in (profile_b.unavailable_reason(dataclasses.replace(s, **change)) or "")
 
 
-def test_shipped_catalog_has_no_profile_b_playbook_yet() -> None:
-    assert not any(Profile.VALIDATION in p.profiles for p in PLAYBOOKS.values())
+def test_shipped_catalog_has_only_the_reviewed_profile_b_playbooks() -> None:
+    assert [p.id for p in PLAYBOOKS.values() if Profile.VALIDATION in p.profiles] == [
+        "authentication-configuration-audit"
+    ]
     check_catalog({TEST_PLAYBOOK.id: TEST_PLAYBOOK})  # a validation-only definition is valid
     mixed = Playbook(**{**TEST_PLAYBOOK.__dict__, "profiles": (Profile.LIVE, Profile.VALIDATION)})
     with pytest.raises(ValueError, match="only Profile B"):

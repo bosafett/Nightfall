@@ -529,11 +529,11 @@ test.describe("as the owner", () => {
     await page.goto(`${workspaceUrl}/blacksite`);
     await page.getByTestId("blackops-entry").getByRole("link", { name: "Open playbook library" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "BLACK OPS" })).toBeVisible();
-    await expect(page.getByTestId("profiles")).toContainText("Not built");
+    await expect(page.getByTestId("profiles")).toContainText("Off");
     // Profile B test identities: no worker key on this deployment, so nothing can be stored.
     await expect(page.getByTestId("test-identities")).toContainText("needs the worker key");
     const list = page.getByTestId("playbook-list");
-    await expect(list.getByRole("listitem")).toHaveCount(6);
+    await expect(list.getByRole("listitem")).toHaveCount(7);
     await page.getByTestId("playbook-search").fill("tls");
     await expect(list.getByRole("listitem")).toHaveCount(1);
     await expect(list).toContainText("TLS Configuration Audit");

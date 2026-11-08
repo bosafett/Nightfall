@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { PlaybookDetail, PlaybookLibrary, PlaybookRun, Project } from "@/lib/api/types";
+import type { PlaybookDetail, PlaybookLibrary, PlaybookRun, Project, TestIdentities } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { availability, availabilityLabel, availabilityTone, categoryLabel, profileLabel, riskLabel, riskTone } from "@/lib/blackops";
 import { membership } from "@/lib/workspace";
@@ -23,6 +23,9 @@ export default async function PlaybookPage({ params }: { params: Promise<{ ws: s
     apiGet<PlaybookRun[]>(`/workspaces/${ws}/blackops/runs?playbook_id=${encodeURIComponent(playbookId)}&limit=10`),
   ]);
   const a = availability(p);
+  const identities = p.profiles.includes("validation")
+    ? (await apiGet<TestIdentities>(`/workspaces/${ws}/test-identities`)).identities
+    : undefined;
   const facts: [string, string][] = [
     ["Version", `v${p.version}`],
     ["Definition SHA-256", `${p.definition_sha256.slice(0, 16)}…`],
@@ -44,7 +47,7 @@ export default async function PlaybookPage({ params }: { params: Promise<{ ws: s
         <div className="space-y-6">
           <Panel title="Launch">
             {a === "available" || a === "lab_only"
-              ? <LaunchPanel ws={ws} playbook={p} projects={projects} canRun={lib.can_run} />
+              ? <LaunchPanel ws={ws} playbook={p} projects={projects} canRun={lib.can_run} identities={identities} />
               : <p className="text-sm text-muted">{a === "disabled" ? "Disabled in this workspace." : "Blocked on this deployment."}</p>}
           </Panel>
           <Panel title="Steps">

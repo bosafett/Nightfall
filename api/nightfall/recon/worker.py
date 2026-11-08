@@ -14,6 +14,7 @@ Safety properties:
 
 from __future__ import annotations
 
+import dataclasses
 import functools
 import ipaddress
 import logging
@@ -56,6 +57,7 @@ from nightfall.core.db.models import (
 from nightfall.core.db.session import set_workspace_context
 from nightfall.core.evidence_store import BlobStore, EvidenceStore, PostgresEvidenceStore
 from nightfall.recon.collectors import (
+    PROFILE_B_TOOLS,
     Collector,
     NucleiScan,
     RunContext,
@@ -257,6 +259,31 @@ class Worker:
                 params=dict(op.params),
                 bounds=_probe_bounds(db, op) if op.tool == "probe" else None,
             )
+            if decision_ok and op.tool in PROFILE_B_TOOLS and not profile_b_run:
+                decision_ok, reason = False, "This tool runs only as a step of a Profile B run."
+            if decision_ok and profile_b_run and run is not None and run.identity_ids:
+                # Opened in memory for this run only; never stored, logged or returned.
+                from nightfall.blackops import profile_b
+                from nightfall.core.db.models import TestIdentity
+
+                ident = db.get(TestIdentity, run.identity_ids[0])
+                try:
+                    if ident is None:
+                        raise profile_b.SealError("The test identity wasn't found.")
+                    secret = profile_b.load_secret(db, get_settings(), ident)
+                    run_ctx = dataclasses.replace(
+                        run_ctx,
+                        identity={
+                            "label": ident.label,
+                            "origin": ident.origin,
+                            "login_method": ident.login_method,
+                            "login_path": ident.login_path,
+                            "username": secret.get("username", ""),
+                            "password": secret.get("password", ""),
+                        },
+                    )
+                except profile_b.SealError as exc:
+                    decision_ok, reason = False, str(exc)
             tool = self.tools.get(op.tool)
             target, tool_key = op.target_value, op.tool
         if not decision_ok:

@@ -68,9 +68,8 @@ PROFILES: dict[Profile, ProfileInfo] = {
         "Controlled validation",
         "Designated test accounts and controlled input testing on authorized targets.",
         False,
-        "Not built yet: proof of control, test identities and the run gates exist, but no "
-        "playbook uses them (step 3). It also needs its recorded independent review, the "
-        "worker key and a self-hosted worker.",
+        "Off: it needs its recorded independent review (NIGHTFALL_PROFILE_B_REVIEW_REF), "
+        "NIGHTFALL_PROFILE_B_ENABLED, the worker key and a self-hosted worker.",
     ),
     Profile.LAB: ProfileInfo(
         "C",
@@ -107,6 +106,10 @@ TOOL_DEPENDENCIES: dict[str, tuple[Dependency, ...]] = {
         Dependency("cryptography", "Apache-2.0 OR BSD-3-Clause", "api/requirements.lock"),
     ),
     "headers": (Dependency("httpx", "BSD-3-Clause", "api/requirements.lock"),),
+    "auth-audit": (
+        Dependency("httpx", "BSD-3-Clause", "api/requirements.lock"),
+        Dependency("Python html.parser", "PSF-2.0", "runtime image"),
+    ),
     **{
         f"nuclei-pack1-{g}": (
             Dependency("Nuclei (ProjectDiscovery)", "MIT", "infra/tools/Dockerfile (by digest)"),
@@ -325,6 +328,46 @@ PLAYBOOKS: dict[str, Playbook] = {
             changelog=_V1,
         ),
         Playbook(
+            id="authentication-configuration-audit",
+            name="Authentication Configuration Audit",
+            version="1.0.0",
+            category=Category.CONTROLLED_VALIDATION,
+            summary="Signs in as one designated test identity and checks session cookies, "
+            "rotation at sign-in, logout and HTTPS-only login.",
+            description="Profile B (controlled validation). Signs in over HTTPS as one "
+            "registered test identity and checks: the session cookies' Secure, HttpOnly and "
+            "SameSite attributes; whether the session identifier changes at sign-in; whether a "
+            "logout link ends the session on the server; and whether the login page (or HTTP "
+            "basic) is offered over plain HTTP. Needs proof of control of the target and an "
+            "approval with fresh two-factor. No lockout testing, no other accounts, no "
+            "password guessing.",
+            steps=(
+                Step(
+                    "auth-audit",
+                    "Sign in as the test identity; GET only, apart from one POST to its "
+                    "registered login path",
+                ),
+            ),
+            profiles=(Profile.VALIDATION,),
+            target_types=(TargetType.HOSTNAME,),
+            expected_duration="Under 1 minute (about 10 requests)",
+            limits=(
+                "At most 200 requests, 1 per second, 30 minutes",
+                "GET only, except one POST to the identity's registered login path",
+                "Stops on a 429, three server errors in a row, or any sign of a locked account",
+                "No lockout testing; cookie values, bodies and credentials are never stored",
+            ),
+            outputs=("Authentication posture", "Unverified findings R18-R24"),
+            cleanup="Follows the application's logout link when one is found; otherwise the "
+            "test session simply expires.",
+            tests=(
+                "tests/test_auth_audit.py::test_form_login_audit_finds_weak_sessions",
+                "tests/test_auth_audit.py::test_profile_b_run_end_to_end",
+            ),
+            changelog=(Change("1.0.0", "2026-11-08", "First reviewed version."),),
+            identities=1,
+        ),
+        Playbook(
             id="known-weakness-scan-lab",
             name="Known-weakness scan (lab)",
             version="1.0.0",
@@ -382,9 +425,11 @@ def check_catalog(playbooks: dict[str, Playbook] | None = None) -> None:
             raise ValueError(f"{p.id}: test identities are for Profile B playbooks only")
         if p.risk_class is RiskClass.HIGH:
             raise ValueError(f"{p.id}: high-risk steps are never allowed")
-        if p.risk_class is RiskClass.MODERATE and p.profiles != (Profile.LAB,):
-            # Profile B's moderate-risk steps arrive with its first playbook (step 3).
-            raise ValueError(f"{p.id}: moderate risk is lab-only")
+        if p.risk_class is RiskClass.MODERATE and p.profiles not in (
+            (Profile.LAB,),
+            (Profile.VALIDATION,),
+        ):
+            raise ValueError(f"{p.id}: moderate risk is for the lab or Profile B only")
 
 
 check_catalog()

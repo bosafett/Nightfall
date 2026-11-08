@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { api } from "@/lib/api/client";
-import type { PlaybookDetail, PlaybookRunDetail, Preflight, Project } from "@/lib/api/types";
+import type { PlaybookDetail, PlaybookRunDetail, Preflight, Project, TestIdentities } from "@/lib/api/types";
 import { profileLabel, riskLabel, riskTone } from "@/lib/blackops";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { useAction } from "@/components/ui/useAction";
@@ -16,16 +16,22 @@ const markTone = { pass: "text-green", fail: "text-crimson-text", info: "text-mu
  * Target selection → preflight → proposed steps → launch. The server runs the same
  * preflight again on launch and is the only authority; this panel just shows it first.
  */
-export function LaunchPanel({ ws, playbook, projects, canRun }: { ws: string; playbook: PlaybookDetail; projects: Project[]; canRun: boolean }) {
+export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
+  ws: string; playbook: PlaybookDetail; projects: Project[]; canRun: boolean; identities?: TestIdentities["identities"];
+}) {
   const router = useRouter();
   const { busy, error, setError, run } = useAction();
   const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
   const [target, setTarget] = useState("");
   const [pre, setPre] = useState<Preflight | null>(null);
+  const [chosen, setChosen] = useState<string[]>([]);
+  const profileB = playbook.profiles.includes("validation");
+  const host = target.trim().toLowerCase().replace(/\.$/, "");
+  const usable = (identities ?? []).filter((i) => !i.retired_at && i.origin.replace("https://", "").split(":")[0] === host);
 
   async function check() {
     const res = await run(() => api<Preflight>(`/workspaces/${ws}/blackops/projects/${projectId}/preflight`, {
-      method: "POST", body: { playbook_id: playbook.id, target },
+      method: "POST", body: { playbook_id: playbook.id, target, identity_ids: chosen },
     }), { refresh: false });
     setPre(res ?? null);
   }
@@ -43,6 +49,22 @@ export function LaunchPanel({ ws, playbook, projects, canRun }: { ws: string; pl
           <Input value={target} onChange={(e) => { setTarget(e.target.value); setPre(null); }} maxLength={300} placeholder="www.example.com" data-testid="launch-target" />
         </Field>
       </div>
+      {profileB && (
+        <fieldset className="space-y-1" data-testid="launch-identities">
+          <legend className="text-sm font-medium">Test identities ({playbook.identities_required} needed)</legend>
+          {usable.length === 0
+            ? <p className="text-xs text-muted">No active test identity is registered for {host || "this target"}. Register one under Test identities on the BLACK OPS page.</p>
+            : usable.map((i) => (
+              <label key={i.id} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={chosen.includes(i.id)} onChange={(e) => {
+                  setPre(null);
+                  setChosen((c) => (e.target.checked ? [...c, i.id] : c.filter((x) => x !== i.id)));
+                }} />
+                {i.label} <span className="text-xs text-muted">{i.role_description}</span>
+              </label>
+            ))}
+        </fieldset>
+      )}
       <Button onClick={check} disabled={busy || !target.trim() || !projectId} data-testid="run-preflight">{busy ? "Checking…" : "Run preflight"}</Button>
       {error && <Alert>{error}</Alert>}
       {pre && (
@@ -78,7 +100,7 @@ export function LaunchPanel({ ws, playbook, projects, canRun }: { ws: string; pl
                   setError(null);
                   const r = await api<PlaybookRunDetail>(`/workspaces/${ws}/blackops/projects/${projectId}/runs`, {
                     method: "POST",
-                    body: { playbook_id: playbook.id, target, version: pre.version, definition_sha256: pre.definition_sha256 },
+                    body: { playbook_id: playbook.id, target, identity_ids: chosen, version: pre.version, definition_sha256: pre.definition_sha256 },
                   });
                   router.push(`/w/${ws}/blacksite/ops/runs/${r.id}`);
                 }} />

@@ -113,6 +113,11 @@ def sources(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> S
 
     if pack1.unavailable_reason(s) or s.on_demand_worker:
         unavailable |= set(PACK_TOOLS)  # lab tool pack 1: BLACKSITE plus its own review
+    from nightfall.blackops import profile_b
+    from nightfall.recon.collectors import PROFILE_B_TOOLS
+
+    if profile_b.unavailable_reason(s) or s.collector_mode != "live":
+        unavailable |= set(PROFILE_B_TOOLS)
     states = source_states(db, ctx.workspace_id, list(TOOLS), unavailable, utcnow())
     return SourcesOut(
         stale_after_days=STALE_AFTER.days,

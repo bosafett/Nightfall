@@ -14,7 +14,7 @@ from typing import Any
 
 from nightfall.core.db.models import Confidence, Severity
 
-RULESET = "findings/2026.11-4"
+RULESET = "findings/2026.11-5"
 
 
 @dataclass(frozen=True)
@@ -202,6 +202,82 @@ def _from_pack1(m: dict[str, str], seen: set[str]) -> Draft | None:
     )
 
 
+def _from_auth(a: dict[str, Any]) -> list[Draft]:
+    """R18-R24: Profile B authentication configuration audit (playbook 7). Only what the
+    run observed while signed in as a designated test identity; nothing is inferred."""
+    who = a.get("identity", "the test identity")
+    drafts: list[Draft] = []
+
+    def add(check: str, rule: str, title: str, sev: Severity, desc: str, impact: str, fix: str):  # type: ignore[no-untyped-def]  # noqa: E501
+        drafts.append(Draft(check, rule, title, sev, Confidence.HIGH, desc, impact, fix))
+
+    if a.get("login_over_http") is True:
+        add(
+            "auth.login-page-over-http", "R18-login-over-http",
+            "Login page is served over plain HTTP", Severity.MEDIUM,
+            f"The login page at {a.get('login_path')} loads over HTTP without redirecting to "
+            "HTTPS.",
+            "Anyone on the network path can read or change the login page and capture "
+            "credentials.",
+            "Redirect every HTTP request to HTTPS and send Strict-Transport-Security.",
+        )  # fmt: skip
+    if a.get("basic_over_http") is True:
+        add(
+            "auth.basic-over-http", "R19-basic-over-http",
+            "HTTP basic credentials are requested over plain HTTP", Severity.HIGH,
+            f"{a.get('login_path')} asks for HTTP basic credentials over plain HTTP.",
+            "Basic credentials are only base64-encoded: on HTTP anyone on the path reads them.",
+            "Serve the protected path over HTTPS only, and redirect HTTP to HTTPS.",
+        )  # fmt: skip
+    if a.get("authenticated"):
+        for c in (a.get("cookies") or [])[:MAX_COOKIE_FINDINGS]:
+            name = str(c.get("name", "?"))[:100]
+            if not c.get("secure"):
+                add(
+                    f"auth.session-cookie-not-secure.{name}", "R20-session-cookie-secure",
+                    f"Session cookie {name} is sent without Secure", Severity.MEDIUM,
+                    f"Signing in as {who} set {name} without the Secure attribute.",
+                    "The browser may send the session over plain HTTP, where it can be stolen.",
+                    "Set Secure on every session cookie.",
+                )  # fmt: skip
+            if not c.get("httponly"):
+                add(
+                    f"auth.session-cookie-not-httponly.{name}", "R21-session-cookie-httponly",
+                    f"Session cookie {name} is readable by scripts", Severity.MEDIUM,
+                    f"Signing in as {who} set {name} without HttpOnly.",
+                    "A cross-site scripting flaw could read the session and take it over.",
+                    "Set HttpOnly on session cookies.",
+                )  # fmt: skip
+            if not c.get("samesite"):
+                add(
+                    f"auth.session-cookie-no-samesite.{name}", "R22-session-cookie-samesite",
+                    f"Session cookie {name} has no SameSite attribute", Severity.LOW,
+                    f"Signing in as {who} set {name} without SameSite.",
+                    "Browsers' defaults vary; cross-site requests may carry the session.",
+                    "Set SameSite=Lax (or Strict) on session cookies.",
+                )  # fmt: skip
+        if a.get("rotated") is False:
+            add(
+                "auth.session-not-rotated", "R23-session-rotation",
+                "Session identifier doesn't change at sign-in", Severity.MEDIUM,
+                f"The session cookie set before signing in as {who} was still valid, "
+                "unchanged, afterwards.",
+                "Session fixation: someone who planted a session id before sign-in can use "
+                "it after.",
+                "Issue a new session identifier at every sign-in.",
+            )  # fmt: skip
+        if a.get("logout_invalidates") is False:
+            add(
+                "auth.logout-not-invalidating", "R24-logout",
+                "Logging out doesn't end the session on the server", Severity.MEDIUM,
+                f"After {who} logged out, the old session cookie still opened the signed-in "
+                "page.",
+                "A stolen or leftover session stays usable after the user logs out.",
+                "Invalidate the session on the server at logout, not only in the browser.",
+            )  # fmt: skip
+    return drafts
+
+
 HSTS_MIN_AGE = 15_552_000  # 180 days
 MAX_COOKIE_FINDINGS = 10
 
@@ -211,8 +287,11 @@ def from_posture(posture: dict[str, Any] | None, now: datetime) -> list[Draft]:
     posture = posture or {}
     tls = posture.get("tls")
     headers = posture.get("headers")
-    return (_from_tls(tls, now) if isinstance(tls, dict) else []) + (
-        _from_headers(headers) if isinstance(headers, dict) else []
+    auth = posture.get("auth")
+    return (
+        (_from_auth(auth) if isinstance(auth, dict) else [])
+        + (_from_tls(tls, now) if isinstance(tls, dict) else [])
+        + (_from_headers(headers) if isinstance(headers, dict) else [])
     )
 
 

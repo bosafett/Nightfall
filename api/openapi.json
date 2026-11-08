@@ -4919,6 +4919,10 @@
             "title": "Id",
             "type": "string"
           },
+          "identities_required": {
+            "title": "Identities Required",
+            "type": "integer"
+          },
           "lab_only": {
             "title": "Lab Only",
             "type": "boolean"
@@ -5009,6 +5013,7 @@
           "target_types",
           "steps",
           "needs_approval_live",
+          "identities_required",
           "enabled",
           "availability",
           "blocked_reason",
@@ -5063,6 +5068,10 @@
           "id": {
             "title": "Id",
             "type": "string"
+          },
+          "identities_required": {
+            "title": "Identities Required",
+            "type": "integer"
           },
           "lab_only": {
             "title": "Lab Only",
@@ -5122,6 +5131,7 @@
           "target_types",
           "steps",
           "needs_approval_live",
+          "identities_required",
           "enabled",
           "availability",
           "blocked_reason"

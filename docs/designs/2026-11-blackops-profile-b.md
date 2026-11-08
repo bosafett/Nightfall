@@ -306,3 +306,37 @@ Profile B adds:
   - moderate-risk operations outside the lab are still refused by the schema;
   - the egress proxy's per-target pinning for logins, request budgets, stop conditions and credential redaction in
     evidence arrive with the first playbook (7).
+
+## 14. Step 3 as built (2026-11-08, migration 0020): playbook 7
+
+- **Playbook** `authentication-configuration-audit` v1.0.0: Profile B only, a hostname target, one test identity,
+  one moderate-risk step (`auth-audit`).
+- **Login form:**
+  - GETs the login page over HTTP, then HTTPS, and parses the form (nothing is executed).
+  - POSTs once, only to the identity's registered login path; a form that posts anywhere else stops the run.
+  - Loads the signed-in page, follows a logout link found on it (GET only), then tries the old session again.
+- **HTTP basic:** checks that the credential works over HTTPS and that plain HTTP doesn't ask for it.
+- **Results, rules R18–R24 (unverified, ruleset `findings/2026.11-5`):**
+  - the login page is offered over plain HTTP;
+  - basic credentials are requested over plain HTTP;
+  - a session cookie is missing Secure, HttpOnly or SameSite;
+  - the session identifier doesn't change at sign-in;
+  - logout doesn't end the session.
+- **Limits and stops:**
+  - at most 200 requests, 1 per second, 30 minutes; a normal run makes about 10;
+  - stops on a 429, three server errors in a row, or any sign the account is locked;
+  - certificates are always verified; redirects are recorded, not followed;
+  - all traffic goes through the address-pinning client: no private addresses, scope exclusions honoured.
+- **Credentials:**
+  - The worker opens the run's identity in memory, only for an approved Profile B run that passed every gate.
+  - Evidence stores methods, paths, status codes and cookie attributes only. Cookie values, bodies, the username and
+    the password are never stored; requests name `<test-identity:label>`.
+  - A test searches the stored evidence, the evidence blobs and the audit trail for a canary password and the
+    username.
+- **Schema (migration 0020):** moderate-risk operations outside the lab are allowed only as steps of a Profile B run,
+  checked by a trigger at insert. An operation's risk class can't change afterwards.
+- **Worker:** the worker refuses `auth-audit` anywhere but in a Profile B run. The tool isn't offered as a single
+  collection, and is unavailable unless Profile B's gates hold on a live, self-hosted worker.
+- **Not yet:**
+  - playbooks 8 (access control) and 6 (input testing), steps 4 and 5;
+  - a per-run egress proxy for Profile B (the address-pinning client is used, as for Profile A's requests).

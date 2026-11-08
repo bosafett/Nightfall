@@ -54,6 +54,7 @@ def test_freshness_follows_the_operations(
         "nuclei-pack1-cve": "unavailable",
         "nuclei-pack1-config": "unavailable",
         "nuclei-pack1-tech": "unavailable",
+        "auth-audit": "unavailable",  # Profile B: off on this deployment
     }
     collect(client, env)
     make_worker().run_once()

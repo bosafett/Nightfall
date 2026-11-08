@@ -878,6 +878,13 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - **Gates G1–G5** are checked in the preflight, at launch (with a database trigger for the proof and the
     identities), and again by the worker before anything is sent. Profile B approvals expire after 24 hours.
   - **Not yet:** no Profile B playbook ships yet (step 3).
+- **BLACK OPS Profile B step 3: playbook 7, Authentication Configuration Audit (built, switched off; migration
+  0020).** Design §14.
+  - **What it does:** signs in as one sealed test identity over HTTPS and checks the session cookies' attributes,
+    rotation at sign-in, logout and whether login is offered over plain HTTP. Results become findings R18–R24.
+  - **Requests:** GET only, except one POST to the registered login path; at most 200 requests at 1 per second;
+    stops on a 429, repeated server errors or any sign of lockout. Credentials and session values are never stored.
+  - **Schema:** moderate risk outside the lab is allowed only as a step of a Profile B run.
 - **CHRONICLE: asset activity (done, no migration).** `GET /api/workspaces/{ws}/assets/{asset}/chronicle` (any
   member): the asset's findings, the evidence about it, the operations that produced that evidence, agent tasks about
   it and edits to it, across every project. It's the "Activity" panel on each asset page; the ATLAS "History" panel

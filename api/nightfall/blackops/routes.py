@@ -128,6 +128,7 @@ class PlaybookOut(Model):
     target_types: list[TargetType]
     steps: list[PlaybookStepOut]
     needs_approval_live: bool
+    identities_required: int  # Profile B: designated test identities a run needs
     enabled: bool
     availability: Literal["available", "disabled", "blocked"]
     blocked_reason: str | None
@@ -161,13 +162,15 @@ class LibraryOut(Model):
 
 def _unavailable_tools() -> set[str]:
     """Tools this deployment can't run (same rule as BLACK ICE's source panel)."""
-    from nightfall.recon.collectors import PACK_TOOLS
+    from nightfall.recon.collectors import PACK_TOOLS, PROFILE_B_TOOLS
     from nightfall.tools.nuclei import pack1
 
     s = get_settings()
     out = {"nuclei"} if s.on_demand_worker and not s.nuclei_bin else set()
     if pack1.unavailable_reason(s) or s.on_demand_worker:
         out |= set(PACK_TOOLS)  # lab tool pack 1: BLACKSITE plus its own review, lab worker
+    if profile_b.unavailable_reason(s) or s.collector_mode != "live":
+        out |= set(PROFILE_B_TOOLS)  # Profile B: its gates, a live self-hosted worker
     return out
 
 
@@ -200,6 +203,7 @@ def _out(p: Playbook, enabled: bool) -> PlaybookOut:
         risk_class=p.risk_class,
         profiles=list(p.profiles),
         lab_only=p.profiles == (Profile.LAB,),
+        identities_required=p.identities,
         target_types=list(p.target_types),
         steps=[
             PlaybookStepOut(
@@ -228,6 +232,7 @@ def _playbook(playbook_id: str) -> Playbook:
 @router.get("/playbooks", response_model=LibraryOut)
 def list_playbooks(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> LibraryOut:
     enabled = _enabled_map(db, ctx)
+    pb_reason = profile_b.unavailable_reason(get_settings())
     return LibraryOut(
         profiles=[
             ProfileOut(
@@ -235,8 +240,8 @@ def list_playbooks(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ
                 code=v.code,
                 label=v.label,
                 description=v.description,
-                available=v.available,
-                unavailable_reason=v.unavailable_reason,
+                available=v.available or (k is Profile.VALIDATION and pb_reason is None),
+                unavailable_reason=pb_reason if k is Profile.VALIDATION else v.unavailable_reason,
             )
             for k, v in PROFILES.items()
         ],

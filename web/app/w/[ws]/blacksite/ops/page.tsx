@@ -38,7 +38,7 @@ export default async function BlackOps({ params }: { params: Promise<{ ws: strin
           <div key={p.key} className="rounded-lg border border-border bg-surface p-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-sm font-medium">Profile {p.code} · {p.label}</span>
-              <Badge tone={p.available ? (p.key === "lab" ? "orange" : "green") : "gray"}>{p.available ? (p.key === "lab" ? "Lab only" : "Available") : "Not built"}</Badge>
+              <Badge tone={p.available ? (p.key === "lab" ? "orange" : "green") : "gray"}>{p.available ? (p.key === "lab" ? "Lab only" : "Available") : "Off"}</Badge>
             </div>
             <p className="mt-1 text-xs text-muted">{p.available ? p.description : p.unavailable_reason}</p>
           </div>

@@ -83,14 +83,17 @@ def test_catalog_starts_with_the_five_low_risk_playbooks() -> None:
         "web-exposure-audit",
         "tls-configuration-audit",
         "http-security-assessment",
+        "authentication-configuration-audit",  # Profile B playbook 7: moderate
         "known-weakness-scan-lab",  # lab tool pack 1: moderate, lab only
     ]
     for p in PLAYBOOKS.values():
         if p.id == "known-weakness-scan-lab":
             assert p.risk_class.value == "moderate" and p.profiles == (Profile.LAB,)
+        elif p.id == "authentication-configuration-audit":
+            assert p.risk_class.value == "moderate" and p.profiles == (Profile.VALIDATION,)
         else:
             assert p.risk_class.value in ("passive", "low")
-        assert Profile.VALIDATION not in p.profiles
+            assert Profile.VALIDATION not in p.profiles
 
 
 def test_listed_tests_exist() -> None:
@@ -145,6 +148,7 @@ def test_library_shows_availability_and_who_may_run(client: TestClient, env) -> 
     assert lib["can_run"] is True and lib["can_manage"] is True
     avail = {p["id"]: p["availability"] for p in lib["playbooks"]}
     assert avail.pop("known-weakness-scan-lab") != "available"  # no pack review recorded
+    assert avail.pop("authentication-configuration-audit") != "available"  # Profile B off
     assert all(a == "available" for a in avail.values())
     detail = client.get(f"{base(env)}/playbooks/tls-configuration-audit").json()
     assert detail["definition_sha256"] == PLAYBOOKS["tls-configuration-audit"].sha256
