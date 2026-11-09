@@ -18,7 +18,7 @@ from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from nightfall.config import _sqlalchemy_url
-from nightfall.core.evidence_store import EvidenceStore
+from nightfall.core.evidence_store import EvidenceStore, PostgresEvidenceStore
 from nightfall.recon.collectors import HttpFingerprint, lab_collectors
 from nightfall.recon.safe_http import Refused, SafeHttp
 from nightfall.recon.worker import Worker
@@ -157,6 +157,37 @@ def test_lab_run_end_to_end_and_kept_apart(
         text("SELECT is_simulation FROM evidence WHERE operation_id = :o"), {"o": op["id"]}
     ).scalar_one()
     assert sim is True
+
+
+def test_lab_run_saves_evidence_in_postgres_without_read_access(
+    client: TestClient, blacksite: TestClient, env, owner_db: Session
+) -> None:
+    """The real lab machine stores evidence in Postgres, and its role may only add blobs."""
+    _active_lab_scope(client, env)
+    op = _request(blacksite, env, "http").json()
+    blacksite.post(
+        f"/api/workspaces/{env['ws']}/operations/{op['id']}/approve", json={"reason": "lab"}
+    )
+    sessions = sessionmaker(bind=_lab_engine, expire_on_commit=False)
+    store = PostgresEvidenceStore(sessions)
+    assert Worker(sessions, store, {"http": fake_app()}, lab=True).run_once() is True
+    use(client, env["owner"])
+    detail = client.get(f"/api/workspaces/{env['ws']}/operations/{op['id']}").json()
+    assert detail["status"] == "succeeded", detail
+    digest = owner_db.execute(
+        text("SELECT content_sha256 FROM evidence WHERE operation_id = :o"), {"o": op["id"]}
+    ).scalar_one()
+    assert (
+        owner_db.execute(
+            text("SELECT count(*) FROM evidence_blobs WHERE sha256 = :d"), {"d": digest}
+        ).scalar_one()
+        == 1
+    )
+
+    # Saving the same content again is not an error, and the role still can't read blobs.
+    assert store.put(b"same content") == store.put(b"same content")
+    with pytest.raises(DBAPIError, match="permission denied"):
+        store.get(bytes(digest))
 
 
 def test_lab_worker_role_is_confined(client: TestClient, env, owner_db: Session) -> None:
