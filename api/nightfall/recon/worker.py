@@ -432,6 +432,9 @@ def build_worker() -> Worker:
             raise SystemExit("The lab worker runs live tools only.")
         if problem := _lab_network_problem():
             raise SystemExit(f"LAB WORKER REFUSED TO START: {problem}")
+        ok, detail = lab_egress_check(os.environ.get("NIGHTFALL_WORKER_USER", "nfworker"))
+        if not ok:  # R1: the firewall must confine the worker to the database's own address
+            raise SystemExit(f"LAB WORKER REFUSED TO START: lab egress: {detail}")
         log.info("LAB WORKER: lab operations only, addresses in %s only", s.lab_networks)
         collectors_ = lab_collectors(s.lab_networks, nuclei_scan=scan, pack_root=s.lab_pack1_dir)
         return Worker(sessions, store, collectors_, lab=True)
@@ -463,19 +466,33 @@ def _lab_network_problem() -> str | None:
     return lab_network_problem(get_settings().lab_networks, table)
 
 
+LAB_DB_LOST_SECONDS = 300
+
+
 def run_loop(worker: Worker, stopping: Callable[[], bool]) -> None:
     log.info("worker %s started", worker.worker_id)
     if get_settings().collector_mode == "live":
         for name, ok, detail in self_check():
             (log.info if ok else log.warning)("tool check %s: %s", name, detail)
     last_beat = 0.0
+    last_db_ok = time.monotonic()
     while not stopping():
         if time.monotonic() - last_beat > 10:
             try:
                 worker.heartbeat()
+                last_db_ok = time.monotonic()
             except Exception:
                 log.exception("worker heartbeat failed")
             last_beat = time.monotonic()
+        if worker.lab and time.monotonic() - last_db_ok > LAB_DB_LOST_SECONDS:
+            # The lab firewall allows only the database addresses resolved at start (R1).
+            # Exit so the container restarts, which resolves them again.
+            log.error(
+                "LAB WORKER: database unreachable for %d s; exiting so the container restarts "
+                "and the firewall re-resolves the database address",
+                LAB_DB_LOST_SECONDS,
+            )
+            raise SystemExit(3)
         try:
             busy = worker.run_once()
         except Exception:
@@ -522,6 +539,8 @@ def self_check() -> list[tuple[str, bool, str]]:
         checks.append(
             ("lab network", problem is None, problem or f"{nets} is the attached lab-net")
         )
+        ok, detail = lab_egress_check(os.environ.get("NIGHTFALL_WORKER_USER", "nfworker"))
+        checks.append(("lab egress", ok, detail))
     if not s.nuclei_bin:
         checks.append(("nuclei", False, "NIGHTFALL_NUCLEI_BIN is not set"))
     else:
@@ -532,6 +551,58 @@ def self_check() -> list[tuple[str, bool, str]]:
         except (OSError, ValueError) as exc:
             checks.append(("nuclei", False, f"{type(exc).__name__}: {exc}"))
     return checks
+
+
+LAB_EGRESS_FILE = "/tmp/nightfall-lab-egress"  # noqa: S108 - written by egress-lock.sh at start
+# Addresses that are never the database. The firewall must reject both at once (review R1):
+# port 5432 elsewhere (R1 itself), and an ordinary internet address, which an unlocked worker
+# can normally reach, so that a network that happens to refuse 5432 can't pass the check.
+_EGRESS_CANARIES = (("1.1.1.1", 5432), ("1.1.1.1", 443))
+_EGRESS_PROBE = (
+    "import socket,sys\n"
+    "for addr in %r:\n"
+    "    s=socket.socket(); s.settimeout(4)\n"
+    "    try:\n"
+    "        s.connect(addr)\n"
+    "        sys.exit(5)\n"
+    "    except ConnectionRefusedError:\n"
+    "        pass\n"
+    "    except OSError:\n"
+    "        sys.exit(6)\n"
+    "    finally:\n"
+    "        s.close()\n"
+)
+
+
+def lab_egress_check(worker_user: str) -> tuple[bool, str]:
+    """R1: as the worker user, the firewall rejects at once both port 5432 on an address that
+    isn't the database and an ordinary internet address."""
+    import subprocess
+
+    try:
+        with open(LAB_EGRESS_FILE) as f:
+            info = dict(line.strip().split("=", 1) for line in f if "=" in line)
+    except OSError:
+        return False, "no firewall record (egress-lock.sh didn't run in lab mode)"
+    try:
+        r = subprocess.run(  # noqa: S603 - fixed argv
+            [sys.executable, "-I", "-c", _EGRESS_PROBE % (_EGRESS_CANARIES,)],
+            user=None if os.geteuid() != 0 else worker_user,
+            env={"PATH": "/usr/bin:/bin"},
+            capture_output=True,
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:
+        return False, f"couldn't run the probe: {type(exc).__name__}"
+    host, addrs = info.get("db_host", ""), info.get("db_addrs", "")
+    where = f"port {info.get('db_port', '?')} only to {addrs or 'no address'} ({host or 'unset'})"
+    canaries = " and ".join(f"{h}:{p}" for h, p in _EGRESS_CANARIES)
+    if r.returncode == 0:
+        return True, f"database {where}; DNS {info.get('dns') or 'loopback only'}"
+    if r.returncode == 5:
+        return False, f"reached {canaries.replace(' and ', ' or ')}: the lock isn't active"
+    return False, f"{canaries} weren't both rejected by the firewall: the lock may be missing"
 
 
 def main() -> None:

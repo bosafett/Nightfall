@@ -7,8 +7,9 @@
 #             and nothing in this file publishes a port, so nothing outside can reach them.
 #   uplink  : the lab worker's way out, used only to reach the NIGHTFALL database. The worker
 #             container's firewall (infra/tools/egress-lock.sh, lab mode) lets the worker
-#             reach only the lab network, DNS and the database port; tools run by it reach
-#             only the per-run proxy, which allows only lab addresses.
+#             reach only the lab network, Docker's DNS, and the database port on the
+#             database's own addresses; tools run by it reach only the per-run proxy, which
+#             allows only lab addresses.
 name: nightfall-lab
 
 networks:
@@ -38,6 +39,8 @@ services:
       NIGHTFALL_WORKER_MODE: lab
       NIGHTFALL_LAB_NETWORKS: 172.30.99.0/24
       NIGHTFALL_LAB_DB_PORT: "5432"
+      # The worker may reach port 5432 only on the addresses this resolves to at start (R1).
+      NIGHTFALL_LAB_DB_HOST: "${DB_HOST:?set DB_HOST in lab.env}"
       NIGHTFALL_EVIDENCE_BACKEND: postgres
       NIGHTFALL_COLLECTOR_MODE: live
       # The lab worker never serves the API; these only satisfy the shared settings loader.

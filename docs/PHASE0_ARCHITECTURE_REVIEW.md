@@ -917,7 +917,16 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     (`sha256` is the only unique key, so the meaning is unchanged; no grant, no migration).
     `test_evidence_pg.py::test_lab_worker_can_store_evidence_with_insert_only` stores twice as the lab role and checks
     it still can't read the table. **Rebuild the lab worker image** to pick it up.
-  - **Open:** finding R1, accepted as a condition: the lab worker can send to any address on ports 5432 and 53.
+  - **Fixed 2026-11-09, to be confirmed on the lab machine:** finding R1 (accepted as a condition of the BLACKSITE
+    self-review): the lab worker could send to any address on ports 5432 and 53. Now `egress-lock.sh` (lab mode)
+    allows port 5432 only to the addresses `NIGHTFALL_LAB_DB_HOST` resolves to at start, and DNS only to the
+    container's resolvers (Docker's is on loopback); if the host doesn't resolve, no database address is allowed.
+    A lab worker that loses the database for 5 minutes exits, so the container's restart re-resolves a changed
+    Neon address. `nightfall-worker --check` has a `lab egress` line (port 5432 elsewhere and an internet address
+    must both be rejected at once), and the lab worker refuses to start without it. Verified on a Linux host with the
+    real script: the database address and the resolver pass the rules; 5432 elsewhere, 443 to the database address,
+    other DNS servers and the internet are rejected. New CI step. Once the lab machine's `--check` shows
+    `ok lab egress`, the review's condition 1 can be closed.
   - **Fixed 2026-11-09:** a preview deployment's cold start set the optional lab roles to `NOLOGIN` and ran
     migrations against the shared database, because the password variables are Production-only (seen 00:42 UTC; a
     later occurrence at 01:35 UTC has no surviving logs). Start-up roles and migrations now run only when

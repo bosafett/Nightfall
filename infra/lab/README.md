@@ -51,6 +51,7 @@ Run each command in PowerShell from `infra\lab` and compare the result:
 |---|---|---|
 | The worker is running in lab mode | `docker compose --env-file lab.env logs lab-worker` | `egress-lock: lab mode …` and `LAB WORKER: lab operations only` (never `LAB WORKER REFUSED TO START`) |
 | The tools are ready | `docker compose --env-file lab.env exec lab-worker nightfall-worker --check` | every line starts with `ok` |
+| The worker reaches only the database (R1) | same command, the `lab egress` line | `ok lab egress: database port 5432 only to <addresses> (ep-….neon.tech)` |
 | The practice app is up, inside the lab | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -o /dev/null -w "%{http_code}" http://172.30.99.10/` | `200` |
 | The lab has no internet | `docker run --rm --network nightfall-lab_lab-net curlimages/curl:8.11.1 -s -m 5 https://example.com` | fails (timeout or "could not resolve") |
 | Nothing is published | `docker compose --env-file lab.env ps` | no `0.0.0.0:` ports listed |
@@ -150,6 +151,9 @@ WARPATH needs only BLACKSITE, so it works as soon as lab runs do.
 
 - Stop the lab: `docker compose --env-file lab.env down`. Start it: `docker compose --env-file lab.env up -d`.
 - Lab jobs queue up while the lab is off and run when it's back.
+- If the lab worker keeps restarting with `database unreachable … exiting`, it couldn't reach the database for 5
+  minutes. That's how it picks up a changed database address (each start looks it up again). If it doesn't recover,
+  check `DB_HOST` in `lab.env` and your internet connection.
 - To turn the lab off for good, remove `NIGHTFALL_LAB_WORKER_DB_PASSWORD` from Vercel and redeploy. The
   lab account then can't log in.
 

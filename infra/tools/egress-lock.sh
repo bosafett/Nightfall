@@ -13,9 +13,15 @@
 # step 2); neither survives into the worker.
 #
 # Lab mode (NIGHTFALL_WORKER_MODE=lab, isolated lab machine, infra/lab/): the worker user is
-# locked down too. It may reach only the lab networks, DNS, and the database port
-# (NIGHTFALL_LAB_DB_PORT, default 5432); everything else it sends is rejected. So even the
-# worker process itself can't browse the internet from the lab machine.
+# locked down too. It may reach only:
+#   * the lab networks;
+#   * the database: port NIGHTFALL_LAB_DB_PORT (default 5432) on the addresses
+#     NIGHTFALL_LAB_DB_HOST resolves to at start (review finding R1: before, any address);
+#   * DNS: only the resolvers in /etc/resolv.conf (Docker's is 127.0.0.11, on loopback).
+# Everything else it sends is rejected. If the database host doesn't resolve, no database
+# address is allowed (fail closed). If its addresses change later, the worker exits after
+# losing the database for a few minutes, and the container's restart resolves them again.
+# The allowed addresses are written to /tmp/nightfall-lab-egress for `nightfall-worker --check`.
 set -eu
 
 TOOL_USER="${NIGHTFALL_TOOL_USER:-nftool}"
@@ -28,12 +34,30 @@ if [ "${NIGHTFALL_WORKER_MODE:-standard}" = "lab" ]; then
   WORKER_UID="$(id -u "$WORKER_USER")"
   LABNETS="${NIGHTFALL_LAB_NETWORKS:-172.30.99.0/24}"
   DBPORT="${NIGHTFALL_LAB_DB_PORT:-5432}"
+  DBHOST="${NIGHTFALL_LAB_DB_HOST:-}"
   case "$LABNETS" in *[!0-9./,]*|'') echo "egress-lock: bad NIGHTFALL_LAB_NETWORKS (IPv4 CIDRs, comma-separated)" >&2; exit 1;; esac
   case "$DBPORT" in *[!0-9]*|'') echo "egress-lock: bad NIGHTFALL_LAB_DB_PORT" >&2; exit 1;; esac
+  case "$DBHOST" in *[!A-Za-z0-9.-]*) echo "egress-lock: bad NIGHTFALL_LAB_DB_HOST" >&2; exit 1;; esac
+  DBADDRS=""
+  if [ -n "$DBHOST" ]; then
+    DBADDRS="$(getent ahostsv4 "$DBHOST" 2>/dev/null | awk '{print $1}' | sort -u | paste -sd, -)" || DBADDRS=""
+  fi
+  case "$DBADDRS" in *[!0-9.,]*) echo "egress-lock: unexpected address for $DBHOST" >&2; exit 1;; esac
+  DNSADDRS="$(awk '$1 == "nameserver" && $2 ~ /^[0-9.]+$/ && $2 !~ /^127\./ {print $2}' /etc/resolv.conf 2>/dev/null | sort -u | paste -sd, -)"
   WORKER_RULES="meta skuid $WORKER_UID oifname \"lo\" accept
-    meta skuid $WORKER_UID ip daddr { $LABNETS } accept
-    meta skuid $WORKER_UID udp dport 53 accept
-    meta skuid $WORKER_UID tcp dport { 53, $DBPORT } accept
+    meta skuid $WORKER_UID ip daddr { $LABNETS } accept"
+  if [ -n "$DBADDRS" ]; then
+    WORKER_RULES="$WORKER_RULES
+    meta skuid $WORKER_UID ip daddr { $DBADDRS } tcp dport $DBPORT accept"
+  else
+    echo "egress-lock: lab mode: database host '${DBHOST:-unset}' didn't resolve; no database address allowed" >&2
+  fi
+  if [ -n "$DNSADDRS" ]; then
+    WORKER_RULES="$WORKER_RULES
+    meta skuid $WORKER_UID ip daddr { $DNSADDRS } udp dport 53 accept
+    meta skuid $WORKER_UID ip daddr { $DNSADDRS } tcp dport 53 accept"
+  fi
+  WORKER_RULES="$WORKER_RULES
     meta skuid $WORKER_UID counter reject"
 fi
 
@@ -51,7 +75,9 @@ table inet nightfall_tools {
 RULES
 echo "egress-lock: $TOOL_USER (uid $TOOL_UID) may reach only 127.0.0.1:$PORT" >&2
 if [ -n "$WORKER_RULES" ]; then
-  echo "egress-lock: lab mode: $WORKER_USER may reach only $LABNETS, DNS and port $DBPORT" >&2
+  echo "egress-lock: lab mode: $WORKER_USER may reach only $LABNETS, port $DBPORT on ${DBADDRS:-nothing} ($DBHOST), DNS on ${DNSADDRS:-loopback only}" >&2
+  printf 'db_host=%s\ndb_addrs=%s\ndb_port=%s\ndns=%s\n' "$DBHOST" "$DBADDRS" "$DBPORT" "$DNSADDRS" > /tmp/nightfall-lab-egress
+  chmod 0644 /tmp/nightfall-lab-egress
 fi
 
 if [ "${NIGHTFALL_EGRESS_LOCK_ONLY:-}" = "1" ]; then

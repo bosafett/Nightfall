@@ -168,6 +168,15 @@ jobs:
           nightfall-worker:lab python -c "import socket,sys;
           s=socket.socket();s.settimeout(5);
           sys.exit(0 if s.connect_ex(('1.1.1.1',443)) else 'reached the internet')"
+      - name: The lab worker reaches port 5432 only on the database's own addresses (review R1)
+        # Rejected at once (ECONNREFUSED, 111) by the lab firewall, not left to time out.
+        run: >-
+          docker run --rm --cap-drop ALL --cap-add NET_ADMIN --cap-add SETPCAP
+          --cap-add SETUID --cap-add SETGID --read-only --tmpfs /tmp
+          -e NIGHTFALL_WORKER_MODE=lab -e NIGHTFALL_LAB_DB_HOST=example.com
+          nightfall-worker:lab python -c "import socket,sys;
+          s=socket.socket();s.settimeout(5);
+          sys.exit(0 if s.connect_ex(('1.1.1.1',5432)) == 111 else '5432 not rejected')"
 
   render-image:
     # Builds the single-container Render image and starts it against a database user that

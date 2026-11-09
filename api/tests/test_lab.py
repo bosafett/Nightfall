@@ -17,7 +17,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.exc import DBAPIError, IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from nightfall.config import _sqlalchemy_url
+from nightfall.config import _sqlalchemy_url, get_settings
 from nightfall.core.evidence_store import EvidenceStore, PostgresEvidenceStore
 from nightfall.recon.collectors import HttpFingerprint, lab_collectors
 from nightfall.recon.safe_http import Refused, SafeHttp
@@ -386,3 +386,58 @@ def test_lab_approvals_expire(
     assert detail["status"] == status
     if status == "denied":
         assert "lab approvals expire" in detail["denial_reason"]
+
+
+def test_lab_worker_exits_when_the_database_is_lost(monkeypatch: pytest.MonkeyPatch) -> None:
+    """R1: the lab firewall allows only the database addresses resolved at start, so a lab
+    worker that loses the database exits; the container's restart resolves them again."""
+    from nightfall.recon import worker as w
+
+    class Down:
+        lab = True
+        worker_id = "lab-test"
+
+        def heartbeat(self) -> None:
+            raise OSError("database unreachable")
+
+        def run_once(self) -> bool:
+            return False
+
+    clock = iter(range(0, 10_000, 60))
+    monkeypatch.setattr(w.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(w.time, "sleep", lambda s: None)
+    with pytest.raises(SystemExit) as exc:
+        w.run_loop(Down(), lambda: False)  # type: ignore[arg-type]
+    assert exc.value.code == 3
+
+    # A standard worker keeps trying (the hosted platform has no such firewall).
+    Down.lab = False
+    calls = iter(range(20))
+    w.run_loop(Down(), lambda: next(calls) >= 19)  # type: ignore[arg-type]
+
+
+def test_lab_egress_check_needs_the_firewall_record(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:  # type: ignore[no-untyped-def]
+    from nightfall.recon import worker as w
+
+    monkeypatch.setattr(w, "LAB_EGRESS_FILE", str(tmp_path / "missing"))
+    ok, detail = w.lab_egress_check("nfworker")
+    assert not ok and "egress-lock.sh" in detail
+
+
+def test_lab_worker_refuses_to_start_without_its_egress_lock(
+    monkeypatch: pytest.MonkeyPatch, tmp_path
+) -> None:  # type: ignore[no-untyped-def]
+    from nightfall.recon import worker as w
+
+    monkeypatch.setenv("NIGHTFALL_WORKER_MODE", "lab")
+    monkeypatch.setenv("NIGHTFALL_COLLECTOR_MODE", "live")
+    monkeypatch.setattr(w, "_lab_network_problem", lambda: None)
+    monkeypatch.setattr(w, "LAB_EGRESS_FILE", str(tmp_path / "missing"))
+    get_settings.cache_clear()
+    try:
+        with pytest.raises(SystemExit, match="REFUSED TO START: lab egress"):
+            w.build_worker()
+    finally:
+        get_settings.cache_clear()
