@@ -20,7 +20,6 @@ import contextlib
 import ctypes
 import errno
 import os
-import resource
 import shutil
 import signal
 import socket
@@ -46,9 +45,18 @@ class RunResult:
     workdir_files: dict[str, bytes]
 
 
+# Tools only run on POSIX (the worker container). Elsewhere, such as BLACKSITE on a Windows
+# lab machine, this module still has to import, but the sandbox doesn't exist there, so
+# verify_lock and run refuse before anything starts.
+_POSIX = os.name == "posix"
+_NOT_POSIX = "External tools only run in the Linux worker; nothing was run."
+
 # Loaded in the parent: the child runs between fork and exec while proxy threads exist,
 # where dlopen isn't safe.
-_LIBC = ctypes.CDLL(None, use_errno=True)
+if _POSIX:
+    import resource
+
+    _LIBC = ctypes.CDLL(None, use_errno=True)
 PR_SET_NO_NEW_PRIVS = 38
 PR_CAP_AMBIENT = 47
 PR_CAP_AMBIENT_CLEAR_ALL = 4
@@ -99,6 +107,8 @@ class Sandbox:
         """Raises Refused unless, as the tool user: loopback is unreachable (and so, by the
         same firewall rule, everything except the proxy port), and switching to another
         user (root included) fails."""
+        if not _POSIX:
+            raise Refused(_NOT_POSIX)
         if self.mode != "uid" or not self.user:
             raise Refused("The tool sandbox is not active, so external tools can't run.")
         canary = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -147,6 +157,8 @@ def run(
 ) -> RunResult:
     """Runs argv in a fresh temporary directory, which is also HOME. Files named in
     `collect` are read back (capped) before the directory is removed."""
+    if not _POSIX:
+        raise Refused(_NOT_POSIX)
     if not argv or not os.path.isabs(argv[0]):
         raise ValueError("argv[0] must be an absolute path")
     workdir = Path(tempfile.mkdtemp(prefix="nf-tool-"))

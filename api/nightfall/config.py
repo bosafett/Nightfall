@@ -83,7 +83,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from functools import lru_cache
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Literal, cast
 
 
@@ -299,8 +299,11 @@ def load_settings() -> Settings:
             self_until = self_until.replace(tzinfo=UTC)
         if self_until > datetime.now(UTC) + timedelta(days=90):
             raise ConfigError("NIGHTFALL_SELF_REVIEW_UNTIL may be at most 90 days ahead")
-    pack1_dir = Path(os.environ.get("NIGHTFALL_LAB_PACK1_DIR", "/opt/nuclei-pack1").strip())
-    if not pack1_dir.is_absolute():
+    pack1_raw = os.environ.get("NIGHTFALL_LAB_PACK1_DIR", "/opt/nuclei-pack1").strip()
+    pack1_dir = Path(pack1_raw)
+    # A path in the Linux worker's image. Settings also load on a Windows lab machine for
+    # BLACKSITE, which never reads it and where "/opt/..." doesn't count as absolute.
+    if not (pack1_dir.is_absolute() or PurePosixPath(pack1_raw).is_absolute()):
         raise ConfigError("NIGHTFALL_LAB_PACK1_DIR must be an absolute path")
     egress_port = int(os.environ.get("NIGHTFALL_EGRESS_PORT", "3128"))
     if not 0 < egress_port < 65536:

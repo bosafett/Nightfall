@@ -4,6 +4,7 @@ import time
 import pytest
 
 from nightfall.recon.safe_http import Refused
+from nightfall.tools import runner
 from nightfall.tools.runner import Sandbox, run
 
 
@@ -36,6 +37,17 @@ def test_files_are_collected_and_workdir_removed() -> None:
     )
     assert res.workdir_files == {"out.txt": b"hi\n"}  # symlinks are never followed
     assert not os.path.exists(res.stdout.decode().strip())
+
+
+def test_tools_are_refused_where_the_sandbox_cannot_exist(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # BLACKSITE imports this module on a Windows lab machine; tools must never start there.
+    monkeypatch.setattr(runner, "_POSIX", False)
+    with pytest.raises(Refused):
+        run(["/usr/bin/env"], sandbox=Sandbox(), timeout=1)
+    with pytest.raises(Refused):
+        Sandbox(mode="uid", user="nftool").verify_lock()
 
 
 def test_relative_binary_is_refused() -> None:
