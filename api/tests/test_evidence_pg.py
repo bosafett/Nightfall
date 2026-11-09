@@ -95,3 +95,17 @@ def test_tampered_blob_is_detected(owner_db: Session) -> None:
     owner_db.commit()
     with pytest.raises(IntegrityError, match="integrity"):
         store.get(digest)
+
+
+def test_lab_worker_can_store_evidence_with_insert_only() -> None:
+    """The lab worker has INSERT, and no SELECT, on evidence_blobs (migration 0010), so storing
+    a blob must not need to read the table, including when the same content arrives twice."""
+    from tests.test_lab import _lab_engine
+
+    store = PostgresEvidenceStore(sessionmaker(bind=_lab_engine, expire_on_commit=False))
+    data = b"lab evidence " + uuid.uuid4().bytes
+    digest = store.put(data)
+    assert digest == hashlib.sha256(data).digest()
+    assert store.put(data) == digest  # the same content again is not an error
+    with Session(_lab_engine) as db, pytest.raises(DBAPIError):
+        db.execute(text("SELECT count(*) FROM evidence_blobs"))  # still can't read it

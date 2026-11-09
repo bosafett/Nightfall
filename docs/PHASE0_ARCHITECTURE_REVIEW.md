@@ -911,11 +911,12 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - **Done:** lab worker and BLACKSITE running, sealed checks passed, self-review recorded with conditions
     (`docs/reviews/2026-11-08-blacksite-self-review.md`; the owner didn't check F2–F8 or the packet's questions).
     BLACKSITE now starts on Windows; tools still refuse to run there. JANUS has an owner-only link to the console.
-  - **Open, blocks lab results:** the first HTTP Security Assessment reached Juice Shop, then failed saving evidence.
-    `PostgresEvidenceStore.put` uses `ON CONFLICT (sha256)`, which needs `SELECT` on that column, and the lab worker
-    rightly has `INSERT` only on `evidence_blobs`. Proposed fix: `ON CONFLICT DO NOTHING` (no target, no grant, no
-    migration), with a test using the lab role and the Postgres store; the lab tests use the file store, so they
-    missed it. Not fixed or tested yet. The lab worker image needs a rebuild afterwards.
+  - **Fixed 2026-11-09 (was blocking lab results):** the first HTTP Security Assessment reached Juice Shop, then
+    failed saving evidence. `PostgresEvidenceStore.put` used `ON CONFLICT (sha256)`, which needs `SELECT` on that
+    column, and the lab worker rightly has `INSERT` only on `evidence_blobs`. It now uses `ON CONFLICT DO NOTHING`
+    (`sha256` is the only unique key, so the meaning is unchanged; no grant, no migration).
+    `test_evidence_pg.py::test_lab_worker_can_store_evidence_with_insert_only` stores twice as the lab role and checks
+    it still can't read the table. **Rebuild the lab worker image** to pick it up.
   - **Open:** finding R1, accepted as a condition: the lab worker can send to any address on ports 5432 and 53.
   - **Open:** a preview deployment's cold start sets the optional lab roles to `NOLOGIN` and runs migrations against
     the shared database, because the password variables are Production-only. Seen on 2026-11-09 00:42 UTC; a production

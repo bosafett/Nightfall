@@ -97,10 +97,13 @@ class PostgresEvidenceStore:
             raise ValueError("evidence blob too large")
         digest = hashlib.sha256(data).digest()
         with self.sessions() as db:
+            # No conflict target: naming (sha256) needs SELECT on that column, and the lab
+            # worker may only INSERT here (migration 0010). The only unique key is sha256, so
+            # the meaning is the same: identical content already stored is not an error.
             db.execute(
                 text(
                     "INSERT INTO evidence_blobs (sha256, content, size_bytes) "
-                    "VALUES (:d, :c, :n) ON CONFLICT (sha256) DO NOTHING"
+                    "VALUES (:d, :c, :n) ON CONFLICT DO NOTHING"
                 ),
                 {"d": digest, "c": data, "n": len(data)},
             )
