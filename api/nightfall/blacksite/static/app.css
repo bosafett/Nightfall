@@ -8,6 +8,7 @@
 body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, sans-serif; }
 .strip { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface); }
 .brand { letter-spacing: .08em; }
+.wordmark { display: inline-block; vertical-align: middle; height: 26px; width: auto; color: #f7c6d6; }
 .session { margin-left: auto; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 main { padding: 16px; max-width: 1400px; margin: 0 auto; }
 h1 { font-size: 20px; margin: 0 0 12px; } h2 { font-size: 16px; margin: 0 0 10px; } h3 { font-size: 14px; margin: 12px 0 6px; }

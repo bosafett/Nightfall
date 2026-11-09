@@ -114,6 +114,7 @@ test.describe("as the owner", () => {
     await nav.getByRole("link", { name: /BLACKSITE/ }).click();
     const panel = page.getByTestId("blacksite-restricted");
     await expect(panel).toContainText("Execution environment not configured");
+    await expect(page.getByRole("link", { name: "Open BLACKSITE console" })).toHaveAttribute("href", "http://127.0.0.1:8443/");
     await expect(page.locator("main").getByRole("button")).toHaveCount(0);
     await expect(page.locator("main form")).toHaveCount(0);
   });
@@ -284,6 +285,7 @@ test.describe("as the owner", () => {
     await g.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: /BLACKSITE/ }).click();
     await expect(g.getByTestId("blacksite-restricted")).toContainText("Restricted access");
     await expect(g.getByTestId("blacksite-restricted")).not.toContainText("not configured");
+    await expect(g.getByRole("link", { name: "Open BLACKSITE console" })).toHaveCount(0);
     await expect(g.getByText("Ana Lyst")).toBeVisible();
 
     // The analyst requests a low-risk probe; it waits for an explicit approval.

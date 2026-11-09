@@ -23,6 +23,19 @@ export default async function Blacksite({ params }: { params: Promise<{ ws: stri
     <>
       <PageHeader title="BLACKSITE" subtitle="Isolated execution environment" actions={<Badge tone="crimson">Restricted</Badge>} />
       {owner && (
+        <Panel title="Lab console" className="mb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="blacksite-console">
+            <p className="text-sm text-muted">
+              Lab work is requested and approved in the BLACKSITE console, which runs only on the lab machine. This link works
+              only on that machine, while the console is running, and you sign in there separately.
+            </p>
+            <LinkButton href="http://127.0.0.1:8443/" target="_blank" rel="noopener noreferrer" prefetch={false} className="shrink-0">
+              Open BLACKSITE console
+            </LinkButton>
+          </div>
+        </Panel>
+      )}
+      {owner && (
         <Panel title="BLACK OPS" className="mb-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between" data-testid="blackops-entry">
             <p className="text-sm text-muted">
