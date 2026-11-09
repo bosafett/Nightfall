@@ -195,9 +195,11 @@ def live_gates(monkeypatch: pytest.MonkeyPatch):  # type: ignore[no-untyped-def]
         "NIGHTFALL_PROFILE_B_PUBLIC_KEY": PUBLIC,
         "NIGHTFALL_PROFILE_B_PRIVATE_KEY": PRIVATE,
         "NIGHTFALL_COLLECTOR_MODE": "live",
+        "NIGHTFALL_WORKER_MODE": "profile-b",
     }.items():
         monkeypatch.setenv(k, v)
     get_settings.cache_clear()
+    make_worker(profile_b=True).heartbeat()  # the self-hosted Profile B worker is online
     yield
     get_settings.cache_clear()
 
@@ -230,7 +232,8 @@ def test_profile_b_run_end_to_end(
             "auth-audit": AuthAudit(
                 make_client=lambda nets: client_for(handler), sleep=lambda s: None
             )
-        }
+        },
+        profile_b=True,
     )
     while worker.run_once():
         pass

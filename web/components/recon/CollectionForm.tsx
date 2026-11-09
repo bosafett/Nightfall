@@ -29,7 +29,7 @@ export function CollectionForm({ ws, projectId, suggestions }: { ws: string; pro
             <option value="nuclei">Web exposure checks (low risk · needs approval)</option>
           </Select>
         </Field>
-        <Field label="Target" hint="Must be inside the authorized scope. CT and DNS are passive. Technology identification sends up to 3 GET requests. Web exposure checks run 4 reviewed GET-only checks through the scope proxy. Both need a second person to approve.">
+        <Field label="Target" hint="Must be inside the authorized scope. CT and DNS are passive. Technology identification sends up to 3 GET requests. Web exposure checks run 4 reviewed GET-only checks through the scope proxy. Both need an explicit approval (a second person's, unless the single-operator policy is on).">
           <Input name="target" list={`scope-suggestions-${projectId}`} required maxLength={300} className="font-mono" placeholder="example.com" />
           <datalist id={`scope-suggestions-${projectId}`}>{suggestions.map((s) => <option key={s} value={s} />)}</datalist>
         </Field>

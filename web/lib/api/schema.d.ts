@@ -5436,6 +5436,7 @@ export interface components {
             /** Failed Operations 24H */
             failed_operations_24h: number;
             lab: components["schemas"]["Heartbeat"];
+            profile_b: components["schemas"]["Heartbeat"];
             worker: components["schemas"]["Heartbeat"];
         };
         /**

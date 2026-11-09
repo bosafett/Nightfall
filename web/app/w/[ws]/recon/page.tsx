@@ -17,7 +17,7 @@ export default async function ReconPage({ params }: { params: Promise<{ ws: stri
   const pending = ops.some((o) => o.status === "queued" || o.status === "running");
   return (
     <>
-      <PageHeader title="Reconnaissance" subtitle="Collection history. Every run is checked against its project's authorized scope; anything above passive needs a second person's approval." />
+      <PageHeader title="Reconnaissance" subtitle="Collection history. Every run is checked against its project's authorized scope; anything above passive needs an explicit approval (a second person's, unless the single-operator policy is on)." />
       <SourcesPanel data={sources} now={new Date()} />
       {ops.length === 0 ? (
         <EmptyState title="No collection yet" body="Open a project, authorize its scope, then run certificate-transparency or DNS collection."

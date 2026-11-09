@@ -9012,6 +9012,9 @@
           "lab": {
             "$ref": "#/components/schemas/Heartbeat"
           },
+          "profile_b": {
+            "$ref": "#/components/schemas/Heartbeat"
+          },
           "worker": {
             "$ref": "#/components/schemas/Heartbeat"
           }
@@ -9020,6 +9023,7 @@
           "checked_at",
           "worker",
           "lab",
+          "profile_b",
           "audit",
           "failed_operations_24h"
         ],

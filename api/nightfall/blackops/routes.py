@@ -541,9 +541,18 @@ def preflight(
             "profile_b",
             "Profile B gates",
             why is None,
-            f"Enabled; {_review_label(settings.profile_b_review_ref)}; self-hosted worker."
-            if why is None
-            else why,
+            f"Enabled; {_review_label(settings.profile_b_review_ref)}." if why is None else why,
+        )
+        seen = profile_b.worker_seen(db, utcnow())
+        add(
+            "profile_b_worker",
+            "Self-hosted Profile B worker",
+            seen is not None,
+            f"Checked in at {seen:%Y-%m-%d %H:%M} UTC; the run executes there only."
+            if seen
+            else "No self-hosted Profile B worker has checked in in the last "
+            f"{int(profile_b.WORKER_SEEN.total_seconds() // 60)} minutes. Start it "
+            "(infra/profile-b/README.md); Profile B never runs on the hosted platform.",
         )
         proof = profile_b.control_proof(db, scope, target, utcnow()) if decision.allowed else None
         proof_check_id = proof.id if proof else None

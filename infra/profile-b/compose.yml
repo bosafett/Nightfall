@@ -1,0 +1,40 @@
+# NIGHTFALL self-hosted Profile B worker (design docs/designs/2026-11-blackops-profile-b.md, G5).
+#
+#   docker compose --env-file profile-b.env up -d --build       (from this folder)
+#
+# Profile B runs are requested and approved in JANUS, as other BLACK OPS runs. They execute
+# only here: this worker alone holds the private key that opens the sealed test credentials,
+# and alone claims Profile B operations (the hosted worker never does). Every gate is checked
+# again here immediately before anything is sent.
+#
+# Unlike the lab worker, this one reaches real targets on the internet: the targets you've
+# proven you control. The tool sandbox (egress-lock.sh, standard mode) still confines any
+# external tool to the per-run proxy. Nothing is published; it only connects outward.
+name: nightfall-profile-b
+
+services:
+  profile-b-worker:
+    build:
+      context: ../..
+      dockerfile: infra/tools/Dockerfile
+    image: nightfall-worker:profile-b
+    restart: unless-stopped
+    cap_drop: [ALL]
+    cap_add: [NET_ADMIN, SETPCAP, SETUID, SETGID]  # used once at start, then dropped
+    read_only: true
+    tmpfs: [/tmp]
+    environment:
+      NIGHTFALL_WORKER_MODE: profile-b
+      NIGHTFALL_EVIDENCE_BACKEND: postgres
+      NIGHTFALL_COLLECTOR_MODE: live
+      # The worker never serves the API; these only satisfy the shared settings loader.
+      NIGHTFALL_PUBLIC_ORIGIN: https://profile-b.invalid
+      NIGHTFALL_SECRET_KEY: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      NIGHTFALL_DATABASE_URL: postgresql://unused@unused/unused
+      NIGHTFALL_WORKER_DATABASE_URL: "postgresql://nightfall_worker:${WORKER_DB_PASSWORD:?set WORKER_DB_PASSWORD in profile-b.env}@${DB_HOST:?set DB_HOST in profile-b.env}/${DB_NAME:-neondb}?sslmode=require"
+      # Gates the worker re-checks before every run (empty = off). Same values as in Vercel.
+      NIGHTFALL_PROFILE_B_ENABLED: "${PROFILE_B_ENABLED:-false}"
+      NIGHTFALL_PROFILE_B_REVIEW_REF: "${PROFILE_B_REVIEW_REF:-}"
+      NIGHTFALL_SELF_REVIEW_UNTIL: "${SELF_REVIEW_UNTIL:-}"
+      NIGHTFALL_PROFILE_B_PUBLIC_KEY: "${PROFILE_B_PUBLIC_KEY:?set PROFILE_B_PUBLIC_KEY in profile-b.env}"
+      NIGHTFALL_PROFILE_B_PRIVATE_KEY: "${PROFILE_B_PRIVATE_KEY:?set PROFILE_B_PRIVATE_KEY in profile-b.env}"

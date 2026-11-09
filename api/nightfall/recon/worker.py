@@ -72,8 +72,13 @@ from nightfall.tools.runner import Sandbox
 log = logging.getLogger("nightfall.worker")
 
 
-# Constants are inlined (not formatted) so these stay static SQL. The lab worker and the
-# normal worker take disjoint queues (also enforced by RLS, migration 0010).
+# Constants are inlined (not formatted) so these stay static SQL. Three disjoint queues:
+#   lab        the lab worker (also enforced by RLS, migration 0010);
+#   profile-b  the self-hosted Profile B worker: the Profile B tools, which run only as steps
+#              of a Profile B run (worker check M2, migration 0020, and the catalog test
+#              test_profile_b_playbooks_use_only_profile_b_tools);
+#   standard   everything else, including the hosted on-demand worker, which would refuse
+#              a Profile B operation (G5) and so must never claim one.
 _CLAIM = """
 UPDATE operations SET status = 'running', started_at = now(), attempts = attempts + 1
 WHERE id = (
@@ -95,10 +100,17 @@ WHERE status = 'running' AND started_at < now() - interval '10 minutes' AND atte
 # worker_heartbeats has no kind column; the id prefix is the marker (no migration needed).
 LAB_HEARTBEAT_PREFIX = "lab:"
 
-CLAIM = text(_CLAIM.format(lab="NOT is_lab"))
-EXPIRE = text(_EXPIRE.format(lab="NOT is_lab"))
+PROFILE_B_HEARTBEAT_PREFIX = "pb:"
+_PB_TOOLS = ", ".join(f"'{t}'" for t in PROFILE_B_TOOLS)  # fixed constants, not input
+_STANDARD = f"NOT is_lab AND tool NOT IN ({_PB_TOOLS})"
+_PROFILE_B = f"NOT is_lab AND tool IN ({_PB_TOOLS})"
+
+CLAIM = text(_CLAIM.format(lab=_STANDARD))
+EXPIRE = text(_EXPIRE.format(lab=_STANDARD))
 CLAIM_LAB = text(_CLAIM.format(lab="is_lab"))
 EXPIRE_LAB = text(_EXPIRE.format(lab="is_lab"))
+CLAIM_PROFILE_B = text(_CLAIM.format(lab=_PROFILE_B))
+EXPIRE_PROFILE_B = text(_EXPIRE.format(lab=_PROFILE_B))
 
 
 def _excluded_networks(
@@ -143,11 +155,18 @@ class Worker:
     provider_factory: Callable[[], Provider | None] = lambda: None
     # Isolated lab worker (Phase 6b): only lab operations, never agent tasks.
     lab: bool = False
+    # Self-hosted Profile B worker: only Profile B operations, never agent tasks.
+    profile_b: bool = False
 
     @property
     def heartbeat_id(self) -> str:
-        """Lab workers are tagged so health can tell them apart (WATCHTOWER)."""
-        return f"{LAB_HEARTBEAT_PREFIX}{self.worker_id}" if self.lab else self.worker_id
+        """Lab and Profile B workers are tagged so health (WATCHTOWER) and the Profile B
+        preflight can tell them apart."""
+        if self.lab:
+            return f"{LAB_HEARTBEAT_PREFIX}{self.worker_id}"
+        if self.profile_b:
+            return f"{PROFILE_B_HEARTBEAT_PREFIX}{self.worker_id}"
+        return self.worker_id
 
     def heartbeat(self) -> None:
         with self.sessions() as db:
@@ -167,12 +186,19 @@ class Worker:
     def run_once(self) -> bool:
         """Processes at most one operation, or else one agent task. Returns False when both
         queues are empty."""
+        expire, claim = (
+            (EXPIRE_LAB, CLAIM_LAB)
+            if self.lab
+            else (EXPIRE_PROFILE_B, CLAIM_PROFILE_B)
+            if self.profile_b
+            else (EXPIRE, CLAIM)
+        )
         with self.sessions() as db:
-            db.execute(EXPIRE_LAB if self.lab else EXPIRE)
-            claimed = db.execute(CLAIM_LAB if self.lab else CLAIM).first()
+            db.execute(expire)
+            claimed = db.execute(claim).first()
             db.commit()
         if claimed is None:
-            if self.lab:
+            if self.lab or self.profile_b:
                 return False
             return agent_runner.run_once(self.sessions, self.store, self.provider_factory)
         self.process(claimed.id, claimed.workspace_id)
@@ -409,6 +435,15 @@ def build_worker() -> Worker:
         log.info("LAB WORKER: lab operations only, addresses in %s only", s.lab_networks)
         collectors_ = lab_collectors(s.lab_networks, nuclei_scan=scan, pack_root=s.lab_pack1_dir)
         return Worker(sessions, store, collectors_, lab=True)
+    if s.worker_mode == "profile-b":
+        if s.collector_mode != "live":
+            raise SystemExit("The Profile B worker runs live tools only.")
+        if not s.profile_b_private_key:
+            raise SystemExit(
+                "PROFILE B WORKER REFUSED TO START: NIGHTFALL_PROFILE_B_PRIVATE_KEY is not set."
+            )
+        log.info("PROFILE B WORKER: Profile B operations only; every gate re-checked per run")
+        return Worker(sessions, store, collectors("live", nuclei_scan=scan), profile_b=True)
     return Worker(
         sessions,
         store,

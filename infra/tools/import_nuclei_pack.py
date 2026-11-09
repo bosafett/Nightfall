@@ -15,7 +15,15 @@ Rules (v1). A template is kept only if all of these hold:
   * Tagged cve, misconfig, exposure, default-login, takeover or tech, and not tagged dos,
     fuzz, fuzzing, intrusive, bruteforce or osint.
   * No out-of-band interaction (interactsh / oast), no `fuzzing:` section (DAST), no random
-    generated values (`{{rand_...}}`), and no PUT, DELETE or PATCH request.
+    generated values (`{{rand_...}}`), and only GET, HEAD, POST or OPTIONS requests (rules/2:
+    PURGE, PUT, DELETE, PATCH and any other method are dropped).
+  * rules/2: no request whose target names a state-changing action (delete, purge, remove,
+    reset, truncate, wipe, destroy, drop, uninstall, shutdown, reboot, restart, kill, clear,
+    register, signup, logout), and no POST whose target names a write (update, create,
+    upload, insert, save, install, import, write, edit, add, new, set). Some templates confirm
+    a weakness by performing the action (e.g. purging an app's logs, resetting a WordPress
+    site); the rule is deliberately broad, and also drops some harmless templates. It can't
+    prove a template changes nothing: see the design, section 13.
   * Has an id, a name and a known severity.
 Network (TCP) templates aren't kept in v1: the per-run egress proxy carries HTTP only.
 
@@ -35,7 +43,7 @@ from pathlib import Path
 
 import yaml
 
-RULES_VERSION = "lab-pack1-rules/1"
+RULES_VERSION = "lab-pack1-rules/2"
 KEEP_TAGS = {"cve", "misconfig", "exposure", "default-login", "takeover", "tech"}
 DROP_TAGS = {"dos", "fuzz", "fuzzing", "intrusive", "bruteforce", "osint"}
 OTHER_PROTOCOLS = {
@@ -43,8 +51,36 @@ OTHER_PROTOCOLS = {
     "javascript", "flow", "workflows",
 }  # fmt: skip
 SEVERITIES = {"info", "low", "medium", "high", "critical"}
-BAD_TEXT = re.compile(r"interactsh|\boast\b|\{\{\s*rand_", re.IGNORECASE)
+# rules/2: random values anywhere, including nested calls such as {{to_lower(rand_text_alpha(5))}}.
+BAD_TEXT = re.compile(r"interactsh|\boast\b|\{\{\s*rand_|rand_(text|int|base|char|ip|str)", re.IGNORECASE)
 BAD_METHOD = re.compile(r"(?m)(^\s*method:\s*(PUT|DELETE|PATCH)\b|^\s*-?\s*\|?\s*(PUT|DELETE|PATCH) /)")
+OK_METHODS = {"GET", "HEAD", "POST", "OPTIONS"}
+REQUEST_LINE = re.compile(r"^\s*([A-Za-z]+)\s+(\S+)\s+HTTP/")
+STATE_CHANGING = re.compile(
+    r"(?i)delete|purge|remove|reset|truncate|wipe|destroy|drop|uninstall|shutdown|reboot"
+    r"|restart|kill|clear|register|signup|logout"
+)
+# A POST naming a write action is dropped too (a GET with these words is usually a page view).
+WRITES = re.compile(
+    r"(?i)update|create|upload|insert|save|install|import|write|edit|add|new|set"
+)
+
+
+def requests_of(doc: dict) -> list[tuple[str, str]]:
+    """(method, target) of every request a template makes, from the parsed template."""
+    out: list[tuple[str, str]] = []
+    for section in doc.get("http") or doc.get("requests") or []:
+        if not isinstance(section, dict):
+            continue
+        method = str(section.get("method", "GET")).upper()
+        out += [(method, str(p)) for p in section.get("path") or [""]]
+        for raw in section.get("raw") or []:
+            # Skip blank lines and Nuclei annotations (@timeout, @Host, ...) before the request.
+            lines = (ln for ln in str(raw).splitlines() if ln.strip())
+            first = next((ln for ln in lines if not ln.lstrip().startswith("@")), "")
+            m = REQUEST_LINE.match(first)
+            out.append((m.group(1).upper(), m.group(2)) if m else ("UNKNOWN", first))
+    return out
 
 
 def tags_of(info: dict) -> set[str]:
@@ -80,6 +116,11 @@ def reason_to_drop(doc: object, text: str) -> str | None:
         return "out-of-band or random"
     if BAD_METHOD.search(text):
         return "method"
+    reqs = requests_of(doc)
+    if any(m not in OK_METHODS for m, _ in reqs):
+        return "method"
+    if any(STATE_CHANGING.search(t) or (m == "POST" and WRITES.search(t)) for m, t in reqs):
+        return "state-changing request"
     return None
 
 

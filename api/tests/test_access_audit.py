@@ -171,7 +171,8 @@ def test_profile_b_access_run_end_to_end(
             "access-audit": AccessAudit(
                 make_client=lambda n: client_for(app(seen)), sleep=lambda s: None
             )
-        }  # noqa: E501
+        },
+        profile_b=True,
     )
     while worker.run_once():
         pass

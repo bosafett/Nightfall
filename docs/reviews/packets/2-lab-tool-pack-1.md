@@ -6,8 +6,11 @@ decisions and as built). **Smallest of the three reviews**: start here.
 
 ## 1. The question
 
-> Are the 5,788 templates the right ones (nothing destructive, out-of-band or aimed at other hosts), pinned so they
+> Are the 5,566 templates the right ones (nothing destructive, out-of-band or aimed at other hosts), pinned so they
 > can't change unseen, and run only in the lab within the agreed limits?
+>
+> (Import rules v2 since 2026-11-09, playbook 1.1.0: design §13. Evidence collected for the self-review:
+> `docs/reviews/2026-11-09-lab-tool-pack-1-evidence.md`.)
 
 **In scope:**
 - the import rules (`infra/tools/import_nuclei_pack.py`);
@@ -22,7 +25,7 @@ decisions and as built). **Smallest of the three reviews**: start here.
 
 | # | Claim | Enforced in | Test(s) |
 |---|---|---|---|
-| P1 | Only HTTP templates in the kept categories. None tagged dos, fuzz, intrusive, bruteforce or osint; none self-contained, using JavaScript or code, flow or workflows; no interactsh, `{{rand_…}}`, PUT, DELETE or PATCH | `import_nuclei_pack.py` (`reason_to_drop`) | `test_lab_pack1.py::test_import_rules_drop_what_the_design_excludes` (skipped without PyYAML; run with it) |
+| P1 | Only HTTP templates in the kept categories. None tagged dos, fuzz, intrusive, bruteforce or osint; none self-contained, using JavaScript or code, flow or workflows; no interactsh or `{{rand_…}}`; only GET, HEAD, POST and OPTIONS; no request naming a state-changing action (rules v2) | `import_nuclei_pack.py` (`reason_to_drop`) | `test_lab_pack1.py::test_import_rules_drop_what_the_design_excludes` (skipped without PyYAML; run with it) |
 | P2 | Every template is pinned by SHA-256 in a reviewed manifest from release v10.5.1, commit `79fb6827…` | `pack1.json`; the commit is checked by `stage_nuclei_pack.py` | `::test_manifest_rules_and_groups` |
 | P3 | The image carries only listed templates, each hash-checked | `stage_nuclei_pack.py`, `Dockerfile` (`pack1` stage) | (build the image; see §3) |
 | P4 | Every run re-checks every hash; one mismatch or missing file and nothing runs | `pack1.verified_paths` | `::test_pack_runs_only_with_review_and_verified_templates` |

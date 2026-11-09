@@ -918,11 +918,23 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     `test_evidence_pg.py::test_lab_worker_can_store_evidence_with_insert_only` stores twice as the lab role and checks
     it still can't read the table. **Rebuild the lab worker image** to pick it up.
   - **Open:** finding R1, accepted as a condition: the lab worker can send to any address on ports 5432 and 53.
-  - **Open:** a preview deployment's cold start sets the optional lab roles to `NOLOGIN` and runs migrations against
-    the shared database, because the password variables are Production-only. Seen on 2026-11-09 00:42 UTC; a production
-    cold start restores them. A later occurrence at 01:35 UTC has no surviving logs, so its cause isn't proven.
-  - **Open:** the lab scope checkbox says lab runs always need a second person's approval, which looks out of date
-    under the single-operator policy. The JANUS BLACKSITE page's "not configured" status is fixed text.
+  - **Fixed 2026-11-09:** a preview deployment's cold start set the optional lab roles to `NOLOGIN` and ran
+    migrations against the shared database, because the password variables are Production-only (seen 00:42 UTC; a
+    later occurrence at 01:35 UTC has no surviving logs). Start-up roles and migrations now run only when
+    `VERCEL_ENV=production` (an explicit `NIGHTFALL_AUTO_MIGRATE` still wins), and a skipped start-up also drops the
+    owner credentials from the process (`test_serverless.py::test_only_production_runs_start_up_migrations`).
+  - **Fixed 2026-11-09:** wording that said runs always need a second person's approval (lab scope checkbox, recon
+    page, collection form, the Scout agent's instructions and, most importantly, the report's methodology section) now
+    states both policies. The JANUS BLACKSITE page shows the lab worker's real last check-in instead of fixed text.
+- **Readiness for lab tool pack 1, WARPATH and Profile B, 2026-11-09 (no migration).**
+  - **Lab tool pack 1:** import rules v2 (design §13) after the evidence pass found templates that reset a database,
+    purge logs or create accounts: 222 removed, 5,566 kept, playbook 1.1.0. Evidence for the owner's self-review:
+    `docs/reviews/2026-11-09-lab-tool-pack-1-evidence.md`. How to switch it on: `infra/lab/README.md`.
+  - **WARPATH:** no code change; it runs once lab runs do. Steps in `infra/lab/README.md`.
+  - **Profile B:** it couldn't run anywhere (design §17). Now: requested and approved in the app, executed only by the
+    new self-hosted Profile B worker (`infra/profile-b/`), which alone holds the key and alone claims Profile B
+    operations; G5 checked where the run executes, plus a preflight readiness check; WATCHTOWER shows that worker.
+    Evidence for the owner's self-review: `docs/reviews/2026-11-09-profile-b-evidence.md`.
 - **WARPATH v1: purple-team exercises in the lab (built, switched off; migration 0022).** Design and decisions:
   `docs/designs/2026-11-warpath.md` (§12 as built).
   - **Plans:** lab playbook steps, each tagged with an ATT&CK technique (Enterprise 20.0, pinned) that the playbook
@@ -955,9 +967,11 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   inside the database driver, not from JANUS code.
 - **Lab tool pack 1 (built, switched off; no migration).** Design and as-built notes:
   `docs/designs/2026-11-lab-tool-pack-1.md`.
-  - **What it is:** 5,788 HTTP templates from `nuclei-templates` v10.5.1, chosen by fixed rules (no out-of-band
-    callbacks, DoS, fuzzing, brute force, self-contained or JavaScript templates, and no PUT, DELETE or PATCH), each
-    pinned by SHA-256 in a reviewed manifest.
+  - **What it is:** 5,566 HTTP templates from `nuclei-templates` v10.5.1, chosen by fixed rules (no out-of-band
+    callbacks, DoS, fuzzing, brute force, self-contained or JavaScript templates; only GET, HEAD, POST and OPTIONS;
+    and, since rules v2 on 2026-11-09, no request naming a state-changing action and no POST naming a write), each
+    pinned by SHA-256 in a reviewed manifest. Rules v2 removed 222, among them a database reset, a log purge and
+    account creation (design §13).
   - **How it runs:** as three moderate-risk lab tools (CVE, configuration and default-login, technology), in the lab
     playbook "Known-weakness scan (lab)".
   - **Limits:** 10 requests per second, 10 concurrent templates, 30 minutes per step, HTTP only through the scope

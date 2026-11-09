@@ -42,9 +42,11 @@ Optional:
   NIGHTFALL_LAB_NETWORKS            comma-separated CIDRs of the isolated lab network (default
                                     172.30.99.0/24, matching infra/lab/compose.yml). Lab scopes
                                     may only name addresses inside them; normal scopes never.
-  NIGHTFALL_WORKER_MODE             "standard" (default) or "lab": the lab machine's worker,
+  NIGHTFALL_WORKER_MODE             "standard" (default), "lab": the lab machine's worker,
                                     which only claims lab operations and only contacts
-                                    addresses inside NIGHTFALL_LAB_NETWORKS.
+                                    addresses inside NIGHTFALL_LAB_NETWORKS, or "profile-b":
+                                    the self-hosted worker that only claims Profile B
+                                    operations (needs NIGHTFALL_PROFILE_B_PRIVATE_KEY).
   NIGHTFALL_LAB_WORKER_DB_PASSWORD  (bootstrap-roles only) enables the lab worker's login.
   NIGHTFALL_BLACKSITE_ENABLED       "true" to allow the host-only BLACKSITE listener
                                     (nightfall-blacksite) to start. Off by default; refused
@@ -61,8 +63,9 @@ Optional:
   NIGHTFALL_LAB_PACK1_REVIEW_REF    reference of the recorded independent review of lab tool
                                     pack 1. Without it (and BLACKSITE) the pack is unavailable.
   NIGHTFALL_PROFILE_B_ENABLED       "true" to allow Profile B (controlled validation). Also needs
-                                    the review reference, the worker key and a self-hosted
-                                    worker; refused on the hosted platform.
+                                    the review reference and the worker key. Runs are
+                                    requested in the app and execute only on the self-hosted
+                                    Profile B worker (NIGHTFALL_WORKER_MODE=profile-b).
   NIGHTFALL_PROFILE_B_REVIEW_REF    reference of Profile B's recorded independent review.
   NIGHTFALL_PROFILE_B_PUBLIC_KEY    base64 X25519 public key test credentials are sealed to
                                     (`nightfall profile-b-keygen` makes a pair).
@@ -117,7 +120,7 @@ class Settings:
     lab_networks: tuple[ipaddress.IPv4Network | ipaddress.IPv6Network, ...] = (
         ipaddress.ip_network("172.30.99.0/24"),
     )
-    worker_mode: Literal["standard", "lab"] = "standard"
+    worker_mode: Literal["standard", "lab", "profile-b"] = "standard"
     session_idle_seconds: int = 12 * 3600
     session_absolute_seconds: int = 7 * 86400
     # Two-factor must have been verified this recently for sensitive actions (D1).
@@ -253,8 +256,10 @@ def load_settings() -> Settings:
     if not lab_networks or any(not n.is_private for n in lab_networks):
         raise ConfigError("NIGHTFALL_LAB_NETWORKS must be private address ranges")
     worker_mode = os.environ.get("NIGHTFALL_WORKER_MODE", "standard").strip() or "standard"
-    if worker_mode not in ("standard", "lab"):
-        raise ConfigError("NIGHTFALL_WORKER_MODE must be 'standard' or 'lab'")
+    if worker_mode not in ("standard", "lab", "profile-b"):
+        raise ConfigError("NIGHTFALL_WORKER_MODE must be 'standard', 'lab' or 'profile-b'")
+    if worker_mode == "profile-b" and on_demand:
+        raise ConfigError("The Profile B worker is self-hosted only, never the on-demand worker")
     blacksite = os.environ.get("NIGHTFALL_BLACKSITE_ENABLED", "false").strip().lower() == "true"
     if blacksite and on_demand:
         raise ConfigError("BLACKSITE never runs on the hosted platform (on-demand worker).")
@@ -332,7 +337,7 @@ def load_settings() -> Settings:
         ai_model=ai_model,
         ollama_url=ollama_url,
         lab_networks=lab_networks,
-        worker_mode="lab" if worker_mode == "lab" else "standard",
+        worker_mode=cast(Literal["standard", "lab", "profile-b"], worker_mode),
         blacksite_enabled=blacksite,
         blacksite_port=blacksite_port,
         blacksite_bind=os.environ.get("NIGHTFALL_BLACKSITE_BIND", "").strip() or "127.0.0.1",

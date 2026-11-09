@@ -153,3 +153,35 @@ own fingerprint and tests, like the existing five playbooks.
   library and the BLACK ICE sources panel they show as unavailable until the gates hold.
 - **Tests:** `api/tests/test_lab_pack1.py`. The import-rule test needs PyYAML, so it is skipped where only the API's
   dependencies are installed.
+
+## 13. Import rules v2 (2026-11-09, playbook 1.1.0)
+
+Preparing the self-review evidence turned up kept templates that confirm a weakness by **performing** the action:
+`CVE-2020-36333` resets a WordPress database (ThemeGrill Demo Importer), `CVE-2024-6846` purges a plugin's logs,
+`unauthenticated-varnish-cache-purge` sends an HTTP `PURGE`, and Drupal's `user/register` check creates an account.
+Rules v1 only looked at tags and at PUT, DELETE and PATCH, so these got through. Rules v2 (`lab-pack1-rules/2`) add,
+reading each request from the parsed template (structured `path:` entries and raw request lines, after `@`
+annotations):
+
+- **methods:** only GET, HEAD, POST and OPTIONS; anything else (PURGE, DEBUG, ...) is dropped;
+- **state-changing targets:** no request whose path or query names delete, purge, remove, reset, truncate, wipe,
+  destroy, drop, uninstall, shutdown, reboot, restart, kill, clear, register, signup or logout; and no **POST** whose
+  target names a write: update, create, upload, insert, save, install, import, write, edit, add, new or set (e.g.
+  Rank Math's `updateRedirection`, `createUser`, `newpassword`). Deliberately broad: it also drops harmless checks
+  (mostly cross-site scripting checks whose URL happens to contain one of the words).
+- **random values:** v1 caught `{{rand_…}}` only at the start of an expression; v2 also catches nested calls such as
+  `{{to_lower(rand_text_alpha(5))}}` (44 more templates).
+
+**Result:** 222 templates removed, **5,566** kept: CVE 2,464; exposure 1,198; technology 1,183; misconfiguration
+377; default login 269; takeover 75. Groups: `nuclei-pack1-cve` 2,464, `nuclei-pack1-config` 1,919,
+`nuclei-pack1-tech` 1,183. The playbook is now `known-weakness-scan-lab` **v1.1.0** (new fingerprint pinned). Re-running
+the import against v10.5.1 reproduces the committed manifest byte for byte (SHA-256 `556b8437…`).
+
+**What the rules can't promise.** Word rules catch the obvious cases, not all of them: a template can still change
+state on a matching application through an endpoint whose name says nothing about it. Against Juice Shop almost no
+CVE template matches anything; against other practice apps, treat the app as disposable and recreate its container
+after a pack run (`docker compose --env-file lab.env up -d --force-recreate <app>`).
+
+**Still accepted (not dropped):** the 269 default-login templates try vendor default passwords (they leave failed-login
+records, and on some products could lock an account); many CVE checks send requests that prove remote code execution
+with a harmless command or an arithmetic expression. Both are lab-only, against practice apps, as decided in §11.

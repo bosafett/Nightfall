@@ -1,7 +1,8 @@
 # Review packet 3: Profile B (controlled validation on real targets)
 
 **Unlocks:** `NIGHTFALL_PROFILE_B_REVIEW_REF`, together with `NIGHTFALL_PROFILE_B_ENABLED=true`, the worker key pair
-and a **self-hosted** worker (it's refused on the hosted platform).
+and the **self-hosted Profile B worker** (`infra/profile-b/README.md`). Evidence collected for the self-review:
+`docs/reviews/2026-11-09-profile-b-evidence.md`.
 **Design:** [../../designs/2026-11-blackops-profile-b.md](../../designs/2026-11-blackops-profile-b.md): §2 gates,
 §4 playbooks, §6 threats, §12 decisions, §13–§16 as built. **The highest-stakes review**: Profile B logs in to, and
 sends input to, real applications. Have it reviewed by someone independent.
@@ -30,7 +31,7 @@ sends input to, real applications. Have it reviewed by someone independent.
 | G2b | Identities are owner-only, attested, bound to one origin, retire-only; lockout testing is impossible (CHECK) | `identities.py`, migration `0019` | `::test_identities_are_sealed_owner_only_and_never_returned` |
 | G3 | Off without the enable flag and the review reference | `profile_b.unavailable_reason` | `::test_each_gate_switches_profile_b_off_on_its_own`, `::test_gates_off_refuse_profile_b` |
 | G4 | Per-run approval with two-factor in the last 15 minutes; Profile B approvals expire after 24 hours | approval routes (`fresh_mfa=True`), `control/approvals.py` | `::test_worker_refuses_stale_proof_and_old_approval` |
-| G5 | Self-hosted worker only; the private key is refused on the hosted platform | `config.py`, `profile_b.unavailable_reason` | `::test_private_key_never_on_the_hosted_platform` |
+| G5 | Executes only on the self-hosted Profile B worker: it alone holds the private key and alone claims Profile B operations; the hosted worker never claims them and refuses them if it does; the key and the worker mode are refused on the hosted platform; the preflight needs that worker to have checked in within 5 minutes (design §17) | `config.py`, `recon/worker.py` (queues), `profile_b.worker_check`, `profile_b.worker_seen`, `blackops/catalog.py` | `::test_private_key_never_on_the_hosted_platform`, `::test_profile_b_worker_mode_is_self_hosted_only`, `::test_every_gate_then_launch_then_worker_recheck`, `::test_profile_b_worker_claims_nothing_else`, `::test_preflight_needs_a_recent_profile_b_worker`, `::test_profile_b_playbooks_use_only_profile_b_tools` |
 | M1 | Moderate risk outside the lab only as a step of a Profile B run (database) | migration `0020` | `test_auth_audit.py::test_auth_audit_never_runs_outside_profile_b` |
 | M2 | Profile B tools never run outside a Profile B run (worker) and aren't offered as collections | `recon/worker.py` (`PROFILE_B_TOOLS`), `recon/routes.py` (`PLAYBOOK_ONLY`) | same test |
 | P7 | Playbook 7: GET only, apart from one POST to the registered login path; stops on a 429, three 5xx in a row or a lockout sign; at most 200 requests at 1 per second; certificates verified; no credentials, cookie values or bodies in evidence | `recon/auth_audit.py` | `test_auth_audit.py::*` (canary credential searched in evidence, blobs and audit) |

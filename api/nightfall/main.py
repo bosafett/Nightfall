@@ -82,7 +82,7 @@ def health() -> HealthOut:
                 text(
                     "SELECT EXISTS (SELECT 1 FROM worker_heartbeats "
                     "WHERE last_seen_at > now() - interval '30 seconds' "
-                    "AND worker_id NOT LIKE 'lab:%')"
+                    "AND worker_id NOT LIKE 'lab:%' AND worker_id NOT LIKE 'pb:%')"
                 )
             ).scalar()
             worker_status = "ok" if fresh else "down"

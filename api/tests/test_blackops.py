@@ -112,7 +112,7 @@ def test_listed_tests_exist() -> None:
     [
         ((Step("shell", "x"),), (Profile.LIVE,), "unknown tool"),
         ((Step("ct", "x"),), (Profile.LAB,), "can't run in the lab"),
-        ((Step("http", "x"),), (Profile.LIVE, Profile.VALIDATION), "only Profile B"),
+        ((Step("auth-audit", "x"),), (Profile.LIVE, Profile.VALIDATION), "only Profile B"),
         ((), (Profile.LIVE,), "1 to 20 steps"),
     ],
 )

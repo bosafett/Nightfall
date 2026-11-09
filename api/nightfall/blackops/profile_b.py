@@ -14,7 +14,10 @@ worker before anything is sent):
   G3  NIGHTFALL_PROFILE_B_ENABLED and NIGHTFALL_PROFILE_B_REVIEW_REF (the recorded review)
   G4  per-run approval with fresh two-factor (the approval routes already require it);
       Profile B approvals expire after 24 hours
-  G5  a self-hosted worker: refused on the hosted (on-demand) platform
+  G5  a self-hosted worker: runs are requested and approved in the app (hosted or not), and
+      execute only on the self-hosted Profile B worker (NIGHTFALL_WORKER_MODE=profile-b),
+      which alone holds the private key and alone claims Profile B operations. The hosted
+      on-demand worker never claims them, and refuses them if it ever sees one.
 """
 
 from __future__ import annotations
@@ -136,7 +139,8 @@ def load_secret(db: Session, s: Settings, identity: TestIdentity) -> dict[str, s
 
 
 def unavailable_reason(s: Settings) -> str | None:
-    """G3 and G5, plus the key the API needs to accept credentials."""
+    """G3, plus the key the API needs to accept credentials. G5 is checked where the run
+    executes (worker_check) and, as a readiness check, by the preflight (worker_seen)."""
     if not s.profile_b_enabled:
         return "Profile B is switched off on this deployment (NIGHTFALL_PROFILE_B_ENABLED)."
     from nightfall.control.reviews import review
@@ -145,8 +149,6 @@ def unavailable_reason(s: Settings) -> str | None:
     r = review(s.profile_b_review_ref, s, utcnow(), "Profile B")
     if not r.ok:
         return f"{r.problem} (NIGHTFALL_PROFILE_B_REVIEW_REF)"
-    if s.on_demand_worker:
-        return "Profile B runs only on a self-hosted worker, not on the hosted platform."
     if not s.profile_b_public_key:
         return "No worker key is configured (NIGHTFALL_PROFILE_B_PUBLIC_KEY)."
     return None
@@ -188,6 +190,8 @@ def worker_check(db: Session, s: Settings, run: PlaybookRun, now: datetime) -> s
     Returns the refusal reason, or None."""
     if why := unavailable_reason(s):
         return why
+    if s.on_demand_worker or s.worker_mode != "profile-b":
+        return "Profile B runs only on the self-hosted Profile B worker."
     if not s.profile_b_private_key:
         return "This worker has no NIGHTFALL_PROFILE_B_PRIVATE_KEY."
     scope = db.get(Scope, run.scope_id)
@@ -199,6 +203,23 @@ def worker_check(db: Session, s: Settings, run: PlaybookRun, now: datetime) -> s
             f"(it must have passed within {int(FRESH.total_seconds() // 3600)} hours)."
         )
     return identity_problems(db, run.workspace_id, run.target_value, list(run.identity_ids))
+
+
+WORKER_SEEN = timedelta(minutes=5)
+
+
+def worker_seen(db: Session, now: datetime) -> datetime | None:
+    """G5 readiness: when a self-hosted Profile B worker last checked in, if recently."""
+    from nightfall.core.db.models import WorkerHeartbeat
+    from nightfall.recon.worker import PROFILE_B_HEARTBEAT_PREFIX
+
+    last = db.scalar(
+        select(WorkerHeartbeat.last_seen_at)
+        .where(WorkerHeartbeat.worker_id.startswith(PROFILE_B_HEARTBEAT_PREFIX))
+        .order_by(WorkerHeartbeat.last_seen_at.desc())
+        .limit(1)
+    )
+    return last if last is not None and now - last <= WORKER_SEEN else None
 
 
 def summary(identity: TestIdentity) -> dict[str, Any]:

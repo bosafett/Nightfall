@@ -122,7 +122,8 @@ def test_profile_b_input_run_end_to_end(
             "input-audit": InputAudit(
                 make_client=lambda n: client_for(site(seen)), sleep=lambda s: None
             )
-        }
+        },
+        profile_b=True,
     )
     while worker.run_once():
         pass

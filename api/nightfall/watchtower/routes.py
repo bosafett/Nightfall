@@ -20,7 +20,7 @@ from nightfall.core.db.session import DB
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
-from nightfall.recon.worker import LAB_HEARTBEAT_PREFIX
+from nightfall.recon.worker import LAB_HEARTBEAT_PREFIX, PROFILE_B_HEARTBEAT_PREFIX
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}", tags=["watchtower"])
 
@@ -41,6 +41,7 @@ class WatchtowerOut(Model):
     checked_at: datetime
     worker: Heartbeat
     lab: Heartbeat
+    profile_b: Heartbeat
     audit: AuditPipeline
     failed_operations_24h: int
 
@@ -58,7 +59,9 @@ def watchtower(
     now = utcnow()
     is_lab = WorkerHeartbeat.worker_id.startswith(LAB_HEARTBEAT_PREFIX)
     lab_last = db.scalar(select(func.max(WorkerHeartbeat.last_seen_at)).where(is_lab))
-    worker_last = db.scalar(select(func.max(WorkerHeartbeat.last_seen_at)).where(~is_lab))
+    is_pb = WorkerHeartbeat.worker_id.startswith(PROFILE_B_HEARTBEAT_PREFIX)
+    pb_last = db.scalar(select(func.max(WorkerHeartbeat.last_seen_at)).where(is_pb))
+    worker_last = db.scalar(select(func.max(WorkerHeartbeat.last_seen_at)).where(~is_lab, ~is_pb))
     worker = (
         Heartbeat(status="on_demand", last_seen_at=worker_last)
         if get_settings().on_demand_worker
@@ -81,6 +84,7 @@ def watchtower(
         checked_at=now,
         worker=worker,
         lab=_beat(lab_last, now),
+        profile_b=_beat(pb_last, now),
         audit=AuditPipeline(status="ok" if can_write else "down", last_event_at=last_event),
         failed_operations_24h=failed or 0,
     )

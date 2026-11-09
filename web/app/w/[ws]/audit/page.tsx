@@ -28,6 +28,7 @@ function Integrity({ tower }: { tower: Watchtower }) {
     ["Audit writes", tower.audit.status === "ok" ? `Working${seen(tower.audit.last_event_at)}` : "Not permitted", tower.audit.status === "ok"],
     ["Worker", `${towerText[tower.worker.status]}${seen(tower.worker.last_seen_at)}`, tower.worker.status !== "offline"],
     ["Lab worker", `${towerText[tower.lab.status]}${seen(tower.lab.last_seen_at)}`, tower.lab.status !== "offline"],
+    ["Profile B worker", `${towerText[tower.profile_b.status]}${seen(tower.profile_b.last_seen_at)}`, tower.profile_b.status !== "offline"],
     ["Failed operations (24h)", String(tower.failed_operations_24h), tower.failed_operations_24h === 0],
   ];
   return (

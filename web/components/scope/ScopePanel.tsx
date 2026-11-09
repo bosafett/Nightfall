@@ -121,7 +121,7 @@ export function ScopePanel({ ws, projectId, versions, canEdit, canAuthorize }: {
                 <span className="font-medium">Lab scope (isolated lab machine)</span>
                 <span className="block text-xs text-muted">
                   Targets must be IP addresses inside the lab network, e.g. <span className="font-mono">172.30.99.10</span>. Lab runs are carried out
-                  only by your lab machine, always need a second person&apos;s approval, and are recorded as lab results.
+                  only by your lab machine, are launched and approved only in BLACKSITE (with a fresh two-factor code), and are recorded as lab results.
                 </span>
               </span>
             </label>

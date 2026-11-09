@@ -383,3 +383,31 @@ Profile B adds:
   statuses and yes/no results, never bodies.
 - **Status:** all three Profile B playbooks from §4 exist. Profile B stays off until its review, enable flag, worker
   key and self-hosted worker are in place.
+
+## 17. The self-hosted Profile B worker (2026-11-09, no migration)
+
+**Problem found while preparing the review:** Profile B couldn't run anywhere. The hosted app refused to launch it,
+because G5 checked whether the server handling the request was self-hosted, and on Vercel it never is. BLACKSITE
+couldn't launch it, because BLACKSITE's database role only sees lab scopes and Profile B targets real systems. And no
+self-hosted worker existed for real targets. The owner chose a dedicated worker (2026-11-09).
+
+**As built:**
+- **G5 is checked where the run executes.** Runs are requested and approved in the hosted app like other BLACK OPS
+  runs: G1–G4 and the review switch are unchanged. `profile_b.worker_check` refuses unless the worker is the
+  self-hosted Profile B worker (`NIGHTFALL_WORKER_MODE=profile-b`, never the on-demand worker), with the private key.
+- **Three disjoint queues** (`recon/worker.py`), by tool, in static SQL: lab operations go to the lab worker; the
+  three Profile B tools go to the Profile B worker; everything else goes to the standard (hosted) worker. Routing by
+  tool is sound because a Profile B playbook may only use Profile B tools (catalog check, new) and those tools run
+  only as Profile B steps (M1, M2). The Profile B worker never runs agent tasks.
+- **Readiness in the preflight:** a new check, "Self-hosted Profile B worker", passes only if a Profile B worker
+  (heartbeat id `pb:…`) checked in within 5 minutes. WATCHTOWER shows it separately; it never counts as the hosted
+  worker in `/api/health`.
+- **Configuration refuses** `NIGHTFALL_WORKER_MODE=profile-b` on the hosted platform, and the worker refuses to start
+  without its private key (`PROFILE B WORKER REFUSED TO START`).
+- **Deployment:** `infra/profile-b/` (compose file, settings example, README). It uses the standard worker image and
+  sandbox; unlike the lab worker it reaches the internet. Its database login is `nightfall_worker`, with an explicit
+  `NIGHTFALL_WORKER_DB_PASSWORD` set in Vercel (the hosted worker uses the same value).
+- **Tests:** `test_profile_b.py` (`test_every_gate_then_launch_then_worker_recheck` now also shows the standard worker
+  leaving a Profile B operation queued; `test_profile_b_playbooks_use_only_profile_b_tools`,
+  `test_profile_b_worker_mode_is_self_hosted_only`, `test_preflight_needs_a_recent_profile_b_worker`,
+  `test_profile_b_worker_claims_nothing_else`), `test_watchtower.py`.

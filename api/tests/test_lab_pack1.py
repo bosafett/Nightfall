@@ -71,6 +71,25 @@ def test_import_rules_drop_what_the_design_excludes(tmp_path: Path) -> None:
     assert why(ok + "    path: ['{{BaseURL}}/{{interactsh-url}}']\n") == "out-of-band or random"
     assert why(ok + "    body: '{{rand_text_alpha(8)}}'\n") == "out-of-band or random"
     assert why(ok.replace("severity: high", "severity: unknown")) == "unknown severity"
+    # rules/2: only GET, HEAD, POST and OPTIONS, also in raw requests (after annotations).
+    assert why(ok.replace("method: GET", "method: PURGE")) == "method"
+    raw = "id: x\ninfo:\n  name: X\n  severity: high\n  tags: cve\nhttp:\n  - raw:\n      - |\n"
+    assert why(raw + "        @timeout 10s\n        GET /status HTTP/1.1\n") is None
+    assert why(raw + "        DEBUG /x.aspx HTTP/1.1\n") == "method"
+    # rules/2: no request naming a state-changing action, structured or raw.
+    assert why(ok + "    path: ['{{BaseURL}}/wp-admin/admin-post.php?do_reset_wordpress=1']\n") == (
+        "state-changing request"
+    )
+    assert why(raw + "        POST /wp-json/x/v1/purge-error-logs HTTP/1.1\n") == (
+        "state-changing request"
+    )
+    assert why(ok + "    path: ['{{BaseURL}}/status']\n") is None
+    # rules/2: a POST naming a write is dropped (a GET isn't); nested random values are caught.
+    post = raw + "        POST /wp-json/rankmath/v1/updateRedirection HTTP/1.1\n"
+    assert why(post) == "state-changing request"
+    assert why(ok + "    path: ['{{BaseURL}}/settings/update']\n") is None
+    body = raw + "        GET / HTTP/1.1\n\n        x={{to_lower(rand_text_alpha(5))}}\n"
+    assert why(body) == "out-of-band or random"
 
 
 def test_registered_as_moderate_lab_only_and_never_a_single_collection(

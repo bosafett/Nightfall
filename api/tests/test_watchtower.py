@@ -111,3 +111,20 @@ def test_watchtower_reports_lab_separately(client: TestClient, env, owner_db: Se
     )
     owner_db.commit()
     assert client.get(url).json()["lab"]["status"] == "offline"
+
+
+def test_watchtower_reports_the_profile_b_worker_separately(
+    client: TestClient, env, owner_db: Session
+) -> None:
+    use(client, env["owner"])
+    url = f"/api/workspaces/{env['ws']}/watchtower"
+    assert client.get(url).json()["profile_b"]["status"] == "never"
+    pb = make_worker(profile_b=True)
+    pb.heartbeat()
+    assert pb.heartbeat_id.startswith("pb:")
+    body = client.get(url).json()
+    assert body["profile_b"]["status"] == "online" and body["lab"]["status"] == "never"
+    # It never makes the hosted worker look healthy either.
+    assert body["worker"]["status"] in ("never", "on_demand")
+    health = {c["name"]: c["status"] for c in client.get("/api/health").json()["components"]}
+    assert health["worker"] in ("down", "on_demand")

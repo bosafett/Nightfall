@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from nightfall.core.db.models import RiskClass
-from nightfall.recon.collectors import LAB_TOOLS, TOOLS
+from nightfall.recon.collectors import LAB_TOOLS, PROFILE_B_TOOLS, TOOLS
 
 
 class Profile(enum.StrEnum):
@@ -461,7 +461,7 @@ PLAYBOOKS: dict[str, Playbook] = {
         Playbook(
             id="known-weakness-scan-lab",
             name="Known-weakness scan (lab)",
-            version="1.0.0",
+            version="1.1.0",
             category=Category.VULNERABILITY_ASSESSMENT,
             summary="Lab tool pack 1: known CVEs, exposures, misconfigurations, default logins "
             "and technology detection on a lab machine.",
@@ -471,13 +471,13 @@ PLAYBOOKS: dict[str, Playbook] = {
             "plus the pack's own recorded review. Matches become unverified lab findings; "
             "nothing is exploited.",
             steps=(
-                Step("nuclei-pack1-cve", "2,668 known-CVE detection templates"),
+                Step("nuclei-pack1-cve", "2,464 known-CVE detection templates"),
                 Step(
                     "nuclei-pack1-config",
-                    "1,935 exposure, misconfiguration and takeover templates, including 269 "
+                    "1,919 exposure, misconfiguration and takeover templates, including 269 "
                     "default-login templates (they try vendor default passwords)",
                 ),
-                Step("nuclei-pack1-tech", "1,185 technology detection templates"),
+                Step("nuclei-pack1-tech", "1,183 technology detection templates"),
             ),
             profiles=(Profile.LAB,),
             target_types=(TargetType.IP,),
@@ -485,7 +485,10 @@ PLAYBOOKS: dict[str, Playbook] = {
             limits=(
                 "HTTP only, through the scope proxy pinned to the lab target",
                 "10 requests per second, 10 templates at once, 30 minutes per step",
-                "No out-of-band callbacks, no PUT, DELETE or PATCH, redirects not followed",
+                "No out-of-band callbacks; GET, HEAD, POST and OPTIONS only; "
+                "redirects not followed",
+                "No template whose request names a state-changing action (delete, reset, purge, "
+                "...), no POST naming a write (update, create, save, ...), no random values",
             ),
             outputs=("Unverified lab findings (rule R17)",),
             cleanup="None expected: templates are detection checks. Default-login templates "
@@ -494,7 +497,17 @@ PLAYBOOKS: dict[str, Playbook] = {
                 "tests/test_lab_pack1.py::test_manifest_rules_and_groups",
                 "tests/test_lab_pack1.py::test_pack_runs_only_with_review_and_verified_templates",
             ),
-            changelog=_V1,
+            changelog=(
+                *_V1,
+                Change(
+                    "1.1.0",
+                    "2026-11-09",
+                    "Import rules v2: only GET, HEAD, POST and OPTIONS; no request naming a "
+                    "state-changing action and no POST naming a write; random values caught "
+                    "inside other functions too. 222 templates removed (5,566 remain), among "
+                    "them a database reset, a log purge, a cache purge and account creation.",
+                ),
+            ),
         ),
     )
 }
@@ -510,6 +523,10 @@ def check_catalog(playbooks: dict[str, Playbook] | None = None) -> None:
                 raise ValueError(f"{p.id}: unknown tool {s.tool!r}")
             if Profile.LAB in p.profiles and s.tool not in LAB_TOOLS:
                 raise ValueError(f"{p.id}: {s.tool!r} can't run in the lab")
+            # The self-hosted Profile B worker's queue is chosen by tool (recon/worker.py), so
+            # a Profile B step must be a Profile B tool, or the hosted worker would claim it.
+            if Profile.VALIDATION in p.profiles and s.tool not in PROFILE_B_TOOLS:
+                raise ValueError(f"{p.id}: Profile B steps use Profile B tools only")
         if Profile.VALIDATION in p.profiles and p.profiles != (Profile.VALIDATION,):
             raise ValueError(f"{p.id}: a Profile B playbook supports only Profile B")
         if not 0 <= p.identities <= 5 or (p.identities and Profile.VALIDATION not in p.profiles):

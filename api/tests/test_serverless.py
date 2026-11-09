@@ -55,6 +55,34 @@ def test_platform_env_is_derived_without_overriding_explicit_values() -> None:
     assert again == env  # stable: same derived passwords every cold start
 
 
+def test_only_production_runs_start_up_migrations(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Previews share the database but not the Production-only variables: their start-up
+    must not touch roles or run migrations (2026-11-09: it set the lab roles to NOLOGIN)."""
+    base = {"VERCEL": "1", "PGHOST": "h", "PGDATABASE": "d", "PGUSER": "u", "PGPASSWORD": "p"}
+    for vercel_env, expected in (("production", "true"), ("preview", "false"), (None, "false")):
+        env = dict(base, **({"VERCEL_ENV": vercel_env} if vercel_env else {}))
+        serverless.apply_platform_env(env)
+        assert env["NIGHTFALL_AUTO_MIGRATE"] == expected, vercel_env
+    explicit = dict(base, VERCEL_ENV="preview", NIGHTFALL_AUTO_MIGRATE="true")
+    serverless.apply_platform_env(explicit)
+    assert explicit["NIGHTFALL_AUTO_MIGRATE"] == "true"  # an explicit setting still wins
+    # An explicit worker password (the self-hosted Profile B worker shares it) is used.
+    pw = dict(base, NIGHTFALL_WORKER_DB_PASSWORD="w" * 32)
+    serverless.apply_platform_env(pw)
+    url = pw["NIGHTFALL_WORKER_DATABASE_URL"]
+    assert url.startswith(f"postgresql://nightfall_worker:{'w' * 32}@")
+
+    # A skipped start-up also drops the owner credentials from the process.
+    monkeypatch.setenv("VERCEL", "1")
+    monkeypatch.setenv("VERCEL_ENV", "preview")
+    monkeypatch.setenv("NIGHTFALL_AUTO_MIGRATE", "false")
+    monkeypatch.setenv("NIGHTFALL_MIGRATION_DATABASE_URL", "postgresql://owner:secret@h/d")
+    serverless.migrate_on_start()
+    import os
+
+    assert "NIGHTFALL_MIGRATION_DATABASE_URL" not in os.environ
+
+
 def test_platform_env_does_nothing_off_vercel() -> None:
     env = {"PGHOST": "h", "PGDATABASE": "d", "PGUSER": "u", "PGPASSWORD": "p"}
     serverless.apply_platform_env(env)

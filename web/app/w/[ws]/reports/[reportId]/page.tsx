@@ -84,7 +84,7 @@ export default async function ReportPage({ params }: { params: Promise<{ ws: str
         {(c.methodology.collectors as { label: string; risk_class: string; runs: number; succeeded: number; denied_or_rejected: number }[]).map((m) => (
           <li key={m.label}>{m.label} ({m.risk_class} risk): {m.runs} runs, {m.succeeded} completed, {m.denied_or_rejected} refused or rejected.</li>
         ))}
-        <li>Every collection request was checked against the authorized scope. Anything above passive required approval by a second person.</li>
+        <li>Every collection request was checked against the authorized scope. Anything above passive required an explicit approval: by a second person, or, under the workspace&apos;s single-operator policy, by the operator with a fresh two-factor code.</li>
         <li>Findings from rule checks start unverified; only a person can validate, dismiss or close one.</li>
       </ul>
 

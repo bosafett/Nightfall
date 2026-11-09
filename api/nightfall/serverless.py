@@ -5,8 +5,9 @@ What changes compared with a long-running host:
     worker database passwords are derived from the database owner's password with HMAC, so
     no extra database secret has to be created or handled. bootstrap-roles keeps the role
     passwords in step at every cold start.
-  * Migrations run at cold start under an advisory lock (migrate_on_start). The owner
-    connection string is then removed from this process's environment.
+  * Migrations run at cold start under an advisory lock (migrate_on_start), on production
+    deployments only (VERCEL_ENV=production). The owner connection string is then removed
+    from this process's environment.
   * There is no worker loop: queued jobs run on demand (drain), triggered after a request
     or an approval, by the browser while an operation page is open, and by a daily cron.
     Each run still connects as nightfall_worker, never with the API's role.
@@ -72,15 +73,25 @@ def apply_platform_env(env: MutableMapping[str, str] | None = None) -> None:
         "NIGHTFALL_TOOL_SANDBOX": "none",
         # Vercel's edge overwrites X-Forwarded-For with the client address.
         "NIGHTFALL_FORWARDED_HOPS": "1",
-        "NIGHTFALL_AUTO_MIGRATE": "true",
     }.items():
         env.setdefault(key, value)
+    # Roles and migrations only from production. Preview deployments share the database but
+    # not the Production-only variables, so their start-up would switch the optional lab
+    # roles to NOLOGIN and run unreleased migrations against it (seen 2026-11-09).
+    env.setdefault(
+        "NIGHTFALL_AUTO_MIGRATE", "true" if env.get("VERCEL_ENV") == "production" else "false"
+    )
 
 
 def migrate_on_start() -> None:
     """Roles, migrations and the first owner, once per cold start, serialized across
     instances. Exits the process (startup fails) if a role could bypass isolation."""
     if os.environ.get("NIGHTFALL_AUTO_MIGRATE", "").lower() != "true":
+        if os.environ.get("VERCEL"):
+            # A preview deployment: no migrations, and no owner credentials kept either.
+            for key in ("NIGHTFALL_MIGRATION_DATABASE_URL", "NIGHTFALL_ADMIN_PASSWORD"):
+                os.environ.pop(key, None)
+            log.info("start-up migrations skipped (VERCEL_ENV=%s)", os.environ.get("VERCEL_ENV"))
         return
     url = os.environ.get("NIGHTFALL_MIGRATION_DATABASE_URL")
     if not url:

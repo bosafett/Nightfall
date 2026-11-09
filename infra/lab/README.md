@@ -118,6 +118,34 @@ date passes, lab execution switches itself off again. With an independent review
 The normal NIGHTFALL worker on Vercel never sees lab jobs, and the lab worker never sees anything else. The
 database enforces this with the lab worker's own restricted account.
 
+## Lab tool pack 1 (known-weakness scan)
+
+The lab worker image already contains the pack: 5,566 reviewed Nuclei templates, each checked against its pinned hash
+before every run. It stays **unavailable** until its own review is recorded.
+
+1. Do the self-review with `docs/reviews/packets/2-lab-tool-pack-1.md`. The evidence is already collected in
+   `docs/reviews/2026-11-09-lab-tool-pack-1-evidence.md`; you give the verdict and answers, and save it as
+   `docs/reviews/<date>-lab-tool-pack-1-self-review.md`.
+2. Set the reference in **both** files: `LAB_PACK1_REVIEW_REF` in `lab.env` and `NIGHTFALL_LAB_PACK1_REVIEW_REF` in
+   `blacksite.env` (`SELF:<date> owner, docs/reviews/<file>`). Restart both.
+3. In BLACKSITE, run **Known-weakness scan (lab)** on `172.30.99.10`. It runs three steps (CVE, configuration and
+   default logins, technology), up to 30 minutes each. Matches become unverified **lab** findings.
+4. Treat the practice app as disposable: after a pack run, recreate it with
+   `docker compose --env-file lab.env up -d --force-recreate juice-shop`.
+
+## WARPATH exercises (purple team)
+
+WARPATH needs only BLACKSITE, so it works as soon as lab runs do.
+
+1. **Plan** (JANUS, SWORD → WARPATH): create an exercise on a project with a lab scope, and add steps: a lab
+   playbook, the lab target, an ATT&CK technique the playbook represents, and the detection you expect.
+2. **Approve** the plan (owner, fresh two-factor). The plan is then frozen; changing it needs a new version.
+3. **Run** (BLACKSITE console, WARPATH tab): start each step; it goes through the normal lab preflight and approval,
+   and the lab worker runs it.
+4. **Score** each step in JANUS: attack result, and whether it was detected. A step scored *missed* raises a SHIELD
+   "detection gap" alert (*partly detected* raises a low one). With no detection tooling in the lab yet, expect
+   *missed*: that's an honest starting point, not a failure.
+
 ## Everyday use
 
 - Stop the lab: `docker compose --env-file lab.env down`. Start it: `docker compose --env-file lab.env up -d`.

@@ -38,7 +38,7 @@ TEST_PLAYBOOK = Playbook(
     category=Category.CONTROLLED_VALIDATION,
     summary="Test only.",
     description="Test only.",
-    steps=(Step("headers", "Read headers"),),
+    steps=(Step("auth-audit", "Audit the login"),),
     profiles=(Profile.VALIDATION,),
     target_types=(TargetType.HOSTNAME,),
     expected_duration="",
@@ -57,7 +57,10 @@ def gates_on(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     monkeypatch.setenv("NIGHTFALL_PROFILE_B_REVIEW_REF", "PB-REVIEW-1")
     monkeypatch.setenv("NIGHTFALL_PROFILE_B_PUBLIC_KEY", PUBLIC)
     monkeypatch.setenv("NIGHTFALL_PROFILE_B_PRIVATE_KEY", PRIVATE)
+    monkeypatch.setenv("NIGHTFALL_WORKER_MODE", "profile-b")
+    monkeypatch.setenv("NIGHTFALL_COLLECTOR_MODE", "live")  # Profile B tools are live only
     get_settings.cache_clear()
+    make_worker(profile_b=True).heartbeat()  # the self-hosted Profile B worker is online
     yield
     get_settings.cache_clear()
 
@@ -136,10 +139,20 @@ def test_each_gate_switches_profile_b_off_on_its_own(gates_on: None) -> None:
     for change, words in (
         ({"profile_b_enabled": False}, "switched off"),
         ({"profile_b_review_ref": None}, "no recorded review"),
-        ({"on_demand_worker": True}, "self-hosted worker"),
         ({"profile_b_public_key": None}, "worker key"),
     ):
         assert words in (profile_b.unavailable_reason(dataclasses.replace(s, **change)) or "")
+    # G5 is where the run executes: requesting from the hosted app is fine, executing there
+    # is not. Only the self-hosted Profile B worker passes.
+    assert profile_b.unavailable_reason(dataclasses.replace(s, on_demand_worker=True)) is None
+    run = None  # worker_check returns before it needs the run when G5 fails
+    for change in (
+        {"on_demand_worker": True},
+        {"worker_mode": "standard"},
+        {"worker_mode": "lab"},
+    ):
+        why = profile_b.worker_check(None, dataclasses.replace(s, **change), run, None)  # type: ignore[arg-type]
+        assert why and "self-hosted Profile B worker" in why
 
 
 def test_shipped_catalog_has_only_the_reviewed_profile_b_playbooks() -> None:
@@ -269,7 +282,8 @@ def test_every_gate_then_launch_then_worker_recheck(
     )
     assert _pre(client, env, [])["identities"]["status"] == "fail"  # needs 1
     checks = _pre(client, env, [ident["id"]])
-    assert all(c["status"] != "fail" for c in checks.values()), checks
+    failing = [c for c in checks.values() if c["status"] == "fail"]
+    assert not failing, failing
     assert "24 hours" in checks["approval"]["detail"]
 
     r = _launch(client, env, [ident["id"]])
@@ -293,7 +307,10 @@ def test_every_gate_then_launch_then_worker_recheck(
     r = client.post(f"{W(env)}/blackops/runs/{run_id}/approve", json={"reason": "Test window"})
     assert r.status_code == 200, r.text
     client.post(f"{W(env)}/test-identities/{ident['id']}/retire")
-    w = make_worker()
+    # The standard worker (the hosted one included) never claims a Profile B operation.
+    assert make_worker().run_once() is False
+    assert owner_db.execute(text("SELECT status FROM operations")).scalar_one() == "queued"
+    w = make_worker(profile_b=True)
     while w.run_once():
         pass
     op = owner_db.execute(text("SELECT status, denial_reason FROM operations")).one()
@@ -320,7 +337,7 @@ def test_worker_refuses_stale_proof_and_old_approval(
         {"d": timedelta(hours=25)},
     )
     owner_db.commit()
-    w = make_worker()
+    w = make_worker(profile_b=True)
     while w.run_once():
         pass
     op = owner_db.execute(text("SELECT status, denial_reason FROM operations")).one()
@@ -359,3 +376,80 @@ def test_database_refuses_profile_b_runs_without_fresh_proof(
                 with conn.begin():
                     conn.execute(text(base), {**params, "checks": checks})
     _ = Role
+
+
+# --- The self-hosted Profile B worker (G5) ---------------------------------------------------
+
+
+def test_profile_b_playbooks_use_only_profile_b_tools() -> None:
+    """The Profile B worker's queue is chosen by tool, so this must hold for routing."""
+    from nightfall.recon.collectors import PROFILE_B_TOOLS
+
+    for p in PLAYBOOKS.values():
+        if Profile.VALIDATION in p.profiles:
+            assert all(s.tool in PROFILE_B_TOOLS for s in p.steps), p.id
+    bad = Playbook(**{**TEST_PLAYBOOK.__dict__, "steps": (Step("headers", "Read headers"),)})
+    with pytest.raises(ValueError, match="Profile B tools only"):
+        check_catalog({bad.id: bad})
+
+
+def test_profile_b_worker_mode_is_self_hosted_only(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("NIGHTFALL_WORKER_MODE", "profile-b")
+    monkeypatch.setenv("NIGHTFALL_ON_DEMAND_WORKER", "true")
+    monkeypatch.setenv("NIGHTFALL_WORKER_DATABASE_URL", "postgresql://w@localhost/db")
+    with pytest.raises(ConfigError, match="self-hosted only"):
+        load_settings()
+    monkeypatch.delenv("NIGHTFALL_ON_DEMAND_WORKER")
+    monkeypatch.delenv("NIGHTFALL_PROFILE_B_PRIVATE_KEY", raising=False)
+    monkeypatch.setenv("NIGHTFALL_COLLECTOR_MODE", "live")
+    get_settings.cache_clear()
+    try:
+        from nightfall.recon.worker import build_worker
+
+        with pytest.raises(SystemExit, match="PROFILE B WORKER REFUSED TO START"):
+            build_worker()
+    finally:
+        get_settings.cache_clear()
+
+
+def test_preflight_needs_a_recent_profile_b_worker(
+    client: TestClient,
+    env: dict,
+    owner_db: Session,
+    probes: FakeProbes,
+    test_playbook: Playbook,
+    gates_on: None,
+) -> None:
+    ident = register(client, env).json()
+    prove(client, env, probes)
+    assert _pre(client, env, [ident["id"]])["profile_b_worker"]["status"] == "pass"
+    owner_db.execute(
+        text("UPDATE worker_heartbeats SET last_seen_at = last_seen_at - interval '6 minutes'")
+    )
+    owner_db.commit()
+    check = _pre(client, env, [ident["id"]])["profile_b_worker"]
+    assert check["status"] == "fail" and "hosted platform" in check["detail"]
+    assert _launch(client, env, [ident["id"]]).status_code == 422
+    # A standard or lab worker's heartbeat doesn't count.
+    make_worker().heartbeat()
+    assert _pre(client, env, [ident["id"]])["profile_b_worker"]["status"] == "fail"
+
+
+def test_profile_b_worker_claims_nothing_else(  # type: ignore[no-untyped-def]
+    client: TestClient, factory, owner_db: Session
+) -> None:
+    from tests.conftest import use as sign_in
+    from tests.phase3_helpers import authorize_scope, org_project
+
+    ws = factory.workspace()
+    _, pid = org_project(owner_db, ws)
+    sign_in(client, factory.sign_in(factory.member(ws, Role.OWNER)))
+    authorize_scope(client, ws, pid, [("domain_tree", "example.com")])
+    r = client.post(
+        f"/api/workspaces/{ws}/projects/{pid}/collections",
+        json={"tool": "ct", "target": "example.com"},
+    )
+    assert r.status_code == 202
+    assert make_worker(profile_b=True).run_once() is False  # not its queue, no agent tasks
+    assert owner_db.execute(text("SELECT status FROM operations")).scalar_one() == "queued"
+    assert make_worker().run_once() is True

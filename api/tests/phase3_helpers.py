@@ -14,11 +14,12 @@ from tests.conftest import EVIDENCE_DIR, WORKER_URL
 _worker_engine = create_engine(_sqlalchemy_url(WORKER_URL))
 
 
-def make_worker(tools: dict[str, Collector] | None = None) -> Worker:
+def make_worker(tools: dict[str, Collector] | None = None, *, profile_b: bool = False) -> Worker:
     return Worker(
         sessionmaker(bind=_worker_engine, expire_on_commit=False),
         EvidenceStore(Path(EVIDENCE_DIR)),
         tools or collectors("fixture"),
+        profile_b=profile_b,
     )
 
 
