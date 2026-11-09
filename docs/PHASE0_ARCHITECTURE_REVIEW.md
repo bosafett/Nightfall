@@ -907,6 +907,21 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     BLACKSITE console and the audit trail (`review_kind`).
   - **Everything else unchanged:** every other gate stays as it was, and independent references work as before.
     When people join, record independent reviews and let the window lapse.
+- **Lab machine bring-up, 2026-11-08 (Windows; self-review on, not independent, until 2027-01-31).**
+  - **Done:** lab worker and BLACKSITE running, sealed checks passed, self-review recorded with conditions
+    (`docs/reviews/2026-11-08-blacksite-self-review.md`; the owner didn't check F2–F8 or the packet's questions).
+    BLACKSITE now starts on Windows; tools still refuse to run there. JANUS has an owner-only link to the console.
+  - **Open, blocks lab results:** the first HTTP Security Assessment reached Juice Shop, then failed saving evidence.
+    `PostgresEvidenceStore.put` uses `ON CONFLICT (sha256)`, which needs `SELECT` on that column, and the lab worker
+    rightly has `INSERT` only on `evidence_blobs`. Proposed fix: `ON CONFLICT DO NOTHING` (no target, no grant, no
+    migration), with a test using the lab role and the Postgres store; the lab tests use the file store, so they
+    missed it. Not fixed or tested yet. The lab worker image needs a rebuild afterwards.
+  - **Open:** finding R1, accepted as a condition: the lab worker can send to any address on ports 5432 and 53.
+  - **Open:** a preview deployment's cold start sets the optional lab roles to `NOLOGIN` and runs migrations against
+    the shared database, because the password variables are Production-only. Seen on 2026-11-09 00:42 UTC; a production
+    cold start restores them. A later occurrence at 01:35 UTC has no surviving logs, so its cause isn't proven.
+  - **Open:** the lab scope checkbox says lab runs always need a second person's approval, which looks out of date
+    under the single-operator policy. The JANUS BLACKSITE page's "not configured" status is fixed text.
 - **WARPATH v1: purple-team exercises in the lab (built, switched off; migration 0022).** Design and decisions:
   `docs/designs/2026-11-warpath.md` (§12 as built).
   - **Plans:** lab playbook steps, each tagged with an ATT&CK technique (Enterprise 20.0, pinned) that the playbook
