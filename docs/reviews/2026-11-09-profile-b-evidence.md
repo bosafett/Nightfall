@@ -34,13 +34,14 @@ being reviewed.
 | 2 | Run playbook 7 against a test app you own, then search for the password, username and cookie | Needs your own test application, a proven target and the Profile B worker. The automated equivalent passes: a canary password and username are searched in evidence, blobs and the audit log (`test_auth_audit.py::test_profile_b_run_end_to_end`) | **Owner to do** (the first supervised run) |
 | 3 | Any path that sends before the worker's re-check | Traced `Worker.process` (`recon/worker.py`): claim (Profile B queue only) → scope re-evaluated → `profile_b.worker_check` (switch, review, Profile B worker, key, scope unchanged and not lab, fresh proof, identities) → approval present and under 24 hours → Profile B tools only inside a Profile B run → credentials opened → **only then** `tool.run`. Any refusal ends the operation as denied before a request is sent. No other code path calls the Profile B collectors | Assistant's trace; **owner to confirm** |
 | 4 | Is the marker `'"<jns>` inert everywhere? | It contains no executable syntax in HTML, attributes, JavaScript, SQL or logs. But a quote **can** break a badly written SQL query or template, which shows as a server error; that's the signal the playbook looks for, and it changes no data by itself. POSTs go only to forms you mark safe | **Owner's judgment** |
-| 5 | Could a registered GET path change state? | On a badly designed app, yes (e.g. `/logout`, `/delete?id=…` as GET). Playbook 8 sends three GETs per path you register. The UI asks for paths; it doesn't yet warn against action URLs | **Owner's judgment**; possible condition below |
+| 5 | Could a registered GET path change state? | On a badly designed app, yes (e.g. `/logout`, `/delete?id=…` as GET). Playbook 8 sends three GETs per path you register. Since 2026-11-16 the preflight and the worker refuse a path or query that names an action (logout, delete, reset, approve, …), and the form says so (`test_access_audit.py::test_paths_that_name_an_action_are_refused`). A word list can't catch every case | **Owner's judgment**; possible condition below |
 | 6 | Address pinning instead of a per-run egress proxy | The Profile B collectors resolve the target once and pin that address for every request (`safe_http`); the per-run proxy is used for external tools only. Acceptable for v1 per design §14 | **Owner's judgment** |
 
 ## Suggested conditions (the owner decides)
 
 1. **First run supervised**, against a test application you own and can restore, before any other target.
-2. **Register only read-only GET paths** for playbook 8 (no logout, delete or action URLs).
+2. **Register only read-only GET paths** for playbook 8. Obvious action URLs are now refused, but the choice of
+   paths is still yours.
 3. **Revisit before ending self-review mode:** an independent review for Profile B, as the packet recommends.
 
 ## Questions (packet §4): for the owner to answer

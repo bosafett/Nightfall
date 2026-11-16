@@ -89,3 +89,9 @@ Also observed: the `nightfall_blacksite` role was denied when reading `audit_eve
    is in effect. The owner accepted this on 2026-11-08 because it matters only if the worker itself is compromised, and
    self-review mode expires within 90 days. Revisit it before extending self-review mode or starting an independent
    review.
+
+> **Note added 2026-11-16 by the AI assistant (evidence, not a change to the owner's result).** R1 was fixed in
+> commit `3288084` (2026-11-09): port 5432 is allowed only to the database's own addresses, and DNS only to the
+> container's resolver. The owner's lab machine showed `ok lab egress: database port 5432 only to` three Neon
+> addresses, `DNS loopback only`, and CI checks it in the real image. Not yet seen: a lab run completing through the
+> new firewall. Whether condition 1 is now closed is the owner's call; record it here with a date.

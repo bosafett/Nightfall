@@ -48,6 +48,72 @@ def valid_paths(raw: object) -> list[str]:
     return out
 
 
+# Words that name an action. The playbook only sends GET, but a badly built application may
+# act on a GET (/logout, /users/delete?id=7), so such paths are refused, in the query too.
+ACTION_WORDS = frozenset(
+    [
+        "logout",
+        "signout",
+        "logoff",
+        "signoff",
+        "delete",
+        "remove",
+        "destroy",
+        "purge",
+        "reset",
+        "wipe",
+        "drop",
+        "truncate",
+        "clear",
+        "disable",
+        "deactivate",
+        "revoke",
+        "ban",
+        "unlink",
+        "uninstall",
+        "cancel",
+        "approve",
+        "reject",
+        "confirm",
+        "pay",
+        "refund",
+        "transfer",
+        "send",
+        "resend",
+        "impersonate",
+        "shutdown",
+        "reboot",
+        "restart",
+    ]
+)
+_WORDS = re.compile(r"[A-Z]?[a-z]+|[A-Z]+(?![a-z])")
+
+
+def action_word(path: str) -> str | None:
+    """The first word in the path or query that names an action, if any (sign-out and
+    log_out count; /users/deleted and /resetting don't)."""
+    words: list[str] = [str(w).lower() for w in _WORDS.findall(path)]
+    for i, w in enumerate(words):
+        if w in ACTION_WORDS:
+            return w
+        if w in ("log", "sign") and words[i + 1 : i + 2] in (["out"], ["off"]):
+            return f"{w} {words[i + 1]}"
+    return None
+
+
+def read_only_paths(raw: object) -> list[str]:
+    """valid_paths, and none may name an action. Raises ValueError."""
+    paths = valid_paths(raw)
+    for p in paths:
+        if word := action_word(p):
+            raise ValueError(
+                f"{p[:80]!r} looks like an action ({word!r}), not a page. This playbook sends "
+                "GET requests, and some applications act on them. Register pages that only "
+                "show something."
+            )
+    return paths
+
+
 def _view(ex: Exchange | None) -> dict[str, Any]:
     if ex is None:
         return {"error": True}
@@ -91,7 +157,7 @@ class AccessAudit:
         if len(origins) != 1 or not m or m.group(1) != target:
             raise Refused("Both test identities must belong to this target's origin.")
         try:
-            paths = valid_paths(ctx.params.get("paths"))
+            paths = read_only_paths(ctx.params.get("paths"))
         except ValueError as exc:
             raise Refused(str(exc)) from exc
         port = int(m.group(2)) if m.group(2) else None

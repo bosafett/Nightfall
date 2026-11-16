@@ -572,10 +572,10 @@ def preflight(
                 "y." if p.identities == 1 else "ies."
             )
         if p.takes_paths:
-            from nightfall.recon.access_audit import valid_paths
+            from nightfall.recon.access_audit import read_only_paths
 
             try:
-                n = len(valid_paths(paths or []))
+                n = len(read_only_paths(paths or []))
                 add("paths", "Registered paths", True, f"{n} path(s) on {target}.")
             except ValueError as exc:
                 add("paths", "Registered paths", False, str(exc))

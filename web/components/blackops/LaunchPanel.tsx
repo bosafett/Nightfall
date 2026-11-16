@@ -85,7 +85,7 @@ export function LaunchPanel({ ws, playbook, projects, canRun, identities }: {
             </Field>
           )}
           {playbook.takes_paths && (
-            <Field label="Paths that belong to the higher role" hint="One per line, on this target only, like /admin/users. Up to 50. You choose them; nothing is guessed.">
+            <Field label="Paths that belong to the higher role" hint="One per line, on this target only, like /admin/users. Up to 50. You choose them; nothing is guessed. Pages that only show something: each is requested three times, so paths that name an action (logout, delete, reset, approve…) are refused.">
               <Textarea rows={4} value={pathsText} onChange={(e) => { setPathsText(e.target.value); setPre(null); }} className="font-mono" data-testid="launch-paths" />
             </Field>
           )}

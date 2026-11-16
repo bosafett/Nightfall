@@ -116,6 +116,22 @@ def test_paths_are_checked(bad: list[str]) -> None:
     assert valid_paths(["/a", "/a", "/b?x=1"]) == ["/a", "/b?x=1"]
 
 
+@pytest.mark.parametrize(
+    "bad", ["/logout", "/account/sign-out", "/users/delete?id=7", "/admin?action=reset",
+            "/api/deleteUser/3", "/LOG_OUT", "/orders/9/approve", "/admin/users/7/impersonate"],
+)  # fmt: skip
+def test_paths_that_name_an_action_are_refused(bad: str) -> None:
+    """GET only, but some applications act on a GET: such paths are never requested."""
+    from nightfall.recon.access_audit import action_word, read_only_paths
+
+    with pytest.raises(ValueError, match="looks like an action"):
+        read_only_paths(["/admin/users", bad])
+    for fine in ("/admin/users", "/users/deleted", "/settings/resetting", "/catalog/signs",
+                 "/admin/billing?view=sent", "/blog/2026/payments-report"):  # fmt: skip
+        assert action_word(fine) is None, fine
+    assert read_only_paths(["/admin/users", "/admin/billing"]) == ["/admin/users", "/admin/billing"]
+
+
 def test_needs_two_identities_of_this_target() -> None:
     with pytest.raises(Refused, match="exactly two"):
         run(["/admin/users"], ids=(HIGH,))
