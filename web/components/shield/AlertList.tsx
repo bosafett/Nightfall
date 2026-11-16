@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api/client";
-import type { ShieldAlert } from "@/lib/api/types";
+import type { IncidentDetail, ShieldAlert } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { useAction } from "@/components/ui/useAction";
 import { Alert, Badge, Button, Input } from "@/components/ui/primitives";
@@ -12,6 +13,13 @@ import { kindLabel, severityTone } from "@/components/shield/labels";
  * runs a countermeasure: the recommendation is advice for a person. */
 export function AlertList({ ws, alerts, canAct }: { ws: string; alerts: ShieldAlert[]; canAct: boolean }) {
   const { busy, error, run } = useAction();
+  const router = useRouter();
+  async function openIncident(a: ShieldAlert) {
+    const inc = await run(() => api<IncidentDetail>(`/workspaces/${ws}/projects/${a.project_id}/incidents`, {
+      method: "POST", body: { title: a.title.slice(0, 200), alert_ids: [a.id] },
+    }), { refresh: false });
+    if (inc) router.push(`/w/${ws}/shield/incidents/${inc.id}`);
+  }
   if (alerts.length === 0) return <p className="text-sm text-muted">No alerts.</p>;
   return (
     <div className="space-y-3">
@@ -32,6 +40,7 @@ export function AlertList({ ws, alerts, canAct }: { ws: string; alerts: ShieldAl
               {a.finding_id && <> · <Link className="hover:text-crimson-text" href={`/w/${ws}/findings/${a.finding_id}`}>finding →</Link></>}
             </p>
             {a.note && <p className="mt-1 text-xs">Note: {a.note}</p>}
+            {a.incident_id && <p className="mt-1 text-sm"><Link className="hover:text-crimson-text" href={`/w/${ws}/shield/incidents/${a.incident_id}`} data-testid="alert-incident">In an incident →</Link></p>}
             {canAct && a.state !== "resolved" && (
               <form className="mt-2 flex flex-wrap gap-2" onSubmit={(e) => {
                 e.preventDefault();
@@ -44,6 +53,7 @@ export function AlertList({ ws, alerts, canAct }: { ws: string; alerts: ShieldAl
                 )}
                 <Input name="note" placeholder="What was done (optional)" aria-label={`Resolution note for ${a.title}`} maxLength={1000} className="min-w-0 flex-1" />
                 <Button type="submit" disabled={busy}>Resolve</Button>
+                {!a.incident_id && <Button type="button" variant="secondary" disabled={busy} onClick={() => openIncident(a)} data-testid="open-incident">Open incident</Button>}
               </form>
             )}
           </li>

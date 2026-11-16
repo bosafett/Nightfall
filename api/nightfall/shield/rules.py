@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -51,6 +51,8 @@ class AlertDraft:
     title: str
     detail: str
     key: str  # de-duplication key: one open alert per condition
+    # The facts it was raised on, kept with the alert so a later check can be compared.
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 def _h(value: Any) -> str:
@@ -99,6 +101,7 @@ def compare(
                             f"Certificate for {target} expires in {left} days",
                             f"The certificate served by {target} expires on {cur['not_after']}.",
                             f"cert.expiring:{target}",
+                            {"not_after": cur["not_after"]},
                         )  # fmt: skip
                     )
                     break
@@ -113,6 +116,7 @@ def compare(
                     f"SHA-256 {str(prev['cert_sha256'])[:16]}… → "
                     f"{str(cur.get('cert_sha256'))[:16]}….",
                     f"cert.changed:{target}:{cur.get('cert_sha256')}",
+                    {"cert_sha256": cur.get("cert_sha256")},
                 )  # fmt: skip
             )
         new_old = sorted(set(cur["accepted"]) - set(prev.get("accepted") or []))
@@ -131,6 +135,7 @@ def compare(
                     f"TLS on {target} got weaker",
                     f"{target} {' and '.join(why)} (it didn't at the previous check).",
                     f"tls.weakened:{target}:{_h(cur)}",
+                    {"protocols": new_old, "lost_trust": bool(lost_trust)},
                 )  # fmt: skip
             )
     elif tool == "headers" and prev is not None:
@@ -143,6 +148,7 @@ def compare(
                     f"Security headers on {target} got worse",
                     "Checks that passed at the previous run now fail: " + ", ".join(worse) + ".",
                     f"headers.regressed:{target}:{_h(worse)}",
+                    {"failing": worse},
                 )  # fmt: skip
             )
     elif tool == "ct" and prev is not None:
@@ -179,3 +185,49 @@ def compare(
                 )  # fmt: skip
             )
     return out
+
+
+# --- Verification (SHIELD v2) ----------------------------------------------------------------
+
+# Alerts that describe a condition a later check can look for again, and the check that
+# looks. The others report a one-time change (a different certificate, changed DNS records,
+# new names) or the monitoring itself: re-running a check can't say they're "gone".
+VERIFY_TOOL: dict[str, str | None] = {
+    "cert.expiring": "tls",
+    "tls.weakened": "tls",
+    "headers.regressed": "headers",
+    "finding.reopened": None,  # the check that produced the finding's evidence
+}
+
+
+def still_present(
+    kind: str,
+    data: dict[str, Any],
+    cur: dict[str, Any],
+    now: datetime,
+    finding_observed: bool,
+) -> bool | None:
+    """Whether a fresh snapshot still shows what the alert was raised on. None when it can't
+    be decided from the data kept with the alert."""
+    if kind == "cert.expiring":
+        if not cur.get("not_after"):
+            return None
+        left = (datetime.fromisoformat(cur["not_after"]) - now).days
+        return left <= max(days for days, _ in EXPIRY_DAYS)
+    if kind == "tls.weakened":
+        accepted = set(cur.get("accepted") or [])
+        if data:
+            protocols = [p for p in data.get("protocols") or [] if p in OLD_PROTOCOLS]
+            return bool(accepted & set(protocols)) or (
+                bool(data.get("lost_trust")) and not cur.get("trusted")
+            )
+        # Raised before the facts were kept: any old protocol or an untrusted certificate.
+        return bool(accepted & set(OLD_PROTOCOLS)) or not cur.get("trusted")
+    if kind == "headers.regressed":
+        failing = data.get("failing")
+        if not isinstance(failing, list) or not failing:
+            return None
+        return bool(set(failing) & set(cur.get("failing") or []))
+    if kind == "finding.reopened":
+        return finding_observed
+    return None

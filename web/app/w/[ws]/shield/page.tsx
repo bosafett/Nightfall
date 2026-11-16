@@ -37,6 +37,7 @@ export default async function AegisOverview({ params }: { params: Promise<{ ws: 
         </Panel>
         <Panel title="Monitoring health">
           <dl className="space-y-2 text-sm" data-testid="monitoring-health">
+            <div className="flex justify-between"><dt className="text-muted">Incidents in progress</dt><dd className="tabular"><Link className="hover:text-crimson-text" href={`/w/${ws}/shield/incidents`}>{o.incidents_in_progress}</Link></dd></div>
             <div className="flex justify-between"><dt className="text-muted">Live authorizations</dt><dd className="tabular">{o.authorizations_live}</dd></div>
             <div className="flex justify-between"><dt className="text-muted">Checks a day (limit)</dt><dd className="tabular">{o.checks_per_day_authorized} / {o.daily_cap}</dd></div>
             <div className="flex justify-between"><dt className="text-muted">Ran in the last 24 h</dt><dd className="tabular">{o.checks_ran_24h}</dd></div>

@@ -42,6 +42,8 @@ export const can = {
   launchPlaybooks: (r: Role) => r === "owner",
   approveOperations: (r: Role) => rank[r] >= rank.operator,
   editFindings: (r: Role) => rank[r] >= rank.analyst,
+  /** SHIELD incidents: close, override, reopen, cancel, severity and lead. */
+  manageIncidents: (r: Role) => rank[r] >= rank.admin,
   assign: (actor: Role, role: Role) => actor === "owner" || rank[role] < rank[actor],
   manage: (actor: Role, target: Role) => actor === "owner" || rank[target] < rank[actor],
 };

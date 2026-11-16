@@ -38,6 +38,7 @@ from nightfall.registry.routes import router as registry_router
 from nightfall.reports.routes import router as reports_router
 from nightfall.scope.ownership import router as ownership_router
 from nightfall.scope.routes import router as scope_router
+from nightfall.shield.incident_routes import router as incidents_router
 from nightfall.shield.routes import router as shield_router
 from nightfall.warpath.routes import router as warpath_router
 from nightfall.warroom.routes import router as warroom_router
@@ -185,6 +186,7 @@ ROUTERS = (
     nexus_router,
     identities_router,
     shield_router,
+    incidents_router,
     warpath_router,
     recon_router,
     findings_router,

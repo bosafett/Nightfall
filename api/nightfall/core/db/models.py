@@ -8,7 +8,7 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, LargeBinary, Text, text
+from sqlalchemy import DateTime, Enum, ForeignKey, Identity, Integer, LargeBinary, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -405,6 +405,8 @@ class Operation(Base):
     monitor_authorization_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("monitor_authorizations.id")
     )
+    # SHIELD v2 (migration 0023): a verification run requested from an incident.
+    incident_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("incidents.id"))
     playbook_step: Mapped[int | None]
     denial_reason: Mapped[str | None]
     error: Mapped[str | None]
@@ -849,6 +851,60 @@ class Alert(Base):
     resolved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     resolved_at: Mapped[datetime | None]
     note: Mapped[str] = mapped_column(server_default=text("''"))
+    # Migration 0023: the facts the alert was raised on, for later verification.
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'"))
+
+
+class Incident(Base):
+    """SHIELD v2 (migration 0023): a tracked incident. The database enforces the lifecycle."""
+
+    __tablename__ = "incidents"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    project_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("projects.id"))
+    title: Mapped[str]
+    summary: Mapped[str] = mapped_column(server_default=text("''"))
+    severity: Mapped[Severity] = mapped_column(_pg_enum(Severity, "severity"))
+    severity_reason: Mapped[str] = mapped_column(server_default=text("''"))
+    lead_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    state: Mapped[str] = mapped_column(server_default=text("'open'"))
+    opened_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    opened_at: Mapped[datetime] = _created()
+    closed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    closed_at: Mapped[datetime | None]
+    override_reason: Mapped[str] = mapped_column(server_default=text("''"))
+    review: Mapped[dict[str, Any] | None] = mapped_column(JSONB(none_as_null=True))
+    cancel_reason: Mapped[str] = mapped_column(server_default=text("''"))
+
+
+class IncidentItem(Base):
+    """An alert, finding or asset linked to an incident; removed at most once."""
+
+    __tablename__ = "incident_items"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    incident_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("incidents.id"))
+    kind: Mapped[str]
+    item_id: Mapped[uuid.UUID]
+    added_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    added_at: Mapped[datetime] = _created()
+    removed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    removed_at: Mapped[datetime | None]
+
+
+class IncidentEntry(Base):
+    """One line of an incident's timeline. Insert-only."""
+
+    __tablename__ = "incident_entries"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    seq: Mapped[int] = mapped_column(Identity(always=True))
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    incident_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("incidents.id"))
+    kind: Mapped[str]
+    body: Mapped[str] = mapped_column(server_default=text("''"))
+    data: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'"))
+    actor_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
 
 
 class WarpathExercise(Base):

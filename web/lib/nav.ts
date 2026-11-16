@@ -38,8 +38,9 @@ export const NAV_GROUPS: NavGroup[] = [
     { key: "alerts", label: "Alerts & Detection", href: (ws) => `/w/${ws}/shield/alerts`, icon: "alert" },
     planned("hunting", "Threat Hunting"),
     planned("countermeasures", "Countermeasures"),
-    planned("incidents", "Incident Response"),
-    planned("recovery", "Recovery & Verification"),
+    { key: "incidents", label: "Incident Response", href: (ws) => `/w/${ws}/shield/incidents`, icon: "alert" },
+    { key: "recovery", label: "Recovery & Verification", planned: true, tag: "In Incidents",
+      title: "Verification is the last stage of each incident: JANUS re-runs the check that raised an alert" },
   ] },
   { key: "core", label: "JANUS CORE", description: "Shared infrastructure", collapsible: { open: false }, items: [
     { key: "blackice", label: "BLACK ICE", planned: true, tag: "In Findings",

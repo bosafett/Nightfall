@@ -42,6 +42,8 @@ def raise_alert(
             existing.evidence_ids = list(dict.fromkeys([*existing.evidence_ids, *evidence_ids]))[
                 -20:
             ]
+        if draft.data:
+            existing.data = draft.data
         db.flush()
         return existing
     alert = Alert(
@@ -56,6 +58,7 @@ def raise_alert(
         dedupe_key=draft.key[:500],
         evidence_ids=evidence_ids or [],
         finding_id=finding_id,
+        data=draft.data,
         rules=rules.RULES,
         first_seen_at=now,
         last_seen_at=now,
@@ -122,6 +125,10 @@ def after_run(
     cur = rules.snapshot(op.tool, result, header_fail)
     if cur is None:
         return None
+    if op.incident_id is not None:
+        from nightfall.shield.incidents import record_verification
+
+        record_verification(db, op, cur, finding_changes, evidence_id, now)
     prev = previous_snapshot(db, op)
     for draft in rules.compare(op.tool, op.target_value, prev, cur, now, in_scope):
         raise_alert(
@@ -139,6 +146,7 @@ def after_run(
                     f"The check {ch.get('check_id')} observed the problem again after it was "
                     "marked remediated. BLACK ICE reopened the finding as unverified.",
                     f"finding.reopened:{fid}",
+                    {"tool": op.tool},
                 ),
                 op.target_value, now, [evidence_id], fid,
             )  # fmt: skip
@@ -146,6 +154,10 @@ def after_run(
 
 
 def failed_run(db: Session, op: Operation, reason: str, now: datetime) -> None:
+    if op.incident_id is not None:
+        from nightfall.shield.incidents import record_verification_failed
+
+        record_verification_failed(db, op, reason)
     raise_alert(
         db, op.workspace_id, op.project_id, op.monitor_authorization_id,
         AlertDraft(

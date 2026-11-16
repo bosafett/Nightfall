@@ -11,3 +11,6 @@ export const checkLabel: Record<string, string> = {
   ct: "Certificate-transparency names (passive)", dns: "DNS records (passive)", tls: "TLS configuration (low)", headers: "Security headers (low)",
 };
 export const endedLabel: Record<string, string> = { revoked: "Revoked", expired: "Expired", renewed: "Renewed", scope_changed: "Scope changed" };
+export const incidentStateLabel: Record<string, string> = {
+  open: "Open", contained: "Contained", recovering: "Recovering", closed: "Closed", cancelled: "Cancelled",
+};

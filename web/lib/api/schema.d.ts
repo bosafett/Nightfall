@@ -855,6 +855,250 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Incidents */
+        get: operations["list_incidents_api_workspaces__workspace_id__incidents_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Incident */
+        get: operations["get_incident_api_workspaces__workspace_id__incidents__incident_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Incident */
+        post: operations["cancel_incident_api_workspaces__workspace_id__incidents__incident_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/checklist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Checklist */
+        post: operations["change_checklist_api_workspaces__workspace_id__incidents__incident_id__checklist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Close Incident */
+        post: operations["close_incident_api_workspaces__workspace_id__incidents__incident_id__close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Incident Entry */
+        post: operations["add_incident_entry_api_workspaces__workspace_id__incidents__incident_id__entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Export Incident
+         * @description The incident's record as JSON. Actions are recorded statements, not things JANUS did.
+         */
+        get: operations["export_incident_api_workspaces__workspace_id__incidents__incident_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Link Item */
+        post: operations["link_item_api_workspaces__workspace_id__incidents__incident_id__items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/items/{item_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Unlink Item */
+        post: operations["unlink_item_api_workspaces__workspace_id__incidents__incident_id__items__item_id__remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/lead": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Lead */
+        post: operations["change_lead_api_workspaces__workspace_id__incidents__incident_id__lead_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen Incident */
+        post: operations["reopen_incident_api_workspaces__workspace_id__incidents__incident_id__reopen_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/severity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Change Severity */
+        post: operations["change_severity_api_workspaces__workspace_id__incidents__incident_id__severity_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Incident */
+        post: operations["move_incident_api_workspaces__workspace_id__incidents__incident_id__state_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/incidents/{incident_id}/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Incident
+         * @description Queues the monitor's own check for each alert a check can look for again.
+         */
+        post: operations["verify_incident_api_workspaces__workspace_id__incidents__incident_id__verify_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/invites": {
         parameters: {
             query?: never;
@@ -1350,6 +1594,23 @@ export interface paths {
         get: operations["project_graph_api_workspaces__workspace_id__projects__project_id__graph_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/projects/{project_id}/incidents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open Incident */
+        post: operations["open_incident_api_workspaces__workspace_id__projects__project_id__incidents_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3482,6 +3743,320 @@ export interface components {
             /** Status */
             status: string;
         };
+        /**
+         * IncidentCheckIn
+         * @description Tick or untick an item (key), or add one (text).
+         */
+        IncidentCheckIn: {
+            /**
+             * Done
+             * @default false
+             */
+            done: boolean;
+            /** Key */
+            key?: string | null;
+            /** Text */
+            text?: string | null;
+        };
+        /** IncidentCheckOut */
+        IncidentCheckOut: {
+            /**
+             * Changed At
+             * Format: date-time
+             */
+            changed_at: string;
+            /** Changed By */
+            changed_by: string | null;
+            /** Done */
+            done: boolean;
+            /** Key */
+            key: string;
+            /** Source */
+            source: string;
+            /** Text */
+            text: string;
+        };
+        /** IncidentCloseIn */
+        IncidentCloseIn: {
+            /**
+             * Override Reason
+             * @default
+             */
+            override_reason: string;
+            review: components["schemas"]["IncidentReview"];
+        };
+        /** IncidentDetailOut */
+        IncidentDetailOut: {
+            /** Alert Count */
+            alert_count: number;
+            /** Cancel Reason */
+            cancel_reason: string;
+            /** Checklist */
+            checklist: components["schemas"]["IncidentCheckOut"][];
+            /** Close Blockers */
+            close_blockers: string[];
+            /** Closed At */
+            closed_at: string | null;
+            /** Closed By */
+            closed_by: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Items */
+            items: components["schemas"]["IncidentItemOut"][];
+            /** Lead */
+            lead: string;
+            /**
+             * Lead User Id
+             * Format: uuid
+             */
+            lead_user_id: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Opened By */
+            opened_by: string;
+            /** Override Reason */
+            override_reason: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            review: components["schemas"]["IncidentReview"] | null;
+            severity: components["schemas"]["Severity"];
+            /** Severity Reason */
+            severity_reason: string;
+            /** State */
+            state: string;
+            /** Summary */
+            summary: string;
+            /** Timeline */
+            timeline: components["schemas"]["IncidentEntryOut"][];
+            /** Title */
+            title: string;
+            /** Verification */
+            verification: components["schemas"]["IncidentVerificationOut"][];
+        };
+        /** IncidentEntryIn */
+        IncidentEntryIn: {
+            /** Body */
+            body: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "note" | "action";
+        };
+        /** IncidentEntryOut */
+        IncidentEntryOut: {
+            /** Actor */
+            actor: string | null;
+            /** Body */
+            body: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+        };
+        /** IncidentIn */
+        IncidentIn: {
+            /**
+             * Alert Ids
+             * @default []
+             */
+            alert_ids: string[];
+            /**
+             * Finding Ids
+             * @default []
+             */
+            finding_ids: string[];
+            /**
+             * Summary
+             * @default
+             */
+            summary: string;
+            /** Title */
+            title: string;
+        };
+        /** IncidentItemIn */
+        IncidentItemIn: {
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "alert" | "finding" | "asset";
+        };
+        /** IncidentItemOut */
+        IncidentItemOut: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at: string;
+            /** Added By */
+            added_by: string;
+            /** Detail */
+            detail: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Item Id
+             * Format: uuid
+             */
+            item_id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+        };
+        /** IncidentLeadIn */
+        IncidentLeadIn: {
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** IncidentOut */
+        IncidentOut: {
+            /** Alert Count */
+            alert_count: number;
+            /** Closed At */
+            closed_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lead */
+            lead: string;
+            /**
+             * Lead User Id
+             * Format: uuid
+             */
+            lead_user_id: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Opened By */
+            opened_by: string;
+            /**
+             * Project Id
+             * Format: uuid
+             */
+            project_id: string;
+            /** Project Name */
+            project_name: string;
+            severity: components["schemas"]["Severity"];
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+        };
+        /** IncidentReasonIn */
+        IncidentReasonIn: {
+            /** Reason */
+            reason: string;
+        };
+        /** IncidentReview */
+        IncidentReview: {
+            /**
+             * Cause
+             * @default
+             */
+            cause: string;
+            /**
+             * Lessons
+             * @default
+             */
+            lessons: string;
+            /** What Happened */
+            what_happened: string;
+            /** What Was Done */
+            what_was_done: string;
+        };
+        /** IncidentSeverityIn */
+        IncidentSeverityIn: {
+            /** Reason */
+            reason: string;
+            severity: components["schemas"]["Severity"];
+        };
+        /** IncidentStateIn */
+        IncidentStateIn: {
+            /** Note */
+            note: string;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "contained" | "recovering";
+        };
+        /** IncidentVerificationOut */
+        IncidentVerificationOut: {
+            /**
+             * Alert Id
+             * Format: uuid
+             */
+            alert_id: string;
+            /** At */
+            at: string | null;
+            /** Counts */
+            counts: boolean;
+            /** Detail */
+            detail: string;
+            /** Evidence Id */
+            evidence_id: string | null;
+            /** Operation Id */
+            operation_id: string | null;
+            /** State */
+            state: string;
+            /** Target */
+            target: string;
+            /** Title */
+            title: string;
+            /** Tool */
+            tool: string | null;
+        };
+        /** IncidentVerifyOut */
+        IncidentVerifyOut: {
+            /** Queued */
+            queued: {
+                [key: string]: string;
+            }[];
+            /** Skipped */
+            skipped: {
+                [key: string]: string;
+            }[];
+        };
         /** InviteCreatedOut */
         InviteCreatedOut: {
             invite: components["schemas"]["InviteOut"];
@@ -4866,6 +5441,8 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Incident Id */
+            incident_id?: string | null;
             /** Kind */
             kind: string;
             /**
@@ -4921,8 +5498,12 @@ export interface components {
              * Format: date-time
              */
             generated_at: string;
+            /** Incidents In Progress */
+            incidents_in_progress: number;
             /** Last Scheduled At */
             last_scheduled_at: string | null;
+            /** Oldest Incident Opened At */
+            oldest_incident_opened_at: string | null;
             /** Open Alerts */
             open_alerts: {
                 [key: string]: number;
@@ -7494,6 +8075,494 @@ export interface operations {
             };
         };
     };
+    list_incidents_api_workspaces__workspace_id__incidents_get: {
+        parameters: {
+            query?: {
+                state?: "in_progress" | "closed" | "all";
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_incident_api_workspaces__workspace_id__incidents__incident_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_incident_api_workspaces__workspace_id__incidents__incident_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_checklist_api_workspaces__workspace_id__incidents__incident_id__checklist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentCheckIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_incident_api_workspaces__workspace_id__incidents__incident_id__close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentCloseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_incident_entry_api_workspaces__workspace_id__incidents__incident_id__entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentEntryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_incident_api_workspaces__workspace_id__incidents__incident_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    link_item_api_workspaces__workspace_id__incidents__incident_id__items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentItemIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unlink_item_api_workspaces__workspace_id__incidents__incident_id__items__item_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                item_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_lead_api_workspaces__workspace_id__incidents__incident_id__lead_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentLeadIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reopen_incident_api_workspaces__workspace_id__incidents__incident_id__reopen_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentReasonIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_severity_api_workspaces__workspace_id__incidents__incident_id__severity_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentSeverityIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_incident_api_workspaces__workspace_id__incidents__incident_id__state_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentStateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_incident_api_workspaces__workspace_id__incidents__incident_id__verify_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentVerifyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_invites_api_workspaces__workspace_id__invites_get: {
         parameters: {
             query?: never;
@@ -8687,6 +9756,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProjectGraph"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_incident_api_workspaces__workspace_id__projects__project_id__incidents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                project_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IncidentIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
                 };
             };
             /** @description Validation Error */

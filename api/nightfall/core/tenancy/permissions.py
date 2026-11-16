@@ -22,12 +22,13 @@ class Permission(enum.StrEnum):
     OWNERSHIP_MANAGE = "ownership.manage"  # proof-of-control claims (Profile B G1): owner only
     IDENTITIES_MANAGE = "identities.manage"  # Profile B test identities (G2): owner only
     MONITORS_MANAGE = "monitors.manage"  # SHIELD standing authorizations: owner only
+    INCIDENTS_MANAGE = "incidents.manage"  # SHIELD v2: close, override, reopen, cancel
 
 
 P = Permission
 _ANALYST = {P.READ, P.REGISTRY_WRITE, P.OPERATIONS_PROPOSE, P.FINDINGS_EDIT, P.FINDINGS_VALIDATE}
 _OPERATOR = _ANALYST | {P.OPERATIONS_APPROVE}
-_ADMIN = _OPERATOR | {P.MEMBERS_MANAGE, P.SCOPE_AUTHORIZE, P.AUDIT_READ}
+_ADMIN = _OPERATOR | {P.MEMBERS_MANAGE, P.SCOPE_AUTHORIZE, P.AUDIT_READ, P.INCIDENTS_MANAGE}
 
 ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.OWNER: frozenset(

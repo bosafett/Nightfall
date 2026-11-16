@@ -159,6 +159,19 @@ ACTIONS: dict[str, str] = {
     "alert.raised": "SHIELD raised an alert",
     "alert.acknowledged": "acknowledged an alert",
     "alert.resolved": "resolved an alert",
+    "incident.opened": "opened an incident",
+    "incident.item_linked": "linked an item to an incident",
+    "incident.item_unlinked": "unlinked an item from an incident",
+    "incident.note_added": "added a note to an incident",
+    "incident.action_added": "recorded an action on an incident",
+    "incident.contained": "marked an incident contained",
+    "incident.recovering": "marked an incident recovering",
+    "incident.verification_requested": "requested verification for an incident",
+    "incident.severity_changed": "changed an incident's severity",
+    "incident.lead_changed": "changed an incident's lead",
+    "incident.cancelled": "cancelled an incident",
+    "incident.closed": "closed an incident",
+    "incident.reopened": "reopened an incident",
 }
 
 

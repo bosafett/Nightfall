@@ -22,6 +22,8 @@ from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
     Alert,
+    Incident,
+    IncidentItem,
     MonitorAuthorization,
     Operation,
     OperationStatus,
@@ -105,6 +107,7 @@ class ShieldAlertOut(Model):
     resolved_by: str | None
     resolved_at: datetime | None
     note: str
+    incident_id: uuid.UUID | None = None  # the incident in progress it is linked to
 
 
 class AlertResolveIn(Model):
@@ -133,6 +136,8 @@ class ShieldOverviewOut(Model):
     checks_per_day_authorized: int
     projects_unmonitored: list[str]  # active, non-lab scope but no live authorization
     rules: str
+    incidents_in_progress: int
+    oldest_incident_opened_at: datetime | None
 
 
 # --- Helpers ---------------------------------------------------------------------------------
@@ -177,7 +182,12 @@ def _auth_out(db: Session, a: MonitorAuthorization, now: datetime) -> MonitorAut
     )
 
 
-def _alert_out(db: Session, al: Alert, names: dict[uuid.UUID, str]) -> ShieldAlertOut:
+def _alert_out(
+    db: Session,
+    al: Alert,
+    names: dict[uuid.UUID, str],
+    incidents: dict[uuid.UUID, uuid.UUID] | None = None,
+) -> ShieldAlertOut:
     project = db.get(Project, al.project_id)
     return ShieldAlertOut(
         id=al.id,
@@ -203,6 +213,7 @@ def _alert_out(db: Session, al: Alert, names: dict[uuid.UUID, str]) -> ShieldAle
         resolved_by=names.get(al.resolved_by_user_id) if al.resolved_by_user_id else None,
         resolved_at=al.resolved_at,
         note=al.note,
+        incident_id=incidents.get(al.id) if incidents else None,
     )
 
 
@@ -210,7 +221,24 @@ def _alerts_out(db: Session, rows: list[Alert]) -> list[ShieldAlertOut]:
     names = _names(
         db, {r.acknowledged_by_user_id for r in rows} | {r.resolved_by_user_id for r in rows}
     )
-    return [_alert_out(db, r, names) for r in rows]
+    incidents: dict[uuid.UUID, uuid.UUID] = {}
+    if rows:
+        # The incident in progress each alert is linked to, if any (at most one: migration 0023).
+        incidents = dict(
+            db.execute(
+                select(IncidentItem.item_id, IncidentItem.incident_id)
+                .join(Incident, Incident.id == IncidentItem.incident_id)
+                .where(
+                    IncidentItem.kind == "alert",
+                    IncidentItem.item_id.in_([r.id for r in rows]),
+                    IncidentItem.removed_at.is_(None),
+                    Incident.state.in_(("open", "contained", "recovering")),
+                )
+            )
+            .tuples()
+            .all()
+        )
+    return [_alert_out(db, r, names, incidents) for r in rows]
 
 
 def _authorized_per_day(
@@ -508,6 +536,11 @@ def overview(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> 
         .limit(50)
     ).all()
     monitored = {a.project_id for a in live}
+    inc_count, inc_oldest = db.execute(
+        select(func.count(), func.min(Incident.opened_at)).where(
+            Incident.workspace_id == ws, Incident.state.in_(("open", "contained", "recovering"))
+        )
+    ).one()
     active_projects = db.execute(
         select(Project.id, Project.name)
         .join(Scope, Scope.project_id == Project.id)
@@ -542,4 +575,6 @@ def overview(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> 
         checks_per_day_authorized=sum(len(a.targets) * len(a.checks) for a in live),
         projects_unmonitored=sorted({n for pid, n in active_projects if pid not in monitored}),
         rules=RULES,
+        incidents_in_progress=int(inc_count or 0),
+        oldest_incident_opened_at=inc_oldest,
     )

@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { expect, test, type Page } from "@playwright/test";
 import { E2E } from "../../playwright.config";
 import { totp } from "./totp";
@@ -104,7 +105,13 @@ test.describe("as the owner", () => {
     await nav.getByRole("link", { name: "AEGIS Overview" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "AEGIS Overview" })).toBeVisible();
     await expect(nav.getByText("Threat Hunting")).toBeVisible();
-    await expect(nav.getByRole("link", { name: /Threat Hunting|Countermeasures|Incident Response/ })).toHaveCount(0);
+    await expect(nav.getByRole("link", { name: /Threat Hunting|Countermeasures|Recovery/ })).toHaveCount(0);
+    // SHIELD v2: Incident Response is a page; Recovery & Verification lives inside each incident.
+    await expect(nav.getByText("In Incidents")).toBeVisible();
+    await nav.getByRole("link", { name: "Incident Response" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Incident Response" })).toBeVisible();
+    await expect(page.getByText("No incidents")).toBeVisible();
+    await expect(page.locator("main").getByRole("button")).toHaveCount(0);
   });
 
   test("BLACKSITE shows a restricted, not-configured state with no execution controls", async ({ page }) => {
@@ -607,11 +614,47 @@ test.describe("as the owner", () => {
     await expect(live).toContainText("Live · scope v1");
     await page.goto(`${workspaceUrl}/shield`);
     await expect(page.getByTestId("monitoring-health")).toContainText("3 / 30");
+    await expect(page.getByTestId("monitoring-health")).toContainText("Incidents in progress");
     await page.goto(`${workspaceUrl}/shield/monitoring`);
     await page.getByTestId("authorizations").getByRole("button", { name: "Revoke" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Revoke" }).click();
     await expect(page.getByText("No live authorization: nothing is monitored.")).toBeVisible();
     await noHorizontalScroll(page);
+  });
+
+  test("SHIELD incidents: open from an alert, work it, close with a review", async ({ page }) => {
+    // Alerts are raised by the worker; seed one as the database owner (a change report, which
+    // no re-check can verify, so the closing review alone closes it).
+    execFileSync(E2E.python, ["-c", [
+      "import sys, sqlalchemy as sa",
+      "e = sa.create_engine(sys.argv[1].replace('postgresql://', 'postgresql+psycopg://'))",
+      "with e.begin() as c:",
+      "    c.execute(sa.text(\"INSERT INTO alerts (workspace_id, project_id, kind, severity, title, detail, target, dedupe_key, rules) SELECT workspace_id, id, 'dns.changed', 'low', 'DNS records of acme.test changed', 'A: 192.0.2.10 -> 192.0.2.99', 'acme.test', 'e2e:dns', 'alerts/2026.11-1' FROM projects LIMIT 1\"))",
+    ].join("\n"), E2E.ownerDb]);
+    await page.goto(`${workspaceUrl}/shield/alerts`);
+    await page.getByTestId("open-incident").click();
+    await expect(page.getByRole("heading", { level: 1, name: "DNS records of acme.test changed" })).toBeVisible();
+    await expect(page.getByTestId("incident-items")).toContainText("low alert");
+    await expect(page.getByTestId("incident-checklist")).toContainText("Confirm the record change was intended");
+    await page.getByLabel("Entry type").selectOption("action");
+    await page.getByLabel("Entry text").fill("Reverted the A record at the registrar");
+    await page.getByRole("button", { name: "Add to timeline" }).click();
+    await expect(page.getByTestId("incident-timeline")).toContainText("Action (recorded)");
+    await page.getByTestId("incident-checklist").getByRole("checkbox").first().click();
+    await expect(page.getByTestId("incident-timeline")).toContainText("Done: acme.test");
+    await page.getByLabel("Note for marking contained").fill("Record reverted");
+    await page.getByTestId("incident-next").click();
+    await expect(page.getByTestId("incident-timeline")).toContainText("Marked contained");
+    const close = page.getByTestId("incident-close");
+    await close.getByLabel("What happened").fill("An A record was changed by mistake.");
+    await close.getByLabel("What was done").fill("Reverted it.");
+    await close.getByRole("button", { name: "Close incident" }).click();
+    await expect(page.getByTestId("incident-review")).toContainText("Reverted it.");
+    await expect(page.getByTestId("incident-timeline")).toContainText("Closed on its review");
+    await expect(page.getByRole("button", { name: "Add to timeline" })).toHaveCount(0);
+    await noHorizontalScroll(page);
+    await page.goto(`${workspaceUrl}/shield/alerts`);
+    await expect(page.getByText("No alerts.")).toBeVisible();
   });
 
   test("WARPATH: page, ATT&CK attribution, and plans need a lab scope", async ({ page }) => {

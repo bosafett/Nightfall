@@ -951,6 +951,21 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     new self-hosted Profile B worker (`infra/profile-b/`), which alone holds the key and alone claims Profile B
     operations; G5 checked where the run executes, plus a preflight readiness check; WATCHTOWER shows that worker.
     Evidence for the owner's self-review: `docs/reviews/2026-11-09-profile-b-evidence.md`.
+- **SHIELD v2: incident response, with recovery and verification (built; migration 0023).** Design and decisions:
+  `docs/designs/2026-11-shield-incident-response.md` (§11 as built).
+  - **Incidents:** opened by a person from alerts; a lead, a state (open, contained, recovering, closed, or
+    cancelled), an insert-only timeline of events, notes and recorded actions, and a checklist made from the alerts'
+    recommended fixes. Actions are statements by named people about work done outside JANUS: nothing is executed.
+  - **Verification:** "Verify now" queues the monitor's own check under its live authorization, as an ordinary
+    operation, so scope, target, tool, risk, expiry and the daily cap all still apply. The worker records "still
+    present" or "not observed" from the check's facts. Only alerts that describe a condition can be verified
+    (certificate expiring, TLS weakened, headers regressed, finding back); change reports can't.
+  - **Closing:** admin or owner, with a review. It needs every verifiable alert "not observed" since the last
+    recorded action, or a labelled override with a reason and fresh two-factor. Its alerts resolve with it.
+  - **Agents:** no incident permissions.
+  - **Tests:** `api/tests/test_incidents.py` (roles, lifecycle, database rules, verification, override, rules), and a
+    browser test of the whole flow.
+  - **Still planned in SHIELD:** threat hunting (needs log sources). Countermeasures stay recommendation-only.
 - **WARPATH v1: purple-team exercises in the lab (built, switched off; migration 0022).** Design and decisions:
   `docs/designs/2026-11-warpath.md` (§12 as built).
   - **Plans:** lab playbook steps, each tagged with an ATT&CK technique (Enterprise 20.0, pinned) that the playbook
