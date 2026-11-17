@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { IncidentDetail, ShieldAlert } from "@/lib/api/types";
+import type { Finding, IncidentDetail, ShieldAlert } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
@@ -20,6 +20,10 @@ export default async function IncidentPage({ params }: { params: Promise<{ ws: s
   const linked = new Set(inc.items.filter((i) => i.kind === "alert").map((i) => i.item_id));
   const addable = inProgress && canWork
     ? (await apiGet<ShieldAlert[]>(`/workspaces/${ws}/alerts?state=active&project_id=${inc.project_id}&limit=200`)).filter((a) => !linked.has(a.id) && !a.incident_id)
+    : [];
+  const linkedFindings = new Set(inc.items.filter((i) => i.kind === "finding").map((i) => i.item_id));
+  const findings = inProgress && canWork
+    ? (await apiGet<Finding[]>(`/workspaces/${ws}/findings?project_id=${inc.project_id}`)).filter((f) => !linkedFindings.has(f.id)).slice(0, 200)
     : [];
   const href = (kind: string, id: string) => kind === "finding" ? `/w/${ws}/findings/${id}` : null;
   return (
@@ -57,7 +61,8 @@ export default async function IncidentPage({ params }: { params: Promise<{ ws: s
               </ul>
             )}
           </Panel>
-          <IncidentPanel ws={ws} incident={inc} addable={addable.map((a) => ({ id: a.id, title: a.title }))} canWork={canWork && inProgress} canManage={canManage} mfaHint={inProgress} />
+          <IncidentPanel ws={ws} incident={inc} addable={addable.map((a) => ({ id: a.id, title: a.title }))}
+            findings={findings.map((f) => ({ id: f.id, title: `${f.ref} ${f.title}` }))} canWork={canWork && inProgress} canManage={canManage} mfaHint={inProgress} />
           <Panel title="Timeline">
             <ol className="space-y-2 text-sm" data-testid="incident-timeline">
               {inc.timeline.map((e) => (

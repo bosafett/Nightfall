@@ -4392,6 +4392,62 @@
         "title": "IncidentVerifyOut",
         "type": "object"
       },
+      "IncidentWaiting": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lead": {
+            "title": "Lead",
+            "type": "string"
+          },
+          "opened_at": {
+            "format": "date-time",
+            "title": "Opened At",
+            "type": "string"
+          },
+          "project_name": {
+            "title": "Project Name",
+            "type": "string"
+          },
+          "ready_to_close": {
+            "title": "Ready To Close",
+            "type": "boolean"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "waiting_for": {
+            "title": "Waiting For",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "project_name",
+          "severity",
+          "state",
+          "lead",
+          "opened_at",
+          "waiting_for",
+          "ready_to_close"
+        ],
+        "title": "IncidentWaiting",
+        "type": "object"
+      },
       "InviteCreatedOut": {
         "additionalProperties": false,
         "properties": {
@@ -9140,6 +9196,13 @@
             "title": "In Flight",
             "type": "array"
           },
+          "incidents": {
+            "items": {
+              "$ref": "#/components/schemas/IncidentWaiting"
+            },
+            "title": "Incidents",
+            "type": "array"
+          },
           "review_counts": {
             "$ref": "#/components/schemas/ReviewCounts"
           },
@@ -9157,6 +9220,7 @@
           "in_flight",
           "to_review",
           "review_counts",
+          "incidents",
           "decisions"
         ],
         "title": "WarRoomOut",

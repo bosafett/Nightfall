@@ -25,6 +25,10 @@ const actionText: Record<string, string> = {
   "agent_task.requested": "started an agent",
   "agent_task.cancelled": "cancelled an agent task",
   "report.generated": "generated a report",
+  "incident.opened": "opened an incident",
+  "incident.closed": "closed an incident",
+  "incident.cancelled": "cancelled an incident",
+  "incident.reopened": "reopened an incident",
 };
 
 const plural = (n: number, word: string) => (n === 1 ? word : `${word}s`);
@@ -36,6 +40,7 @@ function entityHref(ws: string, type: string | null, id: string | null): string 
   if (type === "agent_task") return `/w/${ws}/agents/${id}`;
   if (type === "report") return `/w/${ws}/reports/${id}`;
   if (type === "attack_path") return `/w/${ws}/attack-graph`;
+  if (type === "incident") return `/w/${ws}/shield/incidents/${id}`;
   return null;
 }
 
@@ -114,6 +119,22 @@ export default async function WarRoomPage({ params }: { params: Promise<{ ws: st
                     <p className="text-xs text-muted">{r.detail}</p>
                   </div>
                   <Badge tone="yellow">Hypothesis</Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+
+        <Panel title={`Incidents in progress · ${room.incidents.length}`}>
+          {room.incidents.length === 0 ? <p className="text-sm text-muted">No incident is in progress.</p> : (
+            <ul className="-my-2 divide-y divide-border" data-testid="warroom-incidents">
+              {room.incidents.map((i) => (
+                <li key={i.id} className="flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/w/${ws}/shield/incidents/${i.id}`} className="block truncate text-sm hover:text-crimson-text">{i.title}</Link>
+                    <p className="text-xs text-muted">{i.project_name} · {i.severity} · lead {i.lead} · {i.waiting_for}</p>
+                  </div>
+                  <Badge tone={i.ready_to_close ? "green" : "yellow"}>{i.ready_to_close ? "Ready to close" : i.state}</Badge>
                 </li>
               ))}
             </ul>

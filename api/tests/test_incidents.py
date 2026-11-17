@@ -115,6 +115,10 @@ def test_open_work_and_roles(client: TestClient, env, weak, owner_db: Session) -
 
     use(client, env["viewer"])
     assert client.get(url).status_code == 200
+    room = client.get(f"{W(env)}/war-room").json()
+    assert [(i["id"], i["ready_to_close"]) for i in room["incidents"]] == [(inc["id"], False)]
+    assert "not verified" in room["incidents"][0]["waiting_for"]
+    assert "incident.opened" in [d["action"] for d in room["decisions"]]
     assert [i["id"] for i in client.get(f"{W(env)}/incidents").json()] == [inc["id"]]
     chron = client.get(f"{W(env)}/projects/{env['pid']}/chronicle").json()["entries"]
     assert "incident.opened" in [e["action"] for e in chron]

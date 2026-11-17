@@ -965,6 +965,8 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
   - **Agents:** no incident permissions.
   - **Tests:** `api/tests/test_incidents.py` (roles, lifecycle, database rules, verification, override, rules), and a
     browser test of the whole flow.
+  - **War Room and findings (2026-11-17):** the War Room lists incidents in progress with what each is waiting
+    for, and shows incident decisions in its log; findings can be linked from the incident page.
   - **Still planned in SHIELD:** threat hunting (needs log sources). Countermeasures stay recommendation-only.
 - **WARPATH v1: purple-team exercises in the lab (built, switched off; migration 0022).** Design and decisions:
   `docs/designs/2026-11-warpath.md` (§12 as built).

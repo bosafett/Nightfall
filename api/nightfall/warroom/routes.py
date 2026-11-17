@@ -8,6 +8,8 @@
   * in_flight: operations and agent tasks that are queued or running.
   * to_review: what agents proposed that only a person can settle (findings, attack paths,
     relationships still marked hypothesis).
+  * incidents: SHIELD incidents in progress, with what each is waiting for (verification, or
+    a closing review by an admin or owner).
   * decisions: the decision trail from audit_events. Only listed actions and listed data
     fields are shown, never IPs or user agents.
 Every value is read from stored records.
@@ -36,6 +38,7 @@ from nightfall.core.db.models import (
     AuditEvent,
     Finding,
     FindingOrigin,
+    Incident,
     Operation,
     OperationStatus,
     Organization,
@@ -66,6 +69,10 @@ DECISION_ACTIONS = (
     "agent_task.requested",
     "agent_task.cancelled",
     "report.generated",
+    "incident.opened",
+    "incident.closed",
+    "incident.cancelled",
+    "incident.reopened",
 )
 SAFE_FIELDS = (
     "tool",
@@ -124,6 +131,18 @@ class ReviewCounts(Model):
     relationships: int
 
 
+class IncidentWaiting(Model):
+    id: uuid.UUID
+    title: str
+    project_name: str
+    severity: str
+    state: str
+    lead: str
+    opened_at: datetime
+    waiting_for: str  # what a person has to do next
+    ready_to_close: bool
+
+
 class Decision(Model):
     id: uuid.UUID
     action: str
@@ -141,6 +160,7 @@ class WarRoomOut(Model):
     in_flight: list[InFlight]
     to_review: list[ReviewItem]
     review_counts: ReviewCounts
+    incidents: list[IncidentWaiting]
     decisions: list[Decision]
 
 
@@ -320,6 +340,42 @@ def war_room(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> 
         )
     review.sort(key=lambda x: x.created_at, reverse=True)
 
+    from nightfall.shield import incidents as incident_logic
+
+    open_incidents = db.execute(
+        select(Incident, Project.name)
+        .join(Project, Project.id == Incident.project_id)
+        .where(Incident.workspace_id == ws, Incident.state.in_(incident_logic.IN_PROGRESS))
+        .order_by(Incident.opened_at)
+        .limit(LIMIT)
+    ).all()
+    leads = _names(db, {i.lead_user_id for i, _ in open_incidents})
+    incidents_waiting = []
+    for inc, pname in open_incidents:
+        left = incident_logic.unverified(db, inc)
+        pending = sum(1 for v in left if v.state == "pending")
+        if pending:
+            waiting = f"{pending} verification check(s) waiting to run."
+        elif left:
+            waiting = (
+                f"{len(left)} alert(s) not verified: fix and verify, or close with an override."
+            )
+        else:
+            waiting = "Ready for a closing review by an admin or owner."
+        incidents_waiting.append(
+            IncidentWaiting(
+                id=inc.id,
+                title=inc.title,
+                project_name=pname,
+                severity=inc.severity.value,
+                state=inc.state,
+                lead=leads.get(inc.lead_user_id, "—"),
+                opened_at=inc.opened_at,
+                waiting_for=waiting,
+                ready_to_close=not left,
+            )
+        )
+
     events = db.scalars(
         select(AuditEvent)
         .where(AuditEvent.workspace_id == ws, AuditEvent.action.in_(DECISION_ACTIONS))
@@ -351,6 +407,7 @@ def war_room(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) -> 
         in_flight=in_flight,
         to_review=review,
         review_counts=counts,
+        incidents=incidents_waiting,
         decisions=decisions,
     )
 

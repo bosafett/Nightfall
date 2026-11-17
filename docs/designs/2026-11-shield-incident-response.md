@@ -194,5 +194,8 @@ self-hosted.
 - **Checklist:** stored as timeline entries (the latest entry per item is its state), so every tick is on the record.
 - **UI:** SHIELD → Incident Response (list and incident page); "Open incident" and "In an incident" on each alert;
   incidents in progress on AEGIS. Recovery & Verification is tagged "In Incidents" in the sidebar.
-- **Not built in this version:** the report appendix (the JSON export exists); War Room entries for incidents;
-  automatic "alert seen again" timeline entries; linking findings and assets from the UI (the API accepts them).
+- **Added 2026-11-17:** the War Room lists incidents in progress with what each is waiting for (verification, or a
+  closing review), and its decision log shows incidents opened, closed, cancelled and reopened; findings of the
+  project can be linked from the incident page.
+- **Not built in this version:** the report appendix (the JSON export exists); automatic "alert seen again"
+  timeline entries; linking assets from the UI (the API accepts them).

@@ -11,8 +11,8 @@ const NEXT: Record<string, "contained" | "recovering" | null> = { open: "contain
 
 /** Everything a person does on an incident. JANUS records it; the only thing it runs is
  * "Verify now", which queues the monitor's own check under its existing authorization. */
-export function IncidentPanel({ ws, incident: inc, addable, canWork, canManage, mfaHint }: {
-  ws: string; incident: IncidentDetail; addable: { id: string; title: string }[]; canWork: boolean; canManage: boolean; mfaHint: boolean;
+export function IncidentPanel({ ws, incident: inc, addable, findings, canWork, canManage, mfaHint }: {
+  ws: string; incident: IncidentDetail; addable: { id: string; title: string }[]; findings: { id: string; title: string }[]; canWork: boolean; canManage: boolean; mfaHint: boolean;
 }) {
   const { busy, error, run } = useAction();
   const [verify, setVerify] = useState<IncidentVerify | null>(null);
@@ -98,6 +98,19 @@ export function IncidentPanel({ ws, incident: inc, addable, canWork, canManage, 
               <Select name="alert" aria-label="Alert to add" defaultValue="" className="min-w-0 flex-1">
                 <option value="" disabled>Add another alert of this project…</option>
                 {addable.map((a) => <option key={a.id} value={a.id}>{a.title}</option>)}
+              </Select>
+              <Button type="submit" disabled={busy}>Link</Button>
+            </form>
+          )}
+          {findings.length > 0 && (
+            <form className="mt-2 flex gap-2" data-testid="incident-link-finding" onSubmit={(e) => {
+              e.preventDefault();
+              const id = text(e.currentTarget, "finding");
+              if (id) post("items", { kind: "finding", item_id: id });
+            }}>
+              <Select name="finding" aria-label="Finding to add" defaultValue="" className="min-w-0 flex-1">
+                <option value="" disabled>Link a finding of this project…</option>
+                {findings.map((f) => <option key={f.id} value={f.id}>{f.title}</option>)}
               </Select>
               <Button type="submit" disabled={busy}>Link</Button>
             </form>

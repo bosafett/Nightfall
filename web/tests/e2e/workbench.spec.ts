@@ -645,6 +645,16 @@ test.describe("as the owner", () => {
     await page.getByLabel("Note for marking contained").fill("Record reverted");
     await page.getByTestId("incident-next").click();
     await expect(page.getByTestId("incident-timeline")).toContainText("Marked contained");
+    // Findings of the project can be linked, and the War Room lists the incident as waiting.
+    const finding = page.getByTestId("incident-link-finding");
+    await finding.getByLabel("Finding to add").selectOption({ index: 1 });
+    await finding.getByRole("button", { name: "Link" }).click();
+    await expect(page.getByTestId("incident-items")).toContainText("finding,");
+    const incidentUrl = page.url();
+    await page.goto(`${workspaceUrl}/war-room`);
+    await expect(page.getByTestId("warroom-incidents")).toContainText("DNS records of acme.test changed");
+    await expect(page.getByTestId("warroom-incidents")).toContainText("Ready to close");
+    await page.goto(incidentUrl);
     const close = page.getByTestId("incident-close");
     await close.getByLabel("What happened").fill("An A record was changed by mistake.");
     await close.getByLabel("What was done").fill("Reverted it.");

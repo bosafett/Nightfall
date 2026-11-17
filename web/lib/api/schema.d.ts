@@ -4057,6 +4057,33 @@ export interface components {
                 [key: string]: string;
             }[];
         };
+        /** IncidentWaiting */
+        IncidentWaiting: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lead */
+            lead: string;
+            /**
+             * Opened At
+             * Format: date-time
+             */
+            opened_at: string;
+            /** Project Name */
+            project_name: string;
+            /** Ready To Close */
+            ready_to_close: boolean;
+            /** Severity */
+            severity: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+            /** Waiting For */
+            waiting_for: string;
+        };
         /** InviteCreatedOut */
         InviteCreatedOut: {
             invite: components["schemas"]["InviteOut"];
@@ -5782,6 +5809,8 @@ export interface components {
             generated_at: string;
             /** In Flight */
             in_flight: components["schemas"]["InFlight"][];
+            /** Incidents */
+            incidents: components["schemas"]["IncidentWaiting"][];
             review_counts: components["schemas"]["ReviewCounts"];
             /** To Review */
             to_review: components["schemas"]["ReviewItem"][];
