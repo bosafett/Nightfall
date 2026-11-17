@@ -625,6 +625,46 @@ test.describe("as the owner", () => {
     await noHorizontalScroll(page);
   });
 
+  test("SHIELD intrusion detection: register a sensor, authorize GUARD, kill switch, approve and lift a block", async ({ page }) => {
+    await page.goto(`${workspaceUrl}/shield/intrusion`);
+    await expect(page.getByRole("heading", { level: 1, name: "Intrusion Detection" })).toBeVisible();
+    await expect(page.getByTestId("intrusion-status")).toContainText("Alert only");
+
+    await page.getByLabel("New sensor name").fill("lab-host");
+    await page.getByRole("button", { name: /Register sensor/ }).click();
+    await expect(page.getByTestId("sensor-key")).toContainText(/^nfs_/);
+    await expect(page.getByTestId("sensor-row")).toContainText("Offline");
+
+    const authForm = page.locator("form", { hasText: "Authorize automatic blocks" });
+    await authForm.getByRole("checkbox", { name: "lab-host" }).check();
+    await authForm.getByRole("button", { name: "Record authorization" }).click();
+    await expect(page.getByTestId("response-authorization")).toContainText("lab-host");
+    await expect(page.getByTestId("intrusion-status")).toContainText("Active");
+
+    await page.getByRole("button", { name: "Pause automatic response" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Pause" }).click();
+    await expect(page.getByTestId("intrusion-status")).toContainText("Paused");
+    await page.getByRole("button", { name: /^Resume/ }).click();
+    await expect(page.getByTestId("intrusion-status")).toContainText("Active");
+
+    const allowForm = page.locator("form", { hasText: "Note" });
+    await allowForm.getByLabel("Address or range").fill("198.51.100.0/24");
+    await allowForm.getByRole("button", { name: "Add" }).click();
+    await expect(page.getByText("198.51.100.0/24")).toBeVisible();
+
+    const blockForm = page.locator("form", { hasText: "Approve a block" });
+    await blockForm.getByLabel("Address or range").fill("203.0.113.7");
+    await blockForm.getByRole("checkbox", { name: "lab-host" }).check();
+    await blockForm.getByLabel("Reason").fill("e2e scanner");
+    await blockForm.getByRole("button", { name: "Approve block" }).click();
+    const row = page.getByTestId("block-row");
+    await expect(row).toContainText("203.0.113.7/32");
+    await expect(row).toContainText("Waiting for sensor");
+    await row.getByRole("button", { name: "Lift" }).click();
+    await expect(page.getByText("Nothing is blocked.")).toBeVisible();
+    await noHorizontalScroll(page);
+  });
+
   test("SHIELD incidents: open from an alert, work it, close with a review", async ({ page }) => {
     // Alerts are raised by the worker; seed one as the database owner (a change report, which
     // no re-check can verify, so the closing review alone closes it).
