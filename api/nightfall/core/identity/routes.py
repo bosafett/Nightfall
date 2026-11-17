@@ -38,6 +38,7 @@ from nightfall.core.schemas import (
     UserOut,
     WorkspaceSummary,
 )
+from nightfall.shield.sign_in import raise_alert
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -208,6 +209,11 @@ def login(body: LoginIn, request: Request, response: Response, db: DB) -> MeOut:
             ip=ip,
             user_agent=ua,
         )
+        if user is not None:  # attempts on unknown emails stay in the audit trail only
+            if reason == "totp":
+                raise_alert(user.id, "signin.password_known", ip)
+            if login_failures_by_account.blocked(acct_key):
+                raise_alert(user.id, "signin.locked", ip)
         return api_error(401, code, message)
 
     user = db.scalar(select(User).where(User.email == body.email))
@@ -308,6 +314,8 @@ def mfa_verify(body: MfaConfirmIn, auth: Auth, db: DB) -> MeOut:
             ip=auth.ip,
             user_agent=auth.user_agent,
         )
+        if login_failures_by_account.blocked(key):
+            raise_alert(user.id, "signin.stepup_locked", auth.ip)
         raise api_error(400, "invalid_mfa_code", "That code didn't work. Try the next one.")
     login_failures_by_account.reset(key)
     user.totp_last_step = step

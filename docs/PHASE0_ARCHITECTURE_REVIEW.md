@@ -978,6 +978,11 @@ Addendum 5 is architectural guidance; it's built in small phases on top of what 
     and partial detections raise SHIELD `detection.gap` alerts.
   - **Scorecard:** a per-exercise scorecard with a tactic matrix.
   - **Scope:** v1 covers reconnaissance and probing, because those are the lab playbooks that exist.
+- **SHIELD v3 phase 1: sign-in alerts (built; migration 0024).** Design and decisions:
+  `docs/designs/2026-11-shield-v3-intrusion-detection.md` (§10 as built). Account lockouts, a correct password with
+  a wrong two-factor code, and repeated step-up failures raise alerts for the account's user and their workspace
+  admins. The existing throttles still do the blocking. Phase 2 (a self-hosted CrowdSec sensor with automatic,
+  time-limited blocks under a standing authorization) is designed, not built.
 - **SHIELD v1 and AEGIS overview (done, migration 0021).** Design and decisions:
   `docs/designs/2026-11-shield-aegis.md` (§12 lists how the build differs from it).
   - **Standing monitor authorizations:** owner only, with fresh two-factor. Daily passive and low-risk checks (CT, DNS,

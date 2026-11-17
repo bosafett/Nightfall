@@ -36,6 +36,9 @@ test("owner signs in, is required to enrol two-factor, then reaches the workspac
   await page.getByRole("button", { name: "Sign in" }).click();
   await expect(page).toHaveURL(/\/account\/security$/);
   await expect(page.getByText("Your role requires two-factor")).toBeVisible();
+  // One failed sign-in doesn't lock the account, so there is no sign-in alert.
+  await expect(page.getByRole("heading", { name: "Sign-in alerts" })).toBeVisible();
+  await expect(page.getByText("No sign-in alerts in the last 30 days.")).toBeVisible();
 
   await page.getByRole("button", { name: "Set up two-factor" }).click();
   const secret = await page.getByTestId("totp-secret").getAttribute("data-secret");

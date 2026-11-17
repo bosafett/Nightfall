@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { Me } from "@/lib/api/types";
+import type { Me, SignInAlert } from "@/lib/api/types";
 import { mfaRequired } from "@/lib/labels";
 import { AuthCard } from "@/components/AuthCard";
 import { Alert } from "@/components/ui/primitives";
+import { SignInAlertList } from "@/components/shield/SignInAlertList";
 import { MfaSetup, SignOutEverywhere } from "./SecurityActions";
 
 export const metadata: Metadata = { title: "Account security" };
 
 export default async function SecurityPage() {
-  const me = await apiGet<Me>("/auth/me");
+  const [me, alerts] = await Promise.all([apiGet<Me>("/auth/me"), apiGet<SignInAlert[]>("/auth/sign-in-alerts")]);
   const required = me.workspaces.some((w) => mfaRequired(w.role));
   const first = me.workspaces[0];
   const { mfa_enabled } = me.user;
@@ -33,6 +34,12 @@ export default async function SecurityPage() {
           ) : (
             <MfaSetup />
           )}
+        </section>
+
+        <section className="border-t border-border pt-5">
+          <h2 className="font-semibold">Sign-in alerts</h2>
+          <p className="mt-1 text-sm text-muted">Attempts on your account that JANUS stopped. Sign-in pauses for 15 minutes after repeated failures.</p>
+          <div className="mt-3"><SignInAlertList alerts={alerts} own /></div>
         </section>
 
         <section className="border-t border-border pt-5">

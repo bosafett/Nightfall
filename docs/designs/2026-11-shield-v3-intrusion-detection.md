@@ -144,3 +144,22 @@ Safeguards on the automatic tier:
 Effort: phase 1 (JANUS's own detection, no sensor) is about half the size of SHIELD v2 and needs one migration.
 Phase 2 (sensor and response) is about the size of the Profile B worker. No paid services; the sensor is
 self-hosted on machines you already run.
+
+## 10. As built: phase 1 (2026-11-17, migration 0024)
+
+- **Sign-in alerts** (`api/nightfall/shield/sign_in.py`, table `sign_in_alerts`), raised by the sign-in code for a
+  known account only:
+  - `signin.locked` (medium): the account was locked after repeated failed sign-ins;
+  - `signin.password_known` (high): the correct password with a wrong two-factor code;
+  - `signin.stepup_locked` (medium): a signed-in session failed the two-factor step-up repeatedly.
+  One open alert per account and kind; repeats raise its count and keep the ten latest addresses.
+- **Blocking is unchanged.** The existing throttles already lock an account or an address automatically for 15
+  minutes. Phase 1 makes that visible; it adds no new blocking.
+- **Who sees them (decision 5):** the account's own user (Account security) and the owners and admins of a
+  workspace the user belongs to (SHIELD → Alerts & Detection). Only the account's user acknowledges. Attempts on
+  unknown emails stay in the audit trail only.
+- **Database:** written only through `nf_record_sign_in_alert`, which fixes each kind's severity; the app role has
+  no INSERT and may update only the acknowledgment of its own user's alerts. Row-level security limits reads as
+  above.
+- **Not in phase 1:** the sensor and CrowdSec (phase 2), the standing response authorization, the Vercel firewall
+  proposals, and linking sign-in alerts to incidents (incidents belong to a project; sign-in alerts don't).

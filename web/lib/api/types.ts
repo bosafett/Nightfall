@@ -41,6 +41,7 @@ export type ShieldAlert = S["ShieldAlertOut"];
 export type Incident = S["IncidentOut"];
 export type IncidentDetail = S["IncidentDetailOut"];
 export type IncidentVerify = S["IncidentVerifyOut"];
+export type SignInAlert = S["SignInAlertOut"];
 export type WarpathCatalogue = S["WarpathCatalogueOut"];
 export type WarpathExercise = S["WarpathExerciseOut"];
 export type WarpathExerciseDetail = S["WarpathExerciseDetail"];

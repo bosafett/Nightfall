@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { ShieldAlert } from "@/lib/api/types";
+import type { ShieldAlert, SignInAlert } from "@/lib/api/types";
 import { can } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
 import { AlertList } from "@/components/shield/AlertList";
+import { SignInAlertList } from "@/components/shield/SignInAlertList";
 import { PageHeader, Panel } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Alerts & Detection" };
@@ -17,6 +18,7 @@ export default async function AlertsPage({ params, searchParams }: {
   const { state: raw } = await searchParams;
   const state = raw && raw in STATES ? raw : "active";
   const [alerts, me] = await Promise.all([apiGet<ShieldAlert[]>(`/workspaces/${ws}/alerts?state=${state}&limit=200`), membership(ws)]);
+  const signIn = can.manageMembers(me.role) ? await apiGet<SignInAlert[]>(`/workspaces/${ws}/sign-in-alerts`) : null;
   return (
     <>
       <PageHeader title="Alerts & Detection" subtitle="Raised by comparing each scheduled check with the previous one. A person acknowledges and resolves them." />
@@ -27,6 +29,12 @@ export default async function AlertsPage({ params, searchParams }: {
         ))}
       </nav>
       <Panel><AlertList ws={ws} alerts={alerts} canAct={can.editFindings(me.role)} /></Panel>
+      {signIn && (
+        <Panel title={`Sign-in alerts for members · ${signIn.filter((a) => a.state === "open").length} open`} className="mt-6">
+          <p className="mb-3 text-sm text-muted">Attacks on the accounts of this workspace&apos;s members. Sign-in pauses automatically after repeated failures; only the member can acknowledge.</p>
+          <SignInAlertList alerts={signIn} own={false} />
+        </Panel>
+      )}
     </>
   );
 }

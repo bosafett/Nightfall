@@ -822,6 +822,22 @@ class MonitorAuthorization(Base):
     end_note: Mapped[str] = mapped_column(server_default=text("''"))
 
 
+class SignInAlert(Base):
+    """SHIELD v3 (migration 0024): attacks on one account, written by nf_record_sign_in_alert."""
+
+    __tablename__ = "sign_in_alerts"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    kind: Mapped[str]
+    severity: Mapped[Severity] = mapped_column(_pg_enum(Severity, "severity"))
+    count: Mapped[int]
+    addresses: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
+    first_seen_at: Mapped[datetime] = _created()
+    last_seen_at: Mapped[datetime] = _created()
+    state: Mapped[str] = mapped_column(server_default=text("'open'"))
+    acknowledged_at: Mapped[datetime | None]
+
+
 class Alert(Base):
     """SHIELD (migration 0021): raised by the worker; people acknowledge and resolve."""
 

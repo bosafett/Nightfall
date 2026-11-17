@@ -8330,6 +8330,82 @@
         "title": "ShieldQueuedCheck",
         "type": "object"
       },
+      "SignInAlertOut": {
+        "additionalProperties": false,
+        "properties": {
+          "addresses": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Addresses",
+            "type": "array"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "email": {
+            "title": "Email",
+            "type": "string"
+          },
+          "first_seen_at": {
+            "format": "date-time",
+            "title": "First Seen At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "format": "date-time",
+            "title": "Last Seen At",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "user_id",
+          "email",
+          "kind",
+          "severity",
+          "title",
+          "detail",
+          "count",
+          "addresses",
+          "first_seen_at",
+          "last_seen_at",
+          "state"
+        ],
+        "title": "SignInAlertOut",
+        "type": "object"
+      },
       "Sort": {
         "enum": [
           "severity",
@@ -11003,6 +11079,74 @@
           }
         },
         "summary": "Password Reset",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sign-in-alerts": {
+      "get": {
+        "operationId": "my_alerts_api_auth_sign_in_alerts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SignInAlertOut"
+                  },
+                  "title": "Response My Alerts Api Auth Sign In Alerts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "My Alerts",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/sign-in-alerts/{alert_id}/acknowledge": {
+      "post": {
+        "operationId": "acknowledge_api_auth_sign_in_alerts__alert_id__acknowledge_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Alert Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInAlertOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Acknowledge",
         "tags": [
           "auth"
         ]
@@ -17885,6 +18029,53 @@
           }
         },
         "summary": "Overview",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sign-in-alerts": {
+      "get": {
+        "operationId": "member_alerts_api_workspaces__workspace_id__sign_in_alerts_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SignInAlertOut"
+                  },
+                  "title": "Response Member Alerts Api Workspaces  Workspace Id  Sign In Alerts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Member Alerts",
         "tags": [
           "shield"
         ]
