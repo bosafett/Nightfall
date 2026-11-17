@@ -170,8 +170,10 @@ self-hosted on machines you already run.
   `cscli alerts list -o json`, posts alerts and a heartbeat, fetches its blocks, and adds or deletes CrowdSec bans
   tagged `janus:<block id>` with fixed `cscli` argument lists (no shell). Before applying any block it re-checks
   its own local allow list, never-block addresses, a /16 (IPv6 /32) width limit and a 7-day length limit, and
-  reports refusals. Deleting a lifted block removes only the decisions with its tag. Checked against a real
-  CrowdSec 1.4.6 LAPI (apply and remove); live scenario alerts from a real attack log are not yet checked.
+  reports each refusal once. Deleting a lifted block removes only the decisions with its tag, and every cycle it
+  removes any `janus:` ban JANUS no longer lists (orphans). Checked against a real
+  CrowdSec 1.4.6 LAPI and nftables bouncer with real ssh-bf alerts; see
+  `docs/reviews/2026-11-17-shield-phase2-safeguards.md`.
 - **Sensor API** (`api/nightfall/shield/sensors.py`, `/api/sensor/*`): authenticated only by the sensor key
   (`nf_sensor_authenticate`), never a cookie, so these paths alone skip the browser origin check; the rate limit
   still applies. Each request row-locks the sensor, which serializes the per-hour cap. Alert content is stored as

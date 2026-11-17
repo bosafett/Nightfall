@@ -113,7 +113,7 @@ def test_one_cycle_end_to_end(
         st = js.State.load(cfg.state_path)
         stats = js.cycle(cfg, janus, cs, st)
         st.save(cfg.state_path)
-        assert stats == {"sent": 2, "applied": 1, "removed": 0, "refused": 1}
+        assert stats == {"sent": 2, "applied": 1, "removed": 0, "refused": 1, "orphans": 0}
 
         view = client.get(f"{base}/intrusion").json()
         auto = next(b for b in view["blocks"] if b["tier"] == "automatic")
@@ -125,7 +125,8 @@ def test_one_cycle_end_to_end(
         st = js.State.load(cfg.state_path)
         again = js.cycle(cfg, janus, cs, st)
         st.save(cfg.state_path)
-        assert again["sent"] == 0 and again["applied"] == 0
+        # A refused block is reported once, not every cycle.
+        assert again["sent"] == 0 and again["applied"] == 0 and again["refused"] == 0
 
         # A person lifts it; the sensor removes exactly its own decision.
         client.post(f"{base}/blocks/{auto['id']}/lift", json={"reason": "false positive"})
@@ -133,6 +134,11 @@ def test_one_cycle_end_to_end(
         assert js.cycle(cfg, janus, cs, st)["removed"] == 1
         if not REAL:
             assert cs.bans == {}
+        # An orphan janus: ban (its block isn't live in JANUS any more) is removed.
+        if not REAL:
+            cs.bans["janus:00000000-0000-0000-0000-000000000000"] = ("203.0.113.99", 600)
+            st = js.State.load(cfg.state_path)
+            assert js.cycle(cfg, janus, cs, st)["orphans"] == 1 and cs.bans == {}
     lifted = next(
         b for b in client.get(f"{base}/intrusion").json()["blocks"] if b["id"] == auto["id"]
     )

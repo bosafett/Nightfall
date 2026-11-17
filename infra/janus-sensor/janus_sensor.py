@@ -45,6 +45,7 @@ TAG = "janus:"
 MIN_PREFIX = {4: 16, 6: 32}
 MAX_BATCH = 100
 SEEN_KEEP = 5000
+API_APPLY_LIMIT = 1000  # the API lists at most this many live blocks per sensor
 FIRST_LOOKBACK = "1h"  # on a fresh start, alerts from the last hour are sent
 
 log = logging.getLogger("janus-sensor")
@@ -104,6 +105,9 @@ class State:
     seen: list[int] = field(default_factory=list)  # CrowdSec alert ids already sent
     last_poll: str | None = None  # ISO time of the last successful alert read
     applied: list[str] = field(default_factory=list)  # JANUS block ids applied here
+    refused: list[str] = field(
+        default_factory=list
+    )  # block ids refused (reported once)
 
     @classmethod
     def load(cls, path: str) -> State:
@@ -111,7 +115,8 @@ class State:
             with open(path) as f:
                 d = json.load(f)
             return cls(seen=list(d.get("seen", [])), last_poll=d.get("last_poll"),
-                       applied=list(d.get("applied", [])))  # fmt: skip
+                       applied=list(d.get("applied", [])),
+                       refused=list(d.get("refused", [])))  # fmt: skip
         except (OSError, ValueError):
             return cls()
 
@@ -120,7 +125,7 @@ class State:
         tmp = f"{path}.tmp"
         with open(tmp, "w") as f:
             json.dump({"seen": self.seen[-SEEN_KEEP:], "last_poll": self.last_poll,
-                       "applied": self.applied}, f)  # fmt: skip
+                       "applied": self.applied, "refused": self.refused}, f)  # fmt: skip
         os.replace(tmp, path)
 
 
@@ -178,7 +183,7 @@ class Cscli:
         """Delete only the decisions this sensor added for this block. Returns how many."""
         flag = "-i" if net.num_addresses == 1 else "-r"
         value = str(net.network_address) if net.num_addresses == 1 else str(net)
-        out = self.run("decisions", "list", flag, value, "-o", "json")
+        out = self.run("decisions", "list", flag, value, "-l", "0", "-o", "json")
         ids = [
             str(d["id"])
             for a in (json.loads(out or "null") or [])
@@ -188,6 +193,21 @@ class Cscli:
         for i in ids:
             self.run("decisions", "delete", "--id", i)
         return len(ids)
+
+    def janus_bans(self) -> dict[str, str]:
+        """Every live decision this sensor added: CrowdSec decision id -> JANUS block id."""
+        out = self.run(
+            "decisions", "list", "--origin", "cscli", "-l", "0", "-o", "json"
+        )
+        return {
+            str(d["id"]): str(d["scenario"]).removeprefix(TAG)
+            for a in (json.loads(out or "null") or [])
+            for d in (a.get("decisions") or [])
+            if str(d.get("scenario", "")).startswith(TAG)
+        }
+
+    def delete_id(self, decision_id: str) -> None:
+        self.run("decisions", "delete", "--id", decision_id)
 
 
 def _time(value: Any) -> str | None:
@@ -272,7 +292,7 @@ def refuse_reason(cfg: Config, target: str, seconds: int) -> str | None:
 
 
 def cycle(cfg: Config, janus: Janus, cs: Cscli, st: State) -> dict[str, int]:
-    stats = {"sent": 0, "applied": 0, "removed": 0, "refused": 0}
+    stats = {"sent": 0, "applied": 0, "removed": 0, "refused": 0, "orphans": 0}
     janus.call("POST", "/api/sensor/heartbeat", {"agent_version": VERSION})
 
     # 1. Alerts: everything since the last read (with overlap), minus what was already sent.
@@ -299,15 +319,16 @@ def cycle(cfg: Config, janus: Janus, cs: Cscli, st: State) -> dict[str, int]:
     # 2. Decisions: apply new blocks, remove lifted ones, report back.
     d = janus.call("GET", "/api/sensor/decisions")
     applied, removed, refused = [], [], []
-    done = set(st.applied)
+    done, refused_before = set(st.applied), set(st.refused)
     for b in d.get("apply", []):
         bid, target, left = str(b["id"]), str(b["target"]), int(b["seconds_left"])
-        if b.get("applied") and bid in done:
+        if (b.get("applied") and bid in done) or bid in refused_before:
             continue
         if left <= 0:
             continue
         if why := refuse_reason(cfg, target, left):
             refused.append({"id": bid, "reason": why})
+            refused_before.add(bid)
             log.warning("refused block %s of %s: %s", bid, target, why)
             continue
         cs.add_ban(ipaddress.ip_network(target, strict=False), left, bid)
@@ -322,6 +343,20 @@ def cycle(cfg: Config, janus: Janus, cs: Cscli, st: State) -> dict[str, int]:
         log.info("removed block %s of %s (%d decision(s))", bid, target, n)
     live = {str(b["id"]) for b in d.get("apply", [])}
     st.applied = [b for b in done if b in live]
+    st.refused = [b for b in refused_before if b in live]
+    # 3. Reconcile: JANUS is the source of truth for janus: bans. Remove any it no longer lists
+    # (lifted while a report was lost, or left by a revoked sensor). Skipped if the list from
+    # JANUS may be truncated, so a valid ban is never removed.
+    if len(d.get("apply", [])) < API_APPLY_LIMIT:
+        for decision_id, bid in cs.janus_bans().items():
+            if bid not in live:
+                cs.delete_id(decision_id)
+                stats["orphans"] += 1
+                log.info(
+                    "removed orphan ban %s (block %s not live in JANUS)",
+                    decision_id,
+                    bid,
+                )
     if applied or removed or refused:
         janus.call("POST", "/api/sensor/decisions/report",
                    {"applied": applied, "removed": removed, "refused": refused})  # fmt: skip

@@ -29,9 +29,21 @@ ending the authorization stops new automatic blocks at once; blocks already appl
    `crowdsecurity/linux`, `crowdsecurity/sshd`, `crowdsecurity/nginx`) and `crowdsec-firewall-bouncer-nftables`,
    following CrowdSec's own instructions.
 2. **Let JANUS decide the bans.** CrowdSec's default profile bans for 4 hours by itself, outside JANUS's
-   authorization, allow list and caps. To route every block through JANUS, edit `/etc/crowdsec/profiles.yaml` and
-   remove the `decisions:` block from the default IP profile (alerts are still recorded), then
-   `systemctl reload crowdsec`. Keep CrowdSec's own bans only if you accept that they bypass JANUS.
+   authorization, allow list and caps. CrowdSec also drops an alert whose profile makes no decision, so removing
+   the `decisions:` block would stop alerts reaching JANUS too. Instead, give the default IP profile in
+   `/etc/crowdsec/profiles.yaml` a decision type the firewall bouncer doesn't enforce (it acts on `ban` only):
+   ```yaml
+   name: default_ip_remediation
+   filters:
+    - Alert.Remediation == true && Alert.GetScope() == "Ip"
+   decisions:
+    - type: janus_alert   # recorded, not enforced; JANUS decides the bans
+      duration: 1m
+   on_success: break
+   ```
+   Then `systemctl reload crowdsec`. Check after the first alert: `cscli decisions list` shows `janus_alert`, and
+   `nft list ruleset` doesn't contain that address. Keep `type: ban` only if you accept that CrowdSec's own bans
+   bypass JANUS.
 3. **Register the sensor in JANUS.** SHIELD → Intrusion Detection → *Register sensor* (owner, fresh two-factor).
    JANUS shows the key once; it keeps only its hash.
 4. **Install the sensor** (as root):
@@ -58,5 +70,5 @@ Revoke the sensor in JANUS (owner, fresh two-factor): its key stops working at o
 
 `api/tests/test_janus_sensor.py` runs a full cycle against the real API with CrowdSec faked. With a local CrowdSec
 LAPI running, `JANUS_SENSOR_REAL_CSCLI=1 pytest tests/test_janus_sensor.py` applies and removes real CrowdSec
-decisions (checked against CrowdSec 1.4.6). Alert parsing has been checked against `cscli alerts list -o json`
-output, but not yet with live scenario alerts from a real attack log.
+decisions (checked against CrowdSec 1.4.6). See `docs/reviews/2026-11-17-shield-phase2-safeguards.md` for the
+safeguard validation, including real `crowdsecurity/ssh-bf` alerts from a replayed sshd log.
