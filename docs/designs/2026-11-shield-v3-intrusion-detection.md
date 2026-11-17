@@ -87,6 +87,17 @@ Safeguards on the automatic tier:
 1. **JANUS itself** (no sensor needed): repeated failed logins or two-factor for one account or from one address;
    one address trying many accounts; bursts of denied scope or authorization checks; a login just after a burst of
    failures. These become SHIELD alerts with the new kind `intrusion.*`.
+   - **Already in place (automatic tier for JANUS itself):** 5 failed sign-ins lock an account for 15 minutes and
+     20 lock an address, shared across Vercel instances through Postgres (`core/identity/throttle.py`); every
+     mutating request is rate-limited per address. Phase 1 adds visibility and alerts, not new blocking.
+   - **Gap found 2026-11-17, owner decision 5:** SHIELD alerts belong to a workspace and a project, but sign-in
+     attacks happen before sign-in and belong to neither. The app's database role can't read those audit rows by
+     design, and JANUS has no platform operator role. Options: **(a)** a signed-in user sees attacks on their own
+     account, and workspace admins see attacks on their members, with no new privileged role (attempts on unknown
+     emails stay in the audit trail only); **(b)** (a) plus a platform operator view, a new privileged role naming
+     operator accounts in a setting and reading sign-in events through a narrow database function; **(c)** only
+     the operator view. Recommended: (a) first, (b) later if needed. A new role that sees across workspaces is a
+     change to the authorization model and needs its own review.
 2. **Sensor on the BLACKSITE lab machine** (the owner already runs it): CrowdSec with the SSH, Linux and nftables
    collections.
 3. **Sensor on any other server the owner runs**, including the Profile B worker host.
