@@ -1,6 +1,8 @@
 # SHIELD v3: intrusion detection and response for the owner's own sites and machines (design for review)
 
-Status: **design only; nothing built.** Owner decisions needed are in §9. Requested 2026-11-17: "IDS and responses
+Status: **approved by the owner 2026-11-17, all §9 decisions as recommended:** CrowdSec; the automatic tier of §4
+under a standing response authorization the owner records; Vercel firewall changes person-approved; an automatic block
+joins an open incident for that machine, otherwise it's an alert only. Build in the phases of §5. Requested 2026-11-17: "IDS and responses
 for any intrusions on the sites I own and the hardware they run on, automated if we can so there's no lag time."
 
 ## 1. What would be protected, and what can be seen
