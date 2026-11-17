@@ -310,6 +310,126 @@
         "title": "AlertResolveIn",
         "type": "object"
       },
+      "AlertResult": {
+        "additionalProperties": false,
+        "properties": {
+          "alert_id": {
+            "format": "uuid",
+            "title": "Alert Id",
+            "type": "string"
+          },
+          "block_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Block Id"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "alert_id",
+          "outcome",
+          "reason",
+          "block_id"
+        ],
+        "title": "AlertResult",
+        "type": "object"
+      },
+      "AlertsIn": {
+        "additionalProperties": false,
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/SensorAlertIn"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Alerts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "alerts"
+        ],
+        "title": "AlertsIn",
+        "type": "object"
+      },
+      "AllowlistIn": {
+        "additionalProperties": false,
+        "properties": {
+          "cidr": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Cidr",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cidr"
+        ],
+        "title": "AllowlistIn",
+        "type": "object"
+      },
+      "AllowlistOut": {
+        "additionalProperties": false,
+        "properties": {
+          "added_at": {
+            "format": "date-time",
+            "title": "Added At",
+            "type": "string"
+          },
+          "added_by": {
+            "title": "Added By",
+            "type": "string"
+          },
+          "cidr": {
+            "title": "Cidr",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "cidr",
+          "note",
+          "added_by",
+          "added_at"
+        ],
+        "title": "AllowlistOut",
+        "type": "object"
+      },
       "ApprovalDecision": {
         "enum": [
           "approved",
@@ -1335,6 +1455,205 @@
         "title": "BlackBoxOut",
         "type": "object"
       },
+      "BlockIn": {
+        "additionalProperties": false,
+        "properties": {
+          "alert_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Id"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "seconds": {
+            "default": 3600,
+            "maximum": 604800.0,
+            "minimum": 60.0,
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "sensor_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Sensor Ids",
+            "type": "array"
+          },
+          "target": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "target",
+          "sensor_ids",
+          "reason"
+        ],
+        "title": "BlockIn",
+        "type": "object"
+      },
+      "BlockOut": {
+        "additionalProperties": false,
+        "properties": {
+          "alert_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Alert Id"
+          },
+          "applied_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applied At"
+          },
+          "approved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved By"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "lifted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifted At"
+          },
+          "lifted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifted By"
+          },
+          "lifted_reason": {
+            "title": "Lifted Reason",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At"
+          },
+          "sensor_id": {
+            "format": "uuid",
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "sensor_name": {
+            "title": "Sensor Name",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "active",
+              "lifting",
+              "lifted",
+              "expired"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          },
+          "tier": {
+            "title": "Tier",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sensor_id",
+          "sensor_name",
+          "target",
+          "tier",
+          "reason",
+          "approved_by",
+          "alert_id",
+          "created_at",
+          "expires_at",
+          "applied_at",
+          "removed_at",
+          "lifted_at",
+          "lifted_by",
+          "lifted_reason",
+          "status"
+        ],
+        "title": "BlockOut",
+        "type": "object"
+      },
       "Category": {
         "enum": [
           "reconnaissance",
@@ -2077,6 +2396,31 @@
           }
         },
         "title": "DecisionIn",
+        "type": "object"
+      },
+      "DecisionsOut": {
+        "additionalProperties": false,
+        "properties": {
+          "apply": {
+            "items": {
+              "$ref": "#/components/schemas/SensorBlockOut"
+            },
+            "title": "Apply",
+            "type": "array"
+          },
+          "remove": {
+            "items": {
+              "$ref": "#/components/schemas/SensorBlockOut"
+            },
+            "title": "Remove",
+            "type": "array"
+          }
+        },
+        "required": [
+          "apply",
+          "remove"
+        ],
+        "title": "DecisionsOut",
         "type": "object"
       },
       "DependencyOut": {
@@ -3397,6 +3741,49 @@
         "title": "Heartbeat",
         "type": "object"
       },
+      "HeartbeatIn": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_version": {
+            "default": "",
+            "maxLength": 40,
+            "title": "Agent Version",
+            "type": "string"
+          }
+        },
+        "title": "HeartbeatIn",
+        "type": "object"
+      },
+      "HeartbeatOut": {
+        "additionalProperties": false,
+        "properties": {
+          "automatic": {
+            "title": "Automatic",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "poll_seconds": {
+            "title": "Poll Seconds",
+            "type": "integer"
+          },
+          "sensor_id": {
+            "format": "uuid",
+            "title": "Sensor Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "name",
+          "automatic",
+          "poll_seconds"
+        ],
+        "title": "HeartbeatOut",
+        "type": "object"
+      },
       "IdentitiesOut": {
         "additionalProperties": false,
         "properties": {
@@ -4446,6 +4833,184 @@
           "ready_to_close"
         ],
         "title": "IncidentWaiting",
+        "type": "object"
+      },
+      "IntrusionAlertOut": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "block_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Block Ids",
+            "type": "array"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "count": {
+            "title": "Count",
+            "type": "integer"
+          },
+          "event_time": {
+            "format": "date-time",
+            "title": "Event Time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "last_event_time": {
+            "format": "date-time",
+            "title": "Last Event Time",
+            "type": "string"
+          },
+          "scenario": {
+            "title": "Scenario",
+            "type": "string"
+          },
+          "sensor_id": {
+            "format": "uuid",
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "sensor_name": {
+            "title": "Sensor Name",
+            "type": "string"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "sensor_id",
+          "sensor_name",
+          "scenario",
+          "category",
+          "severity",
+          "source",
+          "count",
+          "event_time",
+          "last_event_time",
+          "ingested_at",
+          "state",
+          "acknowledged_at",
+          "block_ids"
+        ],
+        "title": "IntrusionAlertOut",
+        "type": "object"
+      },
+      "IntrusionOut": {
+        "additionalProperties": false,
+        "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/IntrusionAlertOut"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
+          "allowlist": {
+            "items": {
+              "$ref": "#/components/schemas/AllowlistOut"
+            },
+            "title": "Allowlist",
+            "type": "array"
+          },
+          "approved_max_seconds": {
+            "title": "Approved Max Seconds",
+            "type": "integer"
+          },
+          "authorization": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResponseAuthorizationOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "automatic_active": {
+            "title": "Automatic Active",
+            "type": "boolean"
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/BlockOut"
+            },
+            "title": "Blocks",
+            "type": "array"
+          },
+          "blocks_24h": {
+            "title": "Blocks 24H",
+            "type": "integer"
+          },
+          "generated_at": {
+            "format": "date-time",
+            "title": "Generated At",
+            "type": "string"
+          },
+          "sensors": {
+            "items": {
+              "$ref": "#/components/schemas/SensorOut"
+            },
+            "title": "Sensors",
+            "type": "array"
+          },
+          "sensors_offline": {
+            "title": "Sensors Offline",
+            "type": "integer"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SettingsOut"
+          }
+        },
+        "required": [
+          "generated_at",
+          "sensors",
+          "authorization",
+          "settings",
+          "automatic_active",
+          "allowlist",
+          "blocks",
+          "alerts",
+          "blocks_24h",
+          "sensors_offline",
+          "approved_max_seconds"
+        ],
+        "title": "IntrusionOut",
         "type": "object"
       },
       "InviteCreatedOut": {
@@ -5936,6 +6501,22 @@
         "title": "PathRef",
         "type": "object"
       },
+      "PauseIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "PauseIn",
+        "type": "object"
+      },
       "PlaybookDetail": {
         "additionalProperties": false,
         "properties": {
@@ -6818,6 +7399,27 @@
         "title": "RecentFindings",
         "type": "object"
       },
+      "RefusedIn": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 300,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reason"
+        ],
+        "title": "RefusedIn",
+        "type": "object"
+      },
       "RelationshipOut": {
         "additionalProperties": false,
         "properties": {
@@ -7137,6 +7739,148 @@
         "title": "ReportSummary",
         "type": "object"
       },
+      "ResponseAuthorizationIn": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "default": 90,
+            "maximum": 90.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "type": "integer"
+          },
+          "default_block_seconds": {
+            "default": 3600,
+            "maximum": 14400.0,
+            "minimum": 60.0,
+            "title": "Default Block Seconds",
+            "type": "integer"
+          },
+          "max_block_seconds": {
+            "default": 3600,
+            "maximum": 14400.0,
+            "minimum": 60.0,
+            "title": "Max Block Seconds",
+            "type": "integer"
+          },
+          "per_hour_cap": {
+            "default": 50,
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Per Hour Cap",
+            "type": "integer"
+          },
+          "sensor_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Sensor Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "sensor_ids"
+        ],
+        "title": "ResponseAuthorizationIn",
+        "type": "object"
+      },
+      "ResponseAuthorizationOut": {
+        "additionalProperties": false,
+        "properties": {
+          "actions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Actions",
+            "type": "array"
+          },
+          "authorized_at": {
+            "format": "date-time",
+            "title": "Authorized At",
+            "type": "string"
+          },
+          "authorized_by": {
+            "title": "Authorized By",
+            "type": "string"
+          },
+          "default_block_seconds": {
+            "title": "Default Block Seconds",
+            "type": "integer"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended Reason"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "live": {
+            "title": "Live",
+            "type": "boolean"
+          },
+          "max_block_seconds": {
+            "title": "Max Block Seconds",
+            "type": "integer"
+          },
+          "per_hour_cap": {
+            "title": "Per Hour Cap",
+            "type": "integer"
+          },
+          "sensor_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Sensor Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "sensor_ids",
+          "actions",
+          "max_block_seconds",
+          "default_block_seconds",
+          "per_hour_cap",
+          "authorized_by",
+          "authorized_at",
+          "expires_at",
+          "ended_at",
+          "ended_reason",
+          "live"
+        ],
+        "title": "ResponseAuthorizationOut",
+        "type": "object"
+      },
       "ReviewCounts": {
         "additionalProperties": false,
         "properties": {
@@ -7238,6 +7982,22 @@
           "created_at"
         ],
         "title": "ReviewItem",
+        "type": "object"
+      },
+      "RevokeIn": {
+        "additionalProperties": false,
+        "properties": {
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "title": "RevokeIn",
         "type": "object"
       },
       "Risk": {
@@ -7928,6 +8688,340 @@
         "title": "ScopeStatus",
         "type": "string"
       },
+      "SensorAlertIn": {
+        "additionalProperties": false,
+        "properties": {
+          "events_count": {
+            "default": 1,
+            "maximum": 1000000.0,
+            "minimum": 1.0,
+            "title": "Events Count",
+            "type": "integer"
+          },
+          "raw": {
+            "additionalProperties": true,
+            "title": "Raw",
+            "type": "object"
+          },
+          "ref": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Ref",
+            "type": "string"
+          },
+          "scenario": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Scenario",
+            "type": "string"
+          },
+          "simulated": {
+            "default": false,
+            "title": "Simulated",
+            "type": "boolean"
+          },
+          "source": {
+            "maxLength": 64,
+            "title": "Source",
+            "type": "string"
+          },
+          "start_at": {
+            "format": "date-time",
+            "title": "Start At",
+            "type": "string"
+          },
+          "stop_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop At"
+          }
+        },
+        "required": [
+          "scenario",
+          "source",
+          "start_at"
+        ],
+        "title": "SensorAlertIn",
+        "type": "object"
+      },
+      "SensorBlockOut": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "seconds_left": {
+            "title": "Seconds Left",
+            "type": "integer"
+          },
+          "target": {
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "target",
+          "expires_at",
+          "seconds_left",
+          "applied"
+        ],
+        "title": "SensorBlockOut",
+        "type": "object"
+      },
+      "SensorCreatedOut": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_version": {
+            "title": "Agent Version",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "key_prefix": {
+            "title": "Key Prefix",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "online": {
+            "title": "Online",
+            "type": "boolean"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_reason": {
+            "title": "Revoked Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key_prefix",
+          "created_by",
+          "created_at",
+          "last_seen_at",
+          "online",
+          "agent_version",
+          "revoked_at",
+          "revoked_reason",
+          "key"
+        ],
+        "title": "SensorCreatedOut",
+        "type": "object"
+      },
+      "SensorIn": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SensorIn",
+        "type": "object"
+      },
+      "SensorOut": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_version": {
+            "title": "Agent Version",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by": {
+            "title": "Created By",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "key_prefix": {
+            "title": "Key Prefix",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "online": {
+            "title": "Online",
+            "type": "boolean"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revoked At"
+          },
+          "revoked_reason": {
+            "title": "Revoked Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "key_prefix",
+          "created_by",
+          "created_at",
+          "last_seen_at",
+          "online",
+          "agent_version",
+          "revoked_at",
+          "revoked_reason"
+        ],
+        "title": "SensorOut",
+        "type": "object"
+      },
+      "SensorReportIn": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Applied",
+            "type": "array"
+          },
+          "refused": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RefusedIn"
+            },
+            "maxItems": 500,
+            "title": "Refused",
+            "type": "array"
+          },
+          "removed": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 500,
+            "title": "Removed",
+            "type": "array"
+          }
+        },
+        "title": "SensorReportIn",
+        "type": "object"
+      },
+      "SensorReportOut": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "title": "Applied",
+            "type": "integer"
+          },
+          "refused": {
+            "title": "Refused",
+            "type": "integer"
+          },
+          "removed": {
+            "title": "Removed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "applied",
+          "removed",
+          "refused"
+        ],
+        "title": "SensorReportOut",
+        "type": "object"
+      },
       "SessionInfo": {
         "additionalProperties": false,
         "properties": {
@@ -7986,6 +9080,50 @@
           "enabled"
         ],
         "title": "SettingIn",
+        "type": "object"
+      },
+      "SettingsOut": {
+        "additionalProperties": false,
+        "properties": {
+          "automatic_paused": {
+            "title": "Automatic Paused",
+            "type": "boolean"
+          },
+          "pause_reason": {
+            "title": "Pause Reason",
+            "type": "string"
+          },
+          "paused_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused At"
+          },
+          "paused_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paused By"
+          }
+        },
+        "required": [
+          "automatic_paused",
+          "paused_by",
+          "paused_at",
+          "pause_reason"
+        ],
+        "title": "SettingsOut",
         "type": "object"
       },
       "Severity": {
@@ -11195,6 +12333,156 @@
         "summary": "Cron Drain",
         "tags": [
           "internal"
+        ]
+      }
+    },
+    "/api/sensor/alerts": {
+      "post": {
+        "description": "Record each alert, then let GUARD decide. Returns what was done for each.",
+        "operationId": "report_alerts_api_sensor_alerts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlertsIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AlertResult"
+                  },
+                  "title": "Response Report Alerts Api Sensor Alerts Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Alerts",
+        "tags": [
+          "shield-sensor"
+        ]
+      }
+    },
+    "/api/sensor/decisions": {
+      "get": {
+        "operationId": "decisions_api_sensor_decisions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DecisionsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Decisions",
+        "tags": [
+          "shield-sensor"
+        ]
+      }
+    },
+    "/api/sensor/decisions/report": {
+      "post": {
+        "description": "What the sensor actually did. Ids of other sensors' blocks are ignored.",
+        "operationId": "report_decisions_api_sensor_decisions_report_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorReportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorReportOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Decisions",
+        "tags": [
+          "shield-sensor"
+        ]
+      }
+    },
+    "/api/sensor/heartbeat": {
+      "post": {
+        "operationId": "heartbeat_api_sensor_heartbeat_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HeartbeatIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HeartbeatOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Heartbeat",
+        "tags": [
+          "shield-sensor"
         ]
       }
     },
@@ -17991,6 +19279,330 @@
         ]
       }
     },
+    "/api/workspaces/{workspace_id}/shield/allowlist": {
+      "post": {
+        "description": "Never block this address or range. Existing blocks on it are not lifted automatically.",
+        "operationId": "add_allowlist_api_workspaces__workspace_id__shield_allowlist_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AllowlistIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AllowlistOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Allowlist",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/allowlist/{entry_id}/remove": {
+      "post": {
+        "operationId": "remove_allowlist_api_workspaces__workspace_id__shield_allowlist__entry_id__remove_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Entry Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Remove Allowlist",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/blocks": {
+      "post": {
+        "description": "The person-approved tier: a block of an address or range on the chosen sensors.",
+        "operationId": "approve_block_api_workspaces__workspace_id__shield_blocks_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/BlockOut"
+                  },
+                  "title": "Response Approve Block Api Workspaces  Workspace Id  Shield Blocks Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Approve Block",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/blocks/{block_id}/lift": {
+      "post": {
+        "description": "One click: the sensor removes the CrowdSec decision on its next poll.",
+        "operationId": "lift_block_api_workspaces__workspace_id__shield_blocks__block_id__lift_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "block_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Block Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Lift Block",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/intrusion": {
+      "get": {
+        "operationId": "intrusion_api_workspaces__workspace_id__shield_intrusion_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntrusionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Intrusion",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/intrusion-alerts/{alert_id}/{action}": {
+      "post": {
+        "operationId": "update_intrusion_alert_api_workspaces__workspace_id__shield_intrusion_alerts__alert_id___action__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Alert Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "acknowledge",
+                "resolve"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Intrusion Alert",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
     "/api/workspaces/{workspace_id}/shield/overview": {
       "get": {
         "operationId": "overview_api_workspaces__workspace_id__shield_overview_get",
@@ -18029,6 +19641,327 @@
           }
         },
         "summary": "Overview",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/response-authorization": {
+      "post": {
+        "description": "Record the standing authorization for automatic blocks. Replaces any current one.",
+        "operationId": "authorize_response_api_workspaces__workspace_id__shield_response_authorization_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResponseAuthorizationIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseAuthorizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Authorize Response",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/response-authorization/end": {
+      "post": {
+        "description": "GUARD stops creating blocks at once. Existing blocks run out (or a person lifts them).",
+        "operationId": "end_response_authorization_api_workspaces__workspace_id__shield_response_authorization_end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResponseAuthorizationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "End Response Authorization",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/response/pause": {
+      "post": {
+        "operationId": "pause_api_workspaces__workspace_id__shield_response_pause_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Pause",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/response/resume": {
+      "post": {
+        "operationId": "resume_api_workspaces__workspace_id__shield_response_resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resume",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/sensors": {
+      "post": {
+        "description": "The key is returned once; JANUS keeps only its hash.",
+        "operationId": "register_sensor_api_workspaces__workspace_id__shield_sensors_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Sensor",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/sensors/{sensor_id}/revoke": {
+      "post": {
+        "operationId": "revoke_sensor_api_workspaces__workspace_id__shield_sensors__sensor_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SensorOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Sensor",
         "tags": [
           "shield"
         ]

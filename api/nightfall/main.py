@@ -40,6 +40,8 @@ from nightfall.scope.ownership import router as ownership_router
 from nightfall.scope.routes import router as scope_router
 from nightfall.shield.incident_routes import router as incidents_router
 from nightfall.shield.routes import router as shield_router
+from nightfall.shield.sensors import router as intrusion_router
+from nightfall.shield.sensors import sensor_router
 from nightfall.shield.sign_in import own_router as sign_in_router
 from nightfall.shield.sign_in import ws_router as sign_in_ws_router
 from nightfall.warpath.routes import router as warpath_router
@@ -49,6 +51,9 @@ from nightfall.watchtower.routes import router as watchtower_router
 log = logging.getLogger("nightfall.api")
 
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
+# Called only by janus-sensor with its own key in the Authorization header, never with a cookie,
+# so the browser CSRF origin check doesn't apply (the rate limit still does).
+KEY_AUTH_PREFIXES = ("/api/sensor/",)
 
 health_router = APIRouter(prefix="/api", tags=["system"])
 HEALTH_ROUTES = {("GET", "/api/health")}
@@ -135,7 +140,8 @@ class RequestGuard(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.method in MUTATING and request.url.path.startswith("/api/"):
             allowed = self.origins()
-            if request.headers.get("origin") not in allowed:
+            key_auth = request.url.path.startswith(KEY_AUTH_PREFIXES)
+            if not key_auth and request.headers.get("origin") not in allowed:
                 log.warning(
                     "rejected mutating request from origin %r (allowed: %r)",
                     request.headers.get("origin"),
@@ -188,6 +194,8 @@ ROUTERS = (
     nexus_router,
     identities_router,
     shield_router,
+    intrusion_router,
+    sensor_router,
     incidents_router,
     sign_in_router,
     sign_in_ws_router,

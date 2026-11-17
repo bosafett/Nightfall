@@ -1,0 +1,20 @@
+[Unit]
+Description=janus-sensor (CrowdSec -> JANUS SHIELD, outbound only)
+After=network-online.target crowdsec.service
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=/etc/janus-sensor/sensor.env
+ExecStart=/usr/bin/python3 /opt/janus-sensor/janus_sensor.py
+Restart=always
+RestartSec=10
+# cscli needs root to reach CrowdSec's local API credentials; nothing else is granted.
+StateDirectory=janus-sensor
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/janus-sensor
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

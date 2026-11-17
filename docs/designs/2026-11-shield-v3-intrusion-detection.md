@@ -164,6 +164,36 @@ self-hosted on machines you already run.
 - **Not in phase 1:** the sensor and CrowdSec (phase 2), the standing response authorization, the Vercel firewall
   proposals, and linking sign-in alerts to incidents (incidents belong to a project; sign-in alerts don't).
 
+## 10b. As built: phase 2 (2026-11-17, migration 0025, no new migration)
+
+- **Sensor** (`infra/janus-sensor/`): one standard-library Python file plus a systemd unit. Outbound only; it reads
+  `cscli alerts list -o json`, posts alerts and a heartbeat, fetches its blocks, and adds or deletes CrowdSec bans
+  tagged `janus:<block id>` with fixed `cscli` argument lists (no shell). Before applying any block it re-checks
+  its own local allow list, never-block addresses, a /16 (IPv6 /32) width limit and a 7-day length limit, and
+  reports refusals. Deleting a lifted block removes only the decisions with its tag. Checked against a real
+  CrowdSec 1.4.6 LAPI (apply and remove); live scenario alerts from a real attack log are not yet checked.
+- **Sensor API** (`api/nightfall/shield/sensors.py`, `/api/sensor/*`): authenticated only by the sensor key
+  (`nf_sensor_authenticate`), never a cookie, so these paths alone skip the browser origin check; the rate limit
+  still applies. Each request row-locks the sensor, which serializes the per-hour cap. Alert content is stored as
+  data and only picks a category from a fixed list.
+- **GUARD** (`api/nightfall/shield/guard.py`): deterministic, as in §4. It blocks one address on the sensor that
+  saw it for the authorization's default length when the category is SSH or web brute force, exploit attempt or
+  web scan; the alert isn't simulated; the source is a single address that isn't loopback, link-local,
+  multicast, unspecified or reserved; the kill switch is off; a live authorization covers the sensor; no allow-list
+  entry covers it; it isn't already blocked; and the sensor is under its per-hour cap. Otherwise the alert stays
+  alert-only and the reason is returned to the sensor; refusals and the cap are audited.
+- **Who may do what:** anything that makes JANUS block more, or blinds it, needs the owner with fresh two-factor
+  (register or revoke a sensor, record the authorization, resume, remove an allow-list entry); anything that makes
+  it block less is open to admins (pause, end the authorization, add an allow-list entry, lift a block). Approving
+  a block (person-approved tier) needs an admin or owner with fresh two-factor: an address or range no wider than
+  /16 (IPv6 /32), up to 7 days, on chosen sensors.
+- **UI:** SHIELD → Intrusion Detection: status, kill switch, active blocks with time left and one-click lift,
+  intrusion alerts (acknowledge, resolve, block), the response authorization, the allow list, sensors (the key is
+  shown once).
+- **Not in this step:** linking intrusion alerts to incidents (decision 4; incidents belong to a project, sensors to
+  the workspace), alert-only mode for new rules in their first week, intrusion counts on the AEGIS overview,
+  Vercel firewall proposals.
+
 ## 11. Reconciling the "Active Defense & Counterintelligence" addendum (received 2026-11-17)
 
 An addendum arrived framing SHIELD as a wider defensive-intelligence system across five divisions (AEGIS,

@@ -246,6 +246,80 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sensor/alerts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Alerts
+         * @description Record each alert, then let GUARD decide. Returns what was done for each.
+         */
+        post: operations["report_alerts_api_sensor_alerts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sensor/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Decisions */
+        get: operations["decisions_api_sensor_decisions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sensor/decisions/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Decisions
+         * @description What the sensor actually did. Ids of other sensors' blocks are ignored.
+         */
+        post: operations["report_decisions_api_sensor_decisions_report_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sensor/heartbeat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Heartbeat */
+        post: operations["heartbeat_api_sensor_heartbeat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}": {
         parameters: {
             query?: never;
@@ -1965,6 +2039,117 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/shield/allowlist": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add Allowlist
+         * @description Never block this address or range. Existing blocks on it are not lifted automatically.
+         */
+        post: operations["add_allowlist_api_workspaces__workspace_id__shield_allowlist_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/allowlist/{entry_id}/remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remove Allowlist */
+        post: operations["remove_allowlist_api_workspaces__workspace_id__shield_allowlist__entry_id__remove_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Approve Block
+         * @description The person-approved tier: a block of an address or range on the chosen sensors.
+         */
+        post: operations["approve_block_api_workspaces__workspace_id__shield_blocks_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/blocks/{block_id}/lift": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lift Block
+         * @description One click: the sensor removes the CrowdSec decision on its next poll.
+         */
+        post: operations["lift_block_api_workspaces__workspace_id__shield_blocks__block_id__lift_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/intrusion": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Intrusion */
+        get: operations["intrusion_api_workspaces__workspace_id__shield_intrusion_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/intrusion-alerts/{alert_id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Intrusion Alert */
+        post: operations["update_intrusion_alert_api_workspaces__workspace_id__shield_intrusion_alerts__alert_id___action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/shield/overview": {
         parameters: {
             query?: never;
@@ -1976,6 +2161,117 @@ export interface paths {
         get: operations["overview_api_workspaces__workspace_id__shield_overview_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/response-authorization": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Authorize Response
+         * @description Record the standing authorization for automatic blocks. Replaces any current one.
+         */
+        post: operations["authorize_response_api_workspaces__workspace_id__shield_response_authorization_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/response-authorization/end": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * End Response Authorization
+         * @description GUARD stops creating blocks at once. Existing blocks run out (or a person lifts them).
+         */
+        post: operations["end_response_authorization_api_workspaces__workspace_id__shield_response_authorization_end_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/response/pause": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pause */
+        post: operations["pause_api_workspaces__workspace_id__shield_response_pause_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/response/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Resume */
+        post: operations["resume_api_workspaces__workspace_id__shield_response_resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/sensors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Sensor
+         * @description The key is returned once; JANUS keeps only its hash.
+         */
+        post: operations["register_sensor_api_workspaces__workspace_id__shield_sensors_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/shield/sensors/{sensor_id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Sensor */
+        post: operations["revoke_sensor_api_workspaces__workspace_id__shield_sensors__sensor_id__revoke_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2502,6 +2798,56 @@ export interface components {
              */
             note: string;
         };
+        /** AlertResult */
+        AlertResult: {
+            /**
+             * Alert Id
+             * Format: uuid
+             */
+            alert_id: string;
+            /** Block Id */
+            block_id: string | null;
+            /** Outcome */
+            outcome: string;
+            /** Reason */
+            reason: string;
+            /** Ref */
+            ref: string;
+        };
+        /** AlertsIn */
+        AlertsIn: {
+            /** Alerts */
+            alerts: components["schemas"]["SensorAlertIn"][];
+        };
+        /** AllowlistIn */
+        AllowlistIn: {
+            /** Cidr */
+            cidr: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+        };
+        /** AllowlistOut */
+        AllowlistOut: {
+            /**
+             * Added At
+             * Format: date-time
+             */
+            added_at: string;
+            /** Added By */
+            added_by: string;
+            /** Cidr */
+            cidr: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Note */
+            note: string;
+        };
         /**
          * ApprovalDecision
          * @enum {string}
@@ -2902,6 +3248,72 @@ export interface components {
             /** Total Bytes */
             total_bytes: number;
         };
+        /** BlockIn */
+        BlockIn: {
+            /** Alert Id */
+            alert_id?: string | null;
+            /** Reason */
+            reason: string;
+            /**
+             * Seconds
+             * @default 3600
+             */
+            seconds: number;
+            /** Sensor Ids */
+            sensor_ids: string[];
+            /** Target */
+            target: string;
+        };
+        /** BlockOut */
+        BlockOut: {
+            /** Alert Id */
+            alert_id: string | null;
+            /** Applied At */
+            applied_at: string | null;
+            /** Approved By */
+            approved_by: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Lifted At */
+            lifted_at: string | null;
+            /** Lifted By */
+            lifted_by: string | null;
+            /** Lifted Reason */
+            lifted_reason: string;
+            /** Reason */
+            reason: string;
+            /** Removed At */
+            removed_at: string | null;
+            /**
+             * Sensor Id
+             * Format: uuid
+             */
+            sensor_id: string;
+            /** Sensor Name */
+            sensor_name: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "active" | "lifting" | "lifted" | "expired";
+            /** Target */
+            target: string;
+            /** Tier */
+            tier: string;
+        };
         /**
          * Category
          * @enum {string}
@@ -3196,6 +3608,13 @@ export interface components {
              * @default
              */
             reason: string;
+        };
+        /** DecisionsOut */
+        DecisionsOut: {
+            /** Apply */
+            apply: components["schemas"]["SensorBlockOut"][];
+            /** Remove */
+            remove: components["schemas"]["SensorBlockOut"][];
         };
         /** DependencyOut */
         DependencyOut: {
@@ -3695,6 +4114,28 @@ export interface components {
              */
             status: "online" | "offline" | "never" | "on_demand";
         };
+        /** HeartbeatIn */
+        HeartbeatIn: {
+            /**
+             * Agent Version
+             * @default
+             */
+            agent_version: string;
+        };
+        /** HeartbeatOut */
+        HeartbeatOut: {
+            /** Automatic */
+            automatic: boolean;
+            /** Name */
+            name: string;
+            /** Poll Seconds */
+            poll_seconds: number;
+            /**
+             * Sensor Id
+             * Format: uuid
+             */
+            sensor_id: string;
+        };
         /** IdentitiesOut */
         IdentitiesOut: {
             /** Can Register */
@@ -4134,6 +4575,78 @@ export interface components {
             title: string;
             /** Waiting For */
             waiting_for: string;
+        };
+        /** IntrusionAlertOut */
+        IntrusionAlertOut: {
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Block Ids */
+            block_ids: string[];
+            /** Category */
+            category: string;
+            /** Count */
+            count: number;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Ingested At
+             * Format: date-time
+             */
+            ingested_at: string;
+            /**
+             * Last Event Time
+             * Format: date-time
+             */
+            last_event_time: string;
+            /** Scenario */
+            scenario: string;
+            /**
+             * Sensor Id
+             * Format: uuid
+             */
+            sensor_id: string;
+            /** Sensor Name */
+            sensor_name: string;
+            /** Severity */
+            severity: string;
+            /** Source */
+            source: string;
+            /** State */
+            state: string;
+        };
+        /** IntrusionOut */
+        IntrusionOut: {
+            /** Alerts */
+            alerts: components["schemas"]["IntrusionAlertOut"][];
+            /** Allowlist */
+            allowlist: components["schemas"]["AllowlistOut"][];
+            /** Approved Max Seconds */
+            approved_max_seconds: number;
+            authorization: components["schemas"]["ResponseAuthorizationOut"] | null;
+            /** Automatic Active */
+            automatic_active: boolean;
+            /** Blocks */
+            blocks: components["schemas"]["BlockOut"][];
+            /** Blocks 24H */
+            blocks_24h: number;
+            /**
+             * Generated At
+             * Format: date-time
+             */
+            generated_at: string;
+            /** Sensors */
+            sensors: components["schemas"]["SensorOut"][];
+            /** Sensors Offline */
+            sensors_offline: number;
+            settings: components["schemas"]["SettingsOut"];
         };
         /** InviteCreatedOut */
         InviteCreatedOut: {
@@ -4709,6 +5222,11 @@ export interface components {
             /** Title */
             title: string;
         };
+        /** PauseIn */
+        PauseIn: {
+            /** Reason */
+            reason: string;
+        };
         /** PlaybookDetail */
         PlaybookDetail: {
             /**
@@ -5029,6 +5547,16 @@ export interface components {
             /** Items */
             items: components["schemas"]["RecentFinding"][];
         };
+        /** RefusedIn */
+        RefusedIn: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Reason */
+            reason: string;
+        };
         /** RelationshipOut */
         RelationshipOut: {
             confidence: components["schemas"]["Confidence"];
@@ -5164,6 +5692,67 @@ export interface components {
             /** Taken By */
             taken_by: string;
         };
+        /** ResponseAuthorizationIn */
+        ResponseAuthorizationIn: {
+            /**
+             * Days
+             * @default 90
+             */
+            days: number;
+            /**
+             * Default Block Seconds
+             * @default 3600
+             */
+            default_block_seconds: number;
+            /**
+             * Max Block Seconds
+             * @default 3600
+             */
+            max_block_seconds: number;
+            /**
+             * Per Hour Cap
+             * @default 50
+             */
+            per_hour_cap: number;
+            /** Sensor Ids */
+            sensor_ids: string[];
+        };
+        /** ResponseAuthorizationOut */
+        ResponseAuthorizationOut: {
+            /** Actions */
+            actions: string[];
+            /**
+             * Authorized At
+             * Format: date-time
+             */
+            authorized_at: string;
+            /** Authorized By */
+            authorized_by: string;
+            /** Default Block Seconds */
+            default_block_seconds: number;
+            /** Ended At */
+            ended_at: string | null;
+            /** Ended Reason */
+            ended_reason: string | null;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Live */
+            live: boolean;
+            /** Max Block Seconds */
+            max_block_seconds: number;
+            /** Per Hour Cap */
+            per_hour_cap: number;
+            /** Sensor Ids */
+            sensor_ids: string[];
+        };
         /** ReviewCounts */
         ReviewCounts: {
             /** Attack Paths */
@@ -5210,6 +5799,11 @@ export interface components {
             link_id: string;
             /** Proposed By Task Id */
             proposed_by_task_id: string | null;
+        };
+        /** RevokeIn */
+        RevokeIn: {
+            /** Reason */
+            reason: string;
         };
         /**
          * Risk
@@ -5468,6 +6062,150 @@ export interface components {
          * @enum {string}
          */
         ScopeStatus: "draft" | "active" | "superseded";
+        /** SensorAlertIn */
+        SensorAlertIn: {
+            /**
+             * Events Count
+             * @default 1
+             */
+            events_count: number;
+            /** Raw */
+            raw?: {
+                [key: string]: unknown;
+            };
+            /**
+             * Ref
+             * @default
+             */
+            ref: string;
+            /** Scenario */
+            scenario: string;
+            /**
+             * Simulated
+             * @default false
+             */
+            simulated: boolean;
+            /** Source */
+            source: string;
+            /**
+             * Start At
+             * Format: date-time
+             */
+            start_at: string;
+            /** Stop At */
+            stop_at?: string | null;
+        };
+        /** SensorBlockOut */
+        SensorBlockOut: {
+            /** Applied */
+            applied: boolean;
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Seconds Left */
+            seconds_left: number;
+            /** Target */
+            target: string;
+        };
+        /** SensorCreatedOut */
+        SensorCreatedOut: {
+            /** Agent Version */
+            agent_version: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key */
+            key: string;
+            /** Key Prefix */
+            key_prefix: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Name */
+            name: string;
+            /** Online */
+            online: boolean;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Revoked Reason */
+            revoked_reason: string;
+        };
+        /** SensorIn */
+        SensorIn: {
+            /** Name */
+            name: string;
+        };
+        /** SensorOut */
+        SensorOut: {
+            /** Agent Version */
+            agent_version: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Key Prefix */
+            key_prefix: string;
+            /** Last Seen At */
+            last_seen_at: string | null;
+            /** Name */
+            name: string;
+            /** Online */
+            online: boolean;
+            /** Revoked At */
+            revoked_at: string | null;
+            /** Revoked Reason */
+            revoked_reason: string;
+        };
+        /** SensorReportIn */
+        SensorReportIn: {
+            /**
+             * Applied
+             * @default []
+             */
+            applied: string[];
+            /**
+             * Refused
+             * @default []
+             */
+            refused: components["schemas"]["RefusedIn"][];
+            /**
+             * Removed
+             * @default []
+             */
+            removed: string[];
+        };
+        /** SensorReportOut */
+        SensorReportOut: {
+            /** Applied */
+            applied: number;
+            /** Refused */
+            refused: number;
+            /** Removed */
+            removed: number;
+        };
         /** SessionInfo */
         SessionInfo: {
             /** Mfa Verified */
@@ -5489,6 +6227,17 @@ export interface components {
         SettingIn: {
             /** Enabled */
             enabled: boolean;
+        };
+        /** SettingsOut */
+        SettingsOut: {
+            /** Automatic Paused */
+            automatic_paused: boolean;
+            /** Pause Reason */
+            pause_reason: string;
+            /** Paused At */
+            paused_at: string | null;
+            /** Paused By */
+            paused_by: string | null;
         };
         /**
          * Severity
@@ -6814,6 +7563,125 @@ export interface operations {
                     "application/json": {
                         [key: string]: number;
                     };
+                };
+            };
+        };
+    };
+    report_alerts_api_sensor_alerts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AlertsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AlertResult"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decisions_api_sensor_decisions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DecisionsOut"];
+                };
+            };
+        };
+    };
+    report_decisions_api_sensor_decisions_report_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SensorReportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensorReportOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    heartbeat_api_sensor_heartbeat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeartbeatIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HeartbeatOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -10645,6 +11513,204 @@ export interface operations {
             };
         };
     };
+    add_allowlist_api_workspaces__workspace_id__shield_allowlist_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllowlistIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllowlistOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_allowlist_api_workspaces__workspace_id__shield_allowlist__entry_id__remove_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    approve_block_api_workspaces__workspace_id__shield_blocks_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    lift_block_api_workspaces__workspace_id__shield_blocks__block_id__lift_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                block_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlockOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    intrusion_api_workspaces__workspace_id__shield_intrusion_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IntrusionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_intrusion_alert_api_workspaces__workspace_id__shield_intrusion_alerts__alert_id___action__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+                action: "acknowledge" | "resolve";
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     overview_api_workspaces__workspace_id__shield_overview_get: {
         parameters: {
             query?: never;
@@ -10663,6 +11729,213 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShieldOverviewOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    authorize_response_api_workspaces__workspace_id__shield_response_authorization_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResponseAuthorizationIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResponseAuthorizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    end_response_authorization_api_workspaces__workspace_id__shield_response_authorization_end_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResponseAuthorizationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    pause_api_workspaces__workspace_id__shield_response_pause_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PauseIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_api_workspaces__workspace_id__shield_response_resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_sensor_api_workspaces__workspace_id__shield_sensors_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SensorIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensorCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_sensor_api_workspaces__workspace_id__shield_sensors__sensor_id__revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sensor_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SensorOut"];
                 };
             };
             /** @description Validation Error */

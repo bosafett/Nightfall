@@ -51,14 +51,14 @@ describe("navigation", () => {
     expect(NAV_GROUPS.map((g) => g.label)).toEqual([null, "SWORD", "SHIELD", "JANUS CORE", "SYSTEM"]);
     expect(NAV.map((n) => n.label)).toEqual([
       "Command Center", "Target Registry", "Reconnaissance", "BLACKSITE", "Attack Graph", "Findings", "Reports",
-      "WARPATH", "AEGIS Overview", "Monitoring", "Alerts & Detection", "Incident Response", "BLACK BOX", "NEXUS",
+      "WARPATH", "AEGIS Overview", "Monitoring", "Alerts & Detection", "Intrusion Detection", "Incident Response", "BLACK BOX", "NEXUS",
       "Agents", "War Room", "Audit Log", "Settings",
     ]);
   });
   it("never links an unbuilt module", () => {
     const shield = NAV_GROUPS.find((g) => g.key === "shield")!;
     // SHIELD v1: overview, monitoring and alerts are built; the rest stay labels.
-    expect(shield.items.filter((i) => !isPlanned(i)).map((i) => i.key)).toEqual(["aegis", "monitoring", "alerts", "incidents"]);
+    expect(shield.items.filter((i) => !isPlanned(i)).map((i) => i.key)).toEqual(["aegis", "monitoring", "alerts", "intrusion", "incidents"]);
     expect(NAV.some((n) => ["hunting", "countermeasures", "recovery"].includes(n.key))).toBe(false);
     expect(new Set(NAV.map((n) => n.href("w"))).size).toBe(NAV.length);
   });

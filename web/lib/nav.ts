@@ -36,6 +36,7 @@ export const NAV_GROUPS: NavGroup[] = [
     { key: "aegis", label: "AEGIS Overview", href: (ws) => `/w/${ws}/shield`, icon: "shield" },
     { key: "monitoring", label: "Monitoring", href: (ws) => `/w/${ws}/shield/monitoring`, icon: "recon" },
     { key: "alerts", label: "Alerts & Detection", href: (ws) => `/w/${ws}/shield/alerts`, icon: "alert" },
+    { key: "intrusion", label: "Intrusion Detection", href: (ws) => `/w/${ws}/shield/intrusion`, icon: "shield" },
     planned("hunting", "Threat Hunting"),
     planned("countermeasures", "Countermeasures"),
     { key: "incidents", label: "Incident Response", href: (ws) => `/w/${ws}/shield/incidents`, icon: "alert" },

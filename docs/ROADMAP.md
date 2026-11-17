@@ -55,7 +55,7 @@ JANUS's response tiers).
 | Phase | Scope | State |
 |---|---|---|
 | **1 — JANUS's own detection** | Sign-in alerts; no sensor, no new blocking (the existing throttles already lock). WATCH mode for sign-in signals | **Delivered** (migration 0024) |
-| **2 — CrowdSec sensor + GUARD** | Outbound-only `janus-sensor` on the owner's machines; standing response authorization; time-limited automatic blocks with allow list, caps and kill switch; person-approved tier; Intrusion Detection UI | **In progress** |
+| **2 — CrowdSec sensor + GUARD** | Outbound-only `janus-sensor` on the owner's machines; standing response authorization; time-limited automatic blocks with allow list, caps and kill switch; person-approved tier; Intrusion Detection UI | **In progress** — built and tested (design §10b); awaiting safeguard validation on a real machine and the BLACKSITE review |
 | **3 — SENTINEL indicator store** | Threat-intel repository (IP, domain, hash, fingerprint, ATT&CK technique) with confidence labels, first/last-seen, expiry and false-positive correction; correlation into incidents. New tables, no new infrastructure | **Planned** |
 | **4 — deception / honeypots** | Isolated decoy services to observe hostile activity, on infrastructure the owner is authorized to run. Gated: needs its own scoping and an explicit owner decision because it stands up new attacker-facing services | **Planned, gated** |
 
