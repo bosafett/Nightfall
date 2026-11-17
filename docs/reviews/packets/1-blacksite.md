@@ -5,6 +5,53 @@
 detailed draft written by the AI assistant that built the system (findings F1–F8). Verify each finding rather than
 trust it. **WARPATH** runs entirely inside BLACKSITE, so this review covers it too, with the additions in §5.
 
+## 0. Status for the independent review (prepared 2026-11-17)
+
+**Review this commit:** `993b31a0cda7764fd0898d2f68b77a1e83f0d3e9` (`main`, 2026-11-17). Record the commit you
+actually review in your report.
+
+**Packet suites at that commit:** 53 passed (`test_blacksite` + `test_blacksite_ui` + `test_lab` + `test_warpath` +
+`test_tool_runner`; Postgres 16, no network). The self-review ran 49 of these at `194b377`.
+
+**Already done:** an owner self-review, *not independent*:
+[2026-11-08-blacksite-self-review.md](../2026-11-08-blacksite-self-review.md). Approved with one condition (R1).
+BLACKSITE currently runs under temporary self-review mode, which expires by 2027-01-31. An independent reference in
+`NIGHTFALL_BLACKSITE_REVIEW_REF` replaces it.
+
+### Changes since the self-review (`194b377` → `993b31a`) that touch this scope
+
+| Commit | Change | What to check |
+|---|---|---|
+| `6c1099c` | Console wordmark (inline SVG); owner-only link to the console from the hosted app | The link adds no execution control to the hosted app (B4, B12) |
+| `48296df` | Readiness checks for lab tool pack 1, WARPATH and Profile B; no migration | Preflight still refuses without the review reference (B5) |
+| `3288084` | **R1 fix:** the lab worker may reach port 5432 only on the database's own addresses, and DNS only on the container's resolver (`infra/tools/egress-lock.sh`) | §3.1 below; whether condition 1 can close |
+| `67e5020`, `0593f85`, `3b8c2c6` | SHIELD migrations 0023–0025 (incidents, sign-in alerts, sensors and blocks) | New tables are outside the lab boundary. Checked at `993b31a`: `nightfall_blacksite` and `nightfall_lab_worker` have **no** grants on any of them, and can't execute the new `SECURITY DEFINER` functions (`nf_record_sign_in_alert`, `nf_sensor_authenticate`). Confirm with the query in §3.6 |
+
+The SHIELD v3 phase 2 sensor (`infra/janus-sensor/`) may run on the same host as the lab. It's outside this
+packet: it runs on the host, not in the lab network, listens on nothing, and has its own validation record
+(`docs/reviews/2026-11-17-shield-phase2-safeguards.md`).
+
+### Earlier findings: state to confirm
+
+| Finding | Stated status | Your task |
+|---|---|---|
+| F1 (High): lab worker's database role not confined | Fixed (migrations 0010, 0011) | Verify (B9) |
+| F2 (Medium): two-person rule counts accounts, not people | Owner decision D1: single operator | Confirm the single-operator rule is enforced as described (§17 of the architecture review) |
+| F3 (Medium): authorizing a scope proves intent, not ownership | Closed by proof of control (migration 0017) for Profile B; lab scopes are lab-network only (B7) | Verify for the lab |
+| F4 (Medium): lab range configured twice; "private" too broad | Fixed: the worker checks its own routes at start-up | Verify (B8, §3.1) |
+| F5 (Low): approvals don't expire | Fixed for lab work: 24 hours | Verify (B11) |
+| F6 (Low): the owner can do everything | Accepted | None |
+| F7 (Low): audit trail changeable with the database owner's credential | Partly addressed: hash-chained export, plus a check against a kept export | Judge whether it's enough (§4, last question) |
+| F8 (Info): parts of the design untested because unbuilt | Information | Note anything still unbuilt |
+| R1 (Low): worker firewall limited ports, not destinations | Fixed in `3288084`; seen on the lab machine 2026-11-16; **a lab run through the new firewall not yet seen** | §3.1 |
+
+### What the owner provides
+
+- Read access to the repository (it's public) and this packet.
+- A session on the lab machine (in person, screen share or SSH) for the hand checks in §3. The checks don't need
+  Neon or Vercel credentials, and the reviewer never needs the owner's password or TOTP secret.
+- Someone who didn't build the system and isn't the owner or a second account of the owner (packets README).
+
 ## 1. The question
 
 > Can a lab action only run against an authorized lab target, with the required approval, by the owner, and can
@@ -49,12 +96,35 @@ trust it. **WARPATH** runs entirely inside BLACKSITE, so this review covers it t
 
    Compare with `infra/lab/compose.yml` and finding F4: is the lab range narrow, and set the same way in both
    places?
+
+   R1 (`infra/tools/egress-lock.sh`), from inside the worker container:
+   - the start-up line shows `ok lab egress: database port 5432 only to <addresses>` and `DNS loopback only`, and
+     those addresses are the database host's current ones;
+   - port 5432 on an address that isn't the database's (e.g. `1.1.1.1:5432`) is **refused**, not just timed out;
+   - one lab run completes through the new firewall (not yet seen at the time of writing).
 2. **The listener binds to loopback only** (`NIGHTFALL_BLACKSITE_BIND`). Check that nothing on another machine can
    reach port 8443.
 3. **The worker's database credential** is the `nightfall_lab_worker` role (`SELECT current_user`), not the owner's.
 4. **The owner account** has two-factor enabled, and the password and TOTP secret aren't shared.
-5. **Findings F2–F8** in the main document: confirm their stated status. F3 is now closed by proof of control
-   (migration 0017); F7 is partly addressed by the audit export.
+5. **Findings F2–F8** in the main document: confirm their stated status (table in §0).
+6. **New tables stay outside the lab roles' reach.** As the database owner:
+   ```sql
+   SELECT grantee, table_name, privilege_type FROM information_schema.role_table_grants
+   WHERE grantee IN ('nightfall_blacksite', 'nightfall_lab_worker') ORDER BY 1, 2;
+   SELECT p.proname FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname = 'public' AND p.prosecdef
+     AND (has_function_privilege('nightfall_blacksite', p.oid, 'EXECUTE')
+          OR has_function_privilege('nightfall_lab_worker', p.oid, 'EXECUTE'));
+   ```
+   At `993b31a` the first returns, for `nightfall_blacksite`: `approvals assets audit_events evidence
+   finding_evidence findings operations organizations playbook_runs playbook_settings projects rate_limit_hits
+   scope_exclusions scope_targets scopes sessions users warpath_exercises workflow_runs workflow_step_events
+   workflow_steps workspace_members workspaces`; for `nightfall_lab_worker`: `approvals asset_relationships assets
+   audit_events evidence evidence_blobs finding_evidence findings operations organizations projects
+   scope_exclusions scope_targets scopes worker_heartbeats`. Each should be either needed for sign-in (users,
+   sessions, workspaces, members, rate limits) or limited to lab rows by the restrictive policies (B6, B9); none
+   from SHIELD. The second returns `nf_approval_guard`, `nf_finding_number` and `nf_user_workspace_count`: confirm
+   each is intended for these roles.
 
 ## 4. Questions to answer in the report
 
@@ -78,5 +148,5 @@ trust it. **WARPATH** runs entirely inside BLACKSITE, so this review covers it t
 **Run these:**
 
 ```bash
-cd api && .venv/bin/python -m pytest -q tests/test_blacksite.py tests/test_blacksite_ui.py tests/test_lab.py tests/test_warpath.py
+cd api && .venv/bin/python -m pytest -q tests/test_blacksite.py tests/test_blacksite_ui.py tests/test_lab.py tests/test_warpath.py tests/test_tool_runner.py
 ```
