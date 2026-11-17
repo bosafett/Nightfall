@@ -163,3 +163,66 @@ self-hosted on machines you already run.
   above.
 - **Not in phase 1:** the sensor and CrowdSec (phase 2), the standing response authorization, the Vercel firewall
   proposals, and linking sign-in alerts to incidents (incidents belong to a project; sign-in alerts don't).
+
+## 11. Reconciling the "Active Defense & Counterintelligence" addendum (received 2026-11-17)
+
+An addendum arrived framing SHIELD as a wider defensive-intelligence system across five divisions (AEGIS,
+SENTINEL, COUNTERMEASURES, plus reuse of CHRONICLE/BLACK BOX/NEXUS) with three operating modes. Two notes before
+the mapping:
+
+- **It is defensive, and so are we.** The addendum repeats the same boundary this design already holds: no hacking
+  back, no exploiting an attacker's systems, no malware, no denial-of-service, no pivoting outside authorized
+  infrastructure, "attribution is not authorization," and AI may recommend but never execute. Nothing in it
+  reopens strike-back, which stays refused.
+- **The copy received was truncated** (it cuts off in §8, mid-sentence). The counterintelligence and deception
+  material is therefore partial. It is taken here as **direction, not a finished spec** — the deception pieces get
+  their own scoping before any build.
+
+### 11.1 Terminology: the addendum's three modes are this design's §4 tiers
+
+| Addendum mode | This design (§4) | Status |
+|---|---|---|
+| **WATCH** — observe, correlate, alert, recommend; no automatic change | alert-only | phase 1 built for JANUS's own sign-in signals |
+| **GUARD** — narrow, pre-approved, reversible, time-limited automatic actions | **automatic tier, under the standing response authorization** (block one address on the machine that saw it, ≤4h, capped, allow-list protected, kill switch) | phase 2 |
+| **COMMAND** — human-directed higher-impact response | **person-approved tier** (longer/range/all-machine blocks, session revocation, Vercel firewall with fresh 2FA) | phase 2+ |
+| (the addendum's prohibited list) | **Never** tier | unchanged |
+
+No weaker parallel approval system is introduced: COMMAND reuses the existing JANUS authorization model, as the
+addendum itself requires.
+
+### 11.2 The five divisions, against what exists
+
+- **AEGIS (monitoring/detection):** SHIELD v2 monitors and phase-1 sign-in alerts already exist. The addendum's
+  normalized event schema, separate event-time vs ingestion-time, source-reliability tracking and
+  observed-fact-vs-inference labelling become part of phase 2's sensor ingestion. No assumed integrations: only
+  CrowdSec on machines the owner runs, as already designed.
+- **SENTINEL (investigation/intel):** incidents, the War Room, timelines and findings exist. New: an indicator
+  store (IP, domain, URL, certificate fingerprint, file hash, user-agent, ATT&CK technique) with first/last-seen,
+  source, confidence, expiry and false-positive correction, plus confidence labels on every assessment. This is
+  **phase 3**; it adds tables but no internet-facing infrastructure.
+- **COUNTERMEASURES (response):** the §4 tiers above. Every action keeps a target, action, reason, supporting
+  incident, expected impact, authorization record, result and rollback — already the shape of the audit/incident
+  trail.
+- **CHRONICLE / BLACK BOX / NEXUS:** reuse, don't duplicate (audit trail, evidence store, workflows). The addendum
+  agrees.
+- **Counterintelligence / deception (honeypots, decoys, attacker profiling):** entirely new, and the only part that
+  stands up new attacker-facing services. It is **phase 4** and is gated on its own explicit go-ahead and a scoping
+  pass: decoys only on infrastructure the owner is authorized to operate, isolated from production with no route
+  into it, never used to run code on a visitor, no plaintext passwords captured, with retention and access limits.
+
+### 11.3 Updated phase plan
+
+1. **Phase 1 — JANUS's own sign-in detection (built, migration 0024).** WATCH for sign-in signals.
+2. **Phase 2 — CrowdSec sensor + GUARD.** Outbound-only sensor, standing response authorization, allow list, caps,
+   kill switch, Intrusion Detection UI. Approved in §9. Migration held locally until approved for push.
+3. **Phase 3 — SENTINEL indicator store.** Threat-intel repository, confidence labels, ATT&CK mapping, correlation
+   into incidents. New tables; no new infrastructure.
+4. **Phase 4 — deception / honeypots (gated).** Not started, not approved; needs its own scoping and an explicit
+   decision because it means running new attacker-facing services.
+
+### 11.4 Unchanged guardrails the addendum does not relax
+
+No paid services and no new paid AI calls. AI agents explain and recommend only — they cannot execute a tool,
+approve their own recommendation, change GUARD thresholds, or treat attacker-controlled text as instructions. No
+scope expansion past the owner's own assets; customer systems remain out of scope. Migrations are held locally
+until the owner approves the push, and production is unchanged by anything in this section.
