@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Identity, Integer, LargeBinary, Text, text
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, CIDR, INET, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -958,3 +958,121 @@ class WarpathScore(Base):
     note: Mapped[str] = mapped_column(server_default=text("''"))
     scored_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     scored_at: Mapped[datetime] = _created()
+
+
+class ShieldSensor(Base):
+    """SHIELD v3 phase 2 (migration 0025): a CrowdSec sensor on an owner's machine.
+
+    Authenticated by its own key (only the sha256 is stored). Outbound-only: JANUS never
+    connects to it. Revocable; never deleted."""
+
+    __tablename__ = "shield_sensors"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    name: Mapped[str]
+    key_prefix: Mapped[str]
+    key_sha256: Mapped[bytes] = mapped_column(LargeBinary)
+    created_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = _created()
+    last_seen_at: Mapped[datetime | None]
+    agent_version: Mapped[str] = mapped_column(server_default=text("''"))
+    revoked_at: Mapped[datetime | None]
+    revoked_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    revoked_reason: Mapped[str] = mapped_column(server_default=text("''"))
+
+
+class ShieldResponseAuthorization(Base):
+    """SHIELD v3 phase 2 (migration 0025): the owner's standing authorization for the automatic
+    block tier. Insert-only apart from ending it; at most one live row per workspace."""
+
+    __tablename__ = "shield_response_authorizations"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    sensor_ids: Mapped[list[uuid.UUID]] = mapped_column(ARRAY(UUID(as_uuid=True)))
+    actions: Mapped[list[str]] = mapped_column(ARRAY(Text))
+    max_block_seconds: Mapped[int]
+    default_block_seconds: Mapped[int]
+    per_hour_cap: Mapped[int]
+    authorized_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    authorized_at: Mapped[datetime] = _created()
+    expires_at: Mapped[datetime]
+    ended_at: Mapped[datetime | None]
+    ended_reason: Mapped[str | None]
+
+
+class ShieldResponseSettings(Base):
+    """SHIELD v3 phase 2 (migration 0025): the kill switch. automatic_paused stops every
+    automatic block at once; sensors fall back to alert-only."""
+
+    __tablename__ = "shield_response_settings"
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"), primary_key=True)
+    automatic_paused: Mapped[bool] = mapped_column(server_default=text("false"))
+    paused_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    paused_at: Mapped[datetime | None]
+    pause_reason: Mapped[str] = mapped_column(server_default=text("''"))
+    updated_at: Mapped[datetime] = _created()
+
+
+class ShieldBlockAllowlistEntry(Base):
+    """SHIELD v3 phase 2 (migration 0025): an address that must never be blocked. A block that
+    would cover a live entry is refused by the database and an alert is raised instead."""
+
+    __tablename__ = "shield_block_allowlist"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    cidr: Mapped[str] = mapped_column(CIDR)
+    note: Mapped[str] = mapped_column(server_default=text("''"))
+    added_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    added_at: Mapped[datetime] = _created()
+    removed_at: Mapped[datetime | None]
+    removed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+
+
+class ShieldIntrusionAlert(Base):
+    """SHIELD v3 phase 2 (migration 0025): an alert a sensor sends (a CrowdSec scenario on a
+    source address). Event time is kept apart from ingestion time; raw is untrusted data."""
+
+    __tablename__ = "shield_intrusion_alerts"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    sensor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shield_sensors.id"))
+    scenario: Mapped[str]
+    category: Mapped[str] = mapped_column(server_default=text("'other'"))
+    severity: Mapped[Severity] = mapped_column(_pg_enum(Severity, "severity"))
+    source: Mapped[str] = mapped_column(INET)
+    count: Mapped[int]
+    event_time: Mapped[datetime]
+    last_event_time: Mapped[datetime]
+    ingested_at: Mapped[datetime] = _created()
+    raw: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'"))
+    state: Mapped[str] = mapped_column(server_default=text("'open'"))
+    acknowledged_at: Mapped[datetime | None]
+    incident_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("incidents.id"))
+
+
+class ShieldBlock(Base):
+    """SHIELD v3 phase 2 (migration 0025): a time-limited block, automatic (under a live
+    authorization) or approved (by a person). Every block expires and is liftable. The database
+    enforces the allow list and, for the automatic tier, the authorization's limits."""
+
+    __tablename__ = "shield_blocks"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    sensor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shield_sensors.id"))
+    target: Mapped[str] = mapped_column(CIDR)
+    tier: Mapped[str]
+    action: Mapped[str] = mapped_column(server_default=text("'block_ip'"))
+    reason: Mapped[str] = mapped_column(server_default=text("''"))
+    authorization_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("shield_response_authorizations.id")
+    )
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    alert_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("shield_intrusion_alerts.id"))
+    incident_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("incidents.id"))
+    created_at: Mapped[datetime] = _created()
+    expires_at: Mapped[datetime]
+    applied_at: Mapped[datetime | None]
+    removed_at: Mapped[datetime | None]
+    lifted_at: Mapped[datetime | None]
+    lifted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    lifted_reason: Mapped[str] = mapped_column(server_default=text("''"))
