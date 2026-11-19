@@ -22,6 +22,9 @@ from sqlalchemy.orm import Session
 from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
+    Alert,
+    IncidentEntry,
+    IncidentItem,
     SentinelAssessment,
     SentinelIndicator,
     SentinelSighting,
@@ -147,6 +150,21 @@ def _describe(db: Session, s: SentinelSighting) -> tuple[str, uuid.UUID | None]:
         if c is not None:
             return f"Watched file {c.action}: {c.item.get('path')}", None
         return "Watched file change (older than the 90-day host log)", None
+    elif s.source_kind == "aegis_alert":
+        al = db.get(Alert, s.source_id)
+        if al is not None:
+            inc = db.scalar(
+                select(IncidentItem.incident_id)
+                .where(IncidentItem.kind == "alert", IncidentItem.item_id == al.id,
+                       IncidentItem.removed_at.is_(None))
+                .order_by(IncidentItem.added_at)
+                .limit(1)
+            )  # fmt: skip
+            return f"AEGIS: {al.title}", inc
+    elif s.source_kind == "incident_entry":
+        e = db.get(IncidentEntry, s.source_id)
+        if e is not None:
+            return "Entered by a person on an incident", e.incident_id
     return f"{s.source_kind} (source no longer available)", None
 
 

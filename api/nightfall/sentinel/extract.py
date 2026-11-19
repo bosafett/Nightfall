@@ -14,13 +14,17 @@ Analysis only: nothing in this module blocks, opens an incident, or changes a ma
 from __future__ import annotations
 
 import ipaddress
+import re
 import uuid
 from datetime import datetime, timedelta
+from urllib.parse import urlsplit
 
-from sqlalchemy import text
+from sqlalchemy import insert, text
 from sqlalchemy.orm import Session
 
 from nightfall.core.db.models import (
+    Alert,
+    IncidentEntry,
     SentinelSighting,
     ShieldBlock,
     ShieldHostAlert,
@@ -125,8 +129,10 @@ def record(
             "x": event_time + ttl if ttl else None,
         },  # fmt: skip
     ).scalar_one()
-    db.add(
-        SentinelSighting(
+    # A Core insert (no RETURNING): the worker role may add sightings but not read them back.
+    db.execute(
+        insert(SentinelSighting).values(
+            id=uuid.uuid4(),  # given, so the primary key isn't read back either
             workspace_id=workspace_id,
             indicator_id=indicator_id,
             source_kind=source_kind,
@@ -197,6 +203,108 @@ def from_host_change(db: Session, change: ShieldHostChange) -> uuid.UUID | None:
     return record(
         db, change.workspace_id, type_="sha256", value=sha, source_kind="host_change",
         source_id=change.id, sensor_id=change.sensor_id, event_time=change.observed_at,
+    )  # fmt: skip
+
+
+# --- Step 3c: normalization, AEGIS alerts and indicators a person enters ----------------------
+
+TYPES = tuple(TTL)
+_LABEL = re.compile(r"^(?!-)[a-z0-9-]{1,63}(?<!-)$")
+_HEX64 = re.compile(r"^[0-9a-f]{64}$")
+
+
+def domain_value(name: str) -> str | None:
+    """Lower case, no trailing dot, no leading wildcard; None if it isn't a host name."""
+    n = name.strip().lower().rstrip(".")
+    n = n.removeprefix("*.")
+    labels = n.split(".")
+    if len(n) > 253 or len(labels) < 2 or labels[-1].isdigit():
+        return None
+    return n if all(_LABEL.match(x) for x in labels) else None
+
+
+def sha256_value(value: str) -> str | None:
+    v = value.strip().lower().replace(":", "")
+    return v if _HEX64.match(v) else None
+
+
+def url_value(value: str) -> str | None:
+    """Scheme, host (and port), path; query, fragment and credentials dropped (design §3)."""
+    try:
+        u = urlsplit(value.strip())
+        port = u.port
+    except ValueError:
+        return None
+    if u.scheme.lower() not in ("http", "https") or not u.hostname:
+        return None
+    host = u.hostname.lower()
+    try:
+        ip = ipaddress.ip_address(host)
+        host = f"[{ip}]" if ip.version == 6 else str(ip)
+    except ValueError:
+        if domain_value(host) is None:
+            return None
+    out = f"{u.scheme.lower()}://{host}{f':{port}' if port else ''}{u.path or '/'}"
+    return out if len(out) <= 2048 else None
+
+
+def user_agent_value(value: str) -> str | None:
+    v = " ".join(value.split())
+    return v if 0 < len(v) <= 300 and v.isprintable() else None
+
+
+def entered_value(db: Session, workspace_id: uuid.UUID, type_: str, raw: str) -> str:
+    """Normalize an indicator a person entered. A person may add a private address by hand
+    (design §3), but not one on the SHIELD allow list, a range, loopback or multicast."""
+    if type_ == "ip":
+        try:
+            addr = ipaddress.ip_address(raw.strip())
+        except ValueError as exc:
+            raise ValueError("Enter a single IP address, not a range.") from exc
+        if addr.is_loopback or addr.is_multicast or addr.is_unspecified:
+            raise ValueError("Loopback, multicast and unspecified addresses can't be indicators.")
+        from nightfall.shield.guard import allowlisted
+
+        if allowlisted(db, workspace_id, str(addr)):
+            raise ValueError("That address is on the SHIELD allow list.")
+        return str(addr)
+    value = {
+        "domain": domain_value,
+        "url": url_value,
+        "sha256": sha256_value,
+        "cert_sha256": sha256_value,
+        "user_agent": user_agent_value,
+    }[type_](raw)
+    if value is None:
+        raise ValueError(f"That isn't a valid {type_.replace('_', ' ')}.")
+    return value
+
+
+def from_aegis_alert(db: Session, alert: Alert) -> None:
+    """A new AEGIS alert: a changed certificate gives its fingerprint; certificate-log and DNS
+    changes give the names outside the authorized scope (names in scope are the owner's own)."""
+    data = alert.data or {}
+    found: list[tuple[str, str]] = []
+    if alert.kind == "cert.changed":
+        sha = sha256_value(str(data.get("cert_sha256") or ""))
+        if sha:
+            found.append(("cert_sha256", sha))
+    elif alert.kind in ("ct.new_names", "dns.changed"):
+        names = {domain_value(str(n)) for n in (data.get("outside_scope") or [])[:50]}
+        found += [("domain", n) for n in sorted(x for x in names if x)]
+    for type_, value in found:
+        record(
+            db, alert.workspace_id, type_=type_, value=value, source_kind="aegis_alert",
+            source_id=alert.id, sensor_id=None, event_time=alert.first_seen_at,
+        )  # fmt: skip
+
+
+def from_incident_entry(
+    db: Session, entry: IncidentEntry, type_: str, value: str, event_time: datetime
+) -> uuid.UUID:
+    return record(
+        db, entry.workspace_id, type_=type_, value=value, source_kind="incident_entry",
+        source_id=entry.id, sensor_id=None, event_time=event_time,
     )  # fmt: skip
 
 

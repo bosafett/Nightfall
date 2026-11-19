@@ -13,6 +13,7 @@ export const metadata: Metadata = { title: "Indicator" };
 
 const sourceLabel: Record<string, string> = {
   intrusion_alert: "Intrusion alert", block: "Block", host_alert: "Host alert", host_change: "Host change",
+  aegis_alert: "AEGIS alert", incident_entry: "Entered on an incident",
 };
 
 export default async function IndicatorPage({ params }: { params: Promise<{ ws: string; indicatorId: string }> }) {

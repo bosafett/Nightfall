@@ -16,13 +16,16 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Annotated, Literal
 
 from fastapi import APIRouter
+from pydantic import StringConstraints
 from sqlalchemy import select, tuple_
 from sqlalchemy.orm import Session
 
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
+    Alert,
     Finding,
     FindingOrigin,
     Incident,
@@ -37,11 +40,14 @@ from nightfall.core.db.models import (
     ValidationStatus,
 )
 from nightfall.core.db.session import DB
-from nightfall.core.errors import not_found
+from nightfall.core.errors import api_error, not_found
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
+from nightfall.sentinel import extract
 from nightfall.sentinel.routes import IndicatorOut, _describe, _out
+from nightfall.shield import incidents as logic
+from nightfall.shield.incident_routes import WORK, _audit, _in_progress
 from nightfall.warpath.catalogue import techniques as attack_catalogue
 
 router = APIRouter(prefix="/api/workspaces/{workspace_id}/sentinel", tags=["sentinel"])
@@ -49,6 +55,8 @@ router = APIRouter(prefix="/api/workspaces/{workspace_id}/sentinel", tags=["sent
 # The two alert kinds a person can link (decision 4 (c)), as sightings name them and as the
 # escalation route names them.
 LINKABLE = {"intrusion_alert": "intrusion-alerts", "host_alert": "host-alerts"}
+# Step 3c: an AEGIS alert is added as an incident item (same project, not resolved).
+AEGIS_LINK = "aegis-alerts"
 
 
 class RelatedOut(Model):
@@ -114,7 +122,40 @@ def linked_sources(db: Session, inc: Incident) -> set[tuple[str, uuid.UUID]]:
         select(ShieldIntrusionAlert.id).where(ShieldIntrusionAlert.incident_id == inc.id)
     ):
         out.add(("intrusion_alert", aid))
+    for aid in db.scalars(
+        select(IncidentItem.item_id).where(
+            IncidentItem.incident_id == inc.id, IncidentItem.kind == "alert",
+            IncidentItem.removed_at.is_(None),
+        )
+    ):  # fmt: skip
+        out.add(("aegis_alert", aid))
     return out
+
+
+def entered_sources(db: Session, inc: Incident) -> set[tuple[str, uuid.UUID]]:
+    """Indicators a person entered on this incident (step 3c): their timeline entries."""
+    return {
+        ("incident_entry", eid)
+        for eid in db.scalars(
+            select(IncidentEntry.id).where(
+                IncidentEntry.incident_id == inc.id,
+                IncidentEntry.data["sentinel_indicator"].isnot(None),
+            )
+        )
+    }
+
+
+def _link_kind(
+    db: Session, inc: Incident, o: SentinelSighting, other_inc: uuid.UUID | None
+) -> str | None:
+    """How a person would add this sighting's source to the incident, if they can."""
+    if other_inc == inc.id:
+        return None
+    if o.source_kind == "aegis_alert":
+        al = db.get(Alert, o.source_id)
+        ok = al is not None and al.project_id == inc.project_id and al.state != "resolved"
+        return AEGIS_LINK if ok else None
+    return LINKABLE.get(o.source_kind)
 
 
 def _email(db: Session, uid: uuid.UUID | None) -> str | None:
@@ -124,15 +165,16 @@ def _email(db: Session, uid: uuid.UUID | None) -> str | None:
 def correlate(db: Session, inc: Incident) -> CorrelationOut:
     now = utcnow()
     linked = linked_sources(db, inc)
+    mine = linked | entered_sources(db, inc)
     own: list[SentinelSighting] = (
         list(
             db.scalars(
                 select(SentinelSighting).where(
-                    tuple_(SentinelSighting.source_kind, SentinelSighting.source_id).in_(linked)
+                    tuple_(SentinelSighting.source_kind, SentinelSighting.source_id).in_(mine)
                 )
             )
         )
-        if linked
+        if mine
         else []
     )
     names = {s.id: s.name for s in db.scalars(select(ShieldSensor))}
@@ -152,17 +194,21 @@ def correlate(db: Session, inc: Incident) -> CorrelationOut:
             .limit(200)
         ).all()
         n_linked = sum((o.source_kind, o.source_id) in linked for o in others)
+        reason = (
+            f"Shares {ind.type} {ind.value} with {n_linked} linked alert(s)"
+            if n_linked
+            else f"Shares {ind.type} {ind.value}, entered on this incident"
+        )
         elsewhere = []
         for o in others:
-            if (o.source_kind, o.source_id) in linked:
+            if (o.source_kind, o.source_id) in mine:
                 continue
             desc, other_inc = _describe(db, o)
-            reason = f"Shares {ind.type} {ind.value} with {n_linked} linked alert(s)"
             r = RelatedOut(
                 source_kind=o.source_kind, source_id=o.source_id, description=desc,
                 sensor_name=names.get(o.sensor_id) if o.sensor_id else None,
                 event_time=o.event_time, incident_id=other_inc,
-                escalation_kind=LINKABLE.get(o.source_kind) if other_inc != inc.id else None,
+                escalation_kind=_link_kind(db, inc, o, other_inc),
                 reason=reason,
             )  # fmt: skip
             elsewhere.append(r)
@@ -280,3 +326,39 @@ def incident_correlation(
     if inc is None or inc.workspace_id != ctx.workspace_id:
         raise not_found("Incident not found.")
     return correlate(db, inc)
+
+
+class IndicatorEntryIn(Model):
+    type: Literal["ip", "domain", "url", "sha256", "cert_sha256", "user_agent"]
+    value: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2048)]
+    note: Annotated[str, StringConstraints(strip_whitespace=True, max_length=1000)] = ""
+
+
+@router.post("/incidents/{incident_id}/indicators", response_model=IndicatorOut, status_code=201)
+def enter_indicator(
+    incident_id: uuid.UUID,
+    body: IndicatorEntryIn,
+    db: DB,
+    ctx: WorkspaceContext = ws_permission(WORK),
+) -> IndicatorOut:
+    """Step 3c: a person records an indicator from an investigation. It's a sighting of an
+    unreviewed indicator (computed confidence as usual); assessing it is a separate step."""
+    inc = db.get(Incident, incident_id)
+    if inc is None or inc.workspace_id != ctx.workspace_id:
+        raise not_found("Incident not found.")
+    _in_progress(inc)
+    try:
+        value = extract.entered_value(db, ctx.workspace_id, body.type, body.value)
+    except ValueError as exc:
+        raise api_error(422, "invalid_indicator", str(exc)) from exc
+    label = f"Indicator added: {body.type} {value}" + (f". {body.note}" if body.note else "")
+    entry = logic.add_entry(
+        db, inc, "event", label,
+        {"sentinel_indicator": {"type": body.type, "value": value}}, ctx.user_id,
+    )  # fmt: skip
+    ind_id = extract.from_incident_entry(db, entry, body.type, value, utcnow())
+    db.flush()
+    _audit(db, ctx, "sentinel.indicator_entered", inc, type=body.type, value=value[:300])
+    ind = db.get_one(SentinelIndicator, ind_id)
+    db.refresh(ind)
+    return _out(db, ind, utcnow())

@@ -675,6 +675,13 @@ test.describe("as the owner", () => {
     await page.getByLabel("Entry text").fill("Was the eve account created by an admin?");
     await page.getByRole("button", { name: "Add to timeline" }).click();
     await expect(page.getByTestId("unknowns")).toContainText("Was the eve account created by an admin?");
+    // SENTINEL 3c: a person records an indicator found during the investigation.
+    const enter = page.getByTestId("enter-indicator");
+    await enter.getByLabel("Indicator type").selectOption("domain");
+    await enter.getByLabel("Value").fill("Evil-Host.NET.");
+    await enter.getByRole("button", { name: "Add indicator" }).click();
+    await expect(page.getByRole("link", { name: "evil-host.net" })).toBeVisible();
+    await expect(page.getByText(/Indicator added: domain evil-host\.net/)).toBeVisible();
 
     // SENTINEL: an attack from a public address becomes an indicator; a person assesses it.
     const r3 = await page.request.post("/api/sensor/alerts", {

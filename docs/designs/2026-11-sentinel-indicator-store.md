@@ -238,3 +238,48 @@ indicators in this phase.
     sequence limited to linked alerts, knows versus suspects before and after an assessment, unknowns, a
     suggestion disappearing once added, suppressed indicators suggesting nothing, isolation;
   - the browser suite: the panel shows, and an Unknown entry lands in its list.
+
+## 15. As built: step 3c (2026-11-19, migration 0029)
+
+- **AEGIS alerts as a source** (`source_kind` `aegis_alert`), extracted when the worker raises a new alert:
+  - a changed certificate gives its new SHA-256 fingerprint (`cert_sha256`);
+  - new certificate-log names and new CNAME, MX or NS targets give a `domain`, but **only names outside the
+    authorized scope** (names in scope are the owner's own). The CT and DNS rules now keep those names in the
+    alert's data;
+  - no ATT&CK tags: §4 has no reviewed mapping for these, and a change on the owner's own site isn't an attack
+    technique;
+  - the worker role gets the same limited indicator columns as the app. It can **only insert** sightings, and
+    only for an AEGIS alert in the same workspace. It can't read sightings back, so `record()` uses an insert
+    without RETURNING.
+- **Indicators a person enters** (`incident_entry`): `POST /sentinel/incidents/{id}/indicators` with
+  `{type, value, note}`, for analysts and above, on an incident in progress:
+  - the value is normalized as in §3: lower-case domains; URLs keep the scheme, host, port and path, with the
+    query, fragment and credentials dropped; hashes as 64 hex characters (colons accepted); user agents up to
+    300 characters;
+  - a person may add a private address by hand. Ranges, loopback, multicast and allow-listed addresses are
+    refused;
+  - a timeline entry records it, and the sighting points at that entry. The audit action is
+    `sentinel.indicator_entered`. It's an unreviewed sighting like any other; assessing it is a separate step.
+- **Correlation:**
+  - AEGIS alerts linked as incident items count as linked alerts. Indicators entered on the incident join the
+    incident's indicators;
+  - other alerts sharing them are suggested, with a reason such as "Shares domain …, entered on this incident";
+  - an AEGIS alert is suggested only when it's in the incident's project and not resolved. Adding it is the
+    existing *link item* action.
+- **Sign-in alerts: not a source, a change from §4.** They belong to a user, not a workspace, and their
+  addresses often include the account owner's own (a mistyped password or code). Extracting them would put the
+  owner's addresses into every workspace the user belongs to. A person can enter an address from a sign-in
+  alert on an incident instead.
+- **UI:**
+  - the incident's SENTINEL panel shows for anyone who can work the incident, with an *Add indicator* form;
+  - AEGIS suggestions have *Add to incident*;
+  - indicator pages label the new source kinds.
+- **Verified:**
+  - `test_sentinel_sources.py` covers:
+    - AEGIS extraction through the real worker role: the fingerprint, the out-of-scope CNAME target, and an
+      in-scope name left out;
+    - the worker unable to read sightings or add other kinds;
+    - validation and normalization, the person-entered timeline entry and audit;
+    - AEGIS and intrusion-alert suggestions from an entered indicator, and the allow-list refusal;
+  - the browser suite: an indicator entered on an incident appears in the panel and on the timeline;
+  - the migration downgrades and upgrades cleanly.

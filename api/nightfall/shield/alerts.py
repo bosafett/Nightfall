@@ -65,6 +65,9 @@ def raise_alert(
     )
     db.add(alert)
     db.flush()
+    from nightfall.sentinel import extract as sentinel  # late: sentinel imports shield modules
+
+    sentinel.from_aegis_alert(db, alert)
     record(
         db,
         "alert.raised",

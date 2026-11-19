@@ -166,6 +166,7 @@ def compare(
                     f"{len(new)} new name(s) in certificate logs for {target}",
                     detail,
                     f"ct.new_names:{target}:{_h(new)}",
+                    {"names": new[:200], "outside_scope": outside[:200]},  # SENTINEL 3c
                 )  # fmt: skip
             )
     elif tool == "dns" and prev is not None:
@@ -175,6 +176,14 @@ def compare(
                 f"{t}: {', '.join(prev.get(t) or []) or '—'} → {', '.join(cur.get(t) or []) or '—'}"
                 for t in changed
             ]
+            # Names that newly appear as CNAME, MX or NS targets outside the authorized scope
+            # (a possible takeover or redirection; SENTINEL 3c). MX values may carry a priority.
+            targets = sorted({
+                v.split()[-1].rstrip(".").lower()
+                for t in ("CNAME", "MX", "NS")
+                for v in set(cur.get(t) or []) - set(prev.get(t) or [])
+                if v.split()
+            })  # fmt: skip
             out.append(
                 AlertDraft(
                     "dns.changed",
@@ -182,6 +191,7 @@ def compare(
                     f"DNS records of {target} changed",
                     "; ".join(parts)[:3000],
                     f"dns.changed:{target}:{_h(cur)}",
+                    {"outside_scope": [n for n in targets if not in_scope(n)][:200]},
                 )  # fmt: skip
             )
     return out

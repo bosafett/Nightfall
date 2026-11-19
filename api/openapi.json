@@ -5497,6 +5497,41 @@
         "title": "IndicatorDetailOut",
         "type": "object"
       },
+      "IndicatorEntryIn": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Note",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "ip",
+              "domain",
+              "url",
+              "sha256",
+              "cert_sha256",
+              "user_agent"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 2048,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "value"
+        ],
+        "title": "IndicatorEntryIn",
+        "type": "object"
+      },
       "IndicatorOut": {
         "additionalProperties": false,
         "properties": {
@@ -20525,6 +20560,70 @@
           }
         },
         "summary": "Incident Correlation",
+        "tags": [
+          "sentinel"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sentinel/incidents/{incident_id}/indicators": {
+      "post": {
+        "description": "Step 3c: a person records an indicator from an investigation. It's a sighting of an\nunreviewed indicator (computed confidence as usual); assessing it is a separate step.",
+        "operationId": "enter_indicator_api_workspaces__workspace_id__sentinel_incidents__incident_id__indicators_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndicatorEntryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enter Indicator",
         "tags": [
           "sentinel"
         ]

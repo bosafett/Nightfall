@@ -2076,6 +2076,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/sentinel/incidents/{incident_id}/indicators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Enter Indicator
+         * @description Step 3c: a person records an indicator from an investigation. It's a sighting of an
+         *     unreviewed indicator (computed confidence as usual); assessing it is a separate step.
+         */
+        post: operations["enter_indicator_api_workspaces__workspace_id__sentinel_incidents__incident_id__indicators_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/sentinel/indicators": {
         parameters: {
             query?: never;
@@ -4946,6 +4967,21 @@ export interface components {
             techniques: components["schemas"]["TechniqueOut"][];
             /** Type */
             type: string;
+            /** Value */
+            value: string;
+        };
+        /** IndicatorEntryIn */
+        IndicatorEntryIn: {
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "ip" | "domain" | "url" | "sha256" | "cert_sha256" | "user_agent";
             /** Value */
             value: string;
         };
@@ -12121,6 +12157,42 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CorrelationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enter_indicator_api_workspaces__workspace_id__sentinel_incidents__incident_id__indicators_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IndicatorEntryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndicatorOut"];
                 };
             };
             /** @description Validation Error */
