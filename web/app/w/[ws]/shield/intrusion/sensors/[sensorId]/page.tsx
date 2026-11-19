@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { HostView } from "@/lib/api/types";
+import type { HostView, Incident, Project } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
@@ -34,8 +34,10 @@ function describe(group: string, item: Record<string, unknown>): string {
 
 export default async function MachinePage({ params }: { params: Promise<{ ws: string; sensorId: string }> }) {
   const { ws, sensorId } = await params;
-  const [h, me] = await Promise.all([
+  const [h, me, projects, incidents] = await Promise.all([
     apiGet<HostView>(`/workspaces/${ws}/shield/sensors/${sensorId}/host`), membership(ws),
+    apiGet<Project[]>(`/workspaces/${ws}/projects`),
+    apiGet<Incident[]>(`/workspaces/${ws}/incidents?state=in_progress`),
   ]);
   return (
     <>
@@ -47,7 +49,7 @@ export default async function MachinePage({ params }: { params: Promise<{ ws: st
       ) : (
         <div className="space-y-6">
           <Panel title="Host alerts">
-            <HostAlerts ws={ws} alerts={h.alerts} canAct={can.editFindings(me.role)} />
+            <HostAlerts ws={ws} alerts={h.alerts} canAct={can.editFindings(me.role)} projects={projects} incidents={incidents} />
           </Panel>
           <Panel title="Posture">
             <ul className="space-y-1 text-sm" data-testid="posture">

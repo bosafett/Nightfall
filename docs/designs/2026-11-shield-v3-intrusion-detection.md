@@ -192,8 +192,12 @@ self-hosted on machines you already run.
 - **UI:** SHIELD → Intrusion Detection: status, kill switch, active blocks with time left and one-click lift,
   intrusion alerts (acknowledge, resolve, block), the response authorization, the allow list, sensors (the key is
   shown once).
-- **Not in this step:** linking intrusion alerts to incidents (decision 4; incidents belong to a project, sensors to
-  the workspace), alert-only mode for new rules in their first week, intrusion counts on the AEGIS overview,
+- **Decision 4 recorded 2026-11-19 (owner): option (c).** Nothing opens or joins an incident automatically. A
+  person (analyst and above) opens an incident in a project they choose from an intrusion or host alert, or adds the
+  alert to an incident in progress (`/shield/escalations/...`, `shield/escalation.py`, no migration). The alert is
+  written to the incident timeline as sensor-reported, unverified data; an intrusion alert also records the
+  incident in its `incident_id`. Revisit (b), linking each sensor to a project, if manual linking proves too slow.
+- **Not in this step:** alert-only mode for new rules in their first week, intrusion counts on the AEGIS overview,
   Vercel firewall proposals.
 
 ## 11. Reconciling the "Active Defense & Counterintelligence" addendum (received 2026-11-17)

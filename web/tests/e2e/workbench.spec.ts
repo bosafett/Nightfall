@@ -665,6 +665,10 @@ test.describe("as the owner", () => {
     await expect(hostAlert).toContainText("New local account eve");
     await hostAlert.getByRole("button", { name: "Acknowledge" }).click();
     await expect(hostAlert).toContainText("acknowledged");
+    // Decision 4 (c): a person adds the alert to an incident; it lands on the incident timeline.
+    await hostAlert.getByRole("button", { name: "Incident…" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Add to incident" }).click();
+    await expect(page.getByText(/Host alert added: New local account eve/)).toBeVisible();
     await noHorizontalScroll(page);
     await page.goto(`${workspaceUrl}/shield/intrusion`);
 

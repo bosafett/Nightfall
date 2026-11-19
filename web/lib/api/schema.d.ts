@@ -2136,6 +2136,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/shield/escalations/{kind}/{alert_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Escalate */
+        post: operations["escalate_api_workspaces__workspace_id__shield_escalations__kind___alert_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/shield/host-alerts/{alert_id}/{action}": {
         parameters: {
             query?: never;
@@ -3732,6 +3749,18 @@ export interface components {
             note: string;
             /** Value */
             value: string;
+        };
+        /**
+         * EscalateIn
+         * @description Exactly one: open a new incident in project_id, or add to incident_id.
+         */
+        EscalateIn: {
+            /** Incident Id */
+            incident_id?: string | null;
+            /** Project Id */
+            project_id?: string | null;
+            /** Title */
+            title?: string | null;
         };
         /** EvidenceDetail */
         EvidenceDetail: {
@@ -11882,6 +11911,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BlockOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    escalate_api_workspaces__workspace_id__shield_escalations__kind___alert_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: "intrusion-alerts" | "host-alerts";
+                alert_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EscalateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IncidentDetailOut"];
                 };
             };
             /** @description Validation Error */

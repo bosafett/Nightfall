@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { api } from "@/lib/api/client";
-import type { IntrusionView, ShieldBlock, ShieldSensorCreated } from "@/lib/api/types";
+import type { Incident, IntrusionView, Project, ShieldBlock, ShieldSensorCreated } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { ConfirmButton } from "@/components/ui/ConfirmButton";
 import { useAction } from "@/components/ui/useAction";
 import { Alert, Badge, Button, DataTable, Field, Input, Panel, type Tone } from "@/components/ui/primitives";
 import { severityTone } from "@/components/shield/labels";
+import { EscalateButton } from "@/components/shield/EscalateButton";
 
 const blockTone: Record<ShieldBlock["status"], Tone> = {
   pending: "yellow", active: "crimson", lifting: "yellow", lifted: "gray", expired: "gray",
@@ -29,8 +30,9 @@ function left(expires: string): string {
 /** SHIELD v3 phase 2. Owner + fresh two-factor: sensors, the response authorization, resume, removing allow-list
  * entries. Admin: pause, end the authorization, add allow-list entries, lift blocks; approve blocks with fresh
  * two-factor. The API enforces all of it; this only hides what the role can't do. */
-export function Intrusion({ ws, view, isOwner, isAdmin, canAct }: {
+export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incidents }: {
   ws: string; view: IntrusionView; isOwner: boolean; isAdmin: boolean; canAct: boolean;
+  projects: Project[]; incidents: Incident[];
 }) {
   const { busy, error, run } = useAction();
   const base = `/workspaces/${ws}/shield`;
@@ -176,6 +178,9 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct }: {
                 <td className="space-x-1 whitespace-nowrap">
                   {canAct && a.state === "open" && <Button variant="secondary" disabled={busy} onClick={() => post(`/intrusion-alerts/${a.id}/acknowledge`)}>Acknowledge</Button>}
                   {canAct && a.state !== "resolved" && <Button variant="secondary" disabled={busy} onClick={() => post(`/intrusion-alerts/${a.id}/resolve`)}>Resolve</Button>}
+                  {canAct && (projects.length > 0 || incidents.length > 0) && (
+                    <EscalateButton ws={ws} kind="intrusion-alerts" alertId={a.id} projects={projects} incidents={incidents} />
+                  )}
                   {isAdmin && a.block_ids.length === 0 && (
                     <Button variant="secondary" onClick={() => { setTarget(a.source); setAlertId(a.id); setReason(`${categoryLabel[a.category] ?? a.category}: ${a.scenario}`); setBlockSensors([a.sensor_id]); }}>Block…</Button>
                   )}
