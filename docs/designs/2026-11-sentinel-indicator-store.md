@@ -1,6 +1,6 @@
 # SENTINEL: indicator store and correlation (design for review)
 
-Status: **design only, not approved, nothing built.** Roadmap: SHIELD v3 phase 3 (`docs/ROADMAP.md`); origin: the
+Status: **decisions recorded 2026-11-19 (owner: "go with the recommendations"); nothing built yet.** Roadmap: SHIELD v3 phase 3 (`docs/ROADMAP.md`); origin: the
 "Active Defense" addendum, reconciled in `docs/designs/2026-11-shield-v3-intrusion-detection.md` §11.2. Direction:
 `docs/JANUS_DIRECTION.md`, pillar 2 (Detect and Investigate) and pillar 5 (Intelligence). Building it needs the
 owner decisions in §12 and, for its migration, explicit approval before push.
@@ -177,3 +177,8 @@ services.
 5. **ATT&CK tagging:** the fixed mapping in §4 (recommended), or no technique tags in v1.
 6. **Blocking from indicators:** not in this phase (recommended), or allow a person to propose a block from a
    `malicious` IP indicator (person-approved tier only).
+
+**Recorded 2026-11-19 (owner):** all six as recommended: (1) no external feeds in v1; (2) expiry IP 30 days,
+domain/URL/user agent 90/90/30 days, hashes and fingerprints never; (3) sightings and expired indicators kept 1 year;
+(4) incident correlation as suggestions a person adds; (5) the fixed ATT&CK mapping of §4; (6) no blocking from
+indicators in this phase.
