@@ -59,6 +59,7 @@ from nightfall.core.request_info import client_ip
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
+from nightfall.sentinel import extract as sentinel
 from nightfall.shield import guard
 
 KEY_PREFIX = "nfs_"
@@ -279,6 +280,11 @@ def report_alerts(body: AlertsIn, db: DB, s: Sensor) -> list[AlertResult]:
     for a in body.alerts:
         alert = _ingest(db, s.sensor, a, now)
         d = guard.decide(db, s.sensor, alert, simulated=a.simulated, now=now)
+        sentinel.from_intrusion_alert(db, alert)
+        if d.outcome == "blocked" and d.block_id is not None:
+            block = db.get(ShieldBlock, d.block_id)
+            if block is not None:
+                sentinel.from_block(db, block)
         out.append(
             AlertResult(
                 ref=a.ref,
@@ -288,6 +294,7 @@ def report_alerts(body: AlertsIn, db: DB, s: Sensor) -> list[AlertResult]:
                 block_id=d.block_id,
             )  # fmt: skip
         )
+    sentinel.purge(db)
     _sensor_audit(
         db,
         s,
@@ -952,6 +959,7 @@ def approve_block(
     except DBAPIError as exc:
         raise api_error(409, "refused", "The database refused the block (allow list).") from exc
     for b in blocks:
+        sentinel.from_block(db, b)
         _audit(
             db, ctx, "shield.block.approved", "shield_block", b.id, target=body.target,
             sensor_id=str(b.sensor_id), seconds=body.seconds, reason=body.reason,

@@ -669,6 +669,22 @@ test.describe("as the owner", () => {
     await hostAlert.getByRole("button", { name: "Incident…" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Add to incident" }).click();
     await expect(page.getByText(/Host alert added: New local account eve/)).toBeVisible();
+
+    // SENTINEL: an attack from a public address becomes an indicator; a person assesses it.
+    const r3 = await page.request.post("/api/sensor/alerts", {
+      headers: { Authorization: `Bearer ${key}` },
+      data: { alerts: [{ scenario: "crowdsecurity/ssh-bf", source: "45.33.32.156", events_count: 6, start_at: new Date().toISOString() }] },
+    });
+    expect(r3.status()).toBe(200);
+    await page.goto(`${workspaceUrl}/shield/sentinel`);
+    await page.getByTestId("indicator-row").getByRole("link", { name: "45.33.32.156" }).click();
+    await expect(page.getByTestId("indicator-summary")).toContainText("1 sighting(s)");
+    await expect(page.getByText(/T1110 Brute Force/)).toBeVisible();
+    await page.getByLabel("Reason").fill("Repeated SSH brute force from outside");
+    await page.getByRole("button", { name: "Record assessment" }).click();
+    await expect(page.getByTestId("indicator-summary")).toContainText("Malicious");
+    await expect(page.getByText(/Unreviewed → Malicious/)).toBeVisible();
+    await noHorizontalScroll(page);
     await noHorizontalScroll(page);
     await page.goto(`${workspaceUrl}/shield/intrusion`);
 

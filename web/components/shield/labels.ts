@@ -14,3 +14,7 @@ export const endedLabel: Record<string, string> = { revoked: "Revoked", expired:
 export const incidentStateLabel: Record<string, string> = {
   open: "Open", contained: "Contained", recovering: "Recovering", closed: "Closed", cancelled: "Cancelled",
 };
+export const confidenceTone: Record<string, Tone> = { high: "crimson", medium: "orange", low: "gray" };
+export const assessmentLabel: Record<string, string> = {
+  unreviewed: "Unreviewed", malicious: "Malicious", benign: "Benign", false_positive: "False positive",
+};

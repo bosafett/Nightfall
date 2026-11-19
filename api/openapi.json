@@ -467,6 +467,33 @@
         "title": "ApprovalOut",
         "type": "object"
       },
+      "AssessIn": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "enum": [
+              "unreviewed",
+              "malicious",
+              "benign",
+              "false_positive"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "reason"
+        ],
+        "title": "AssessIn",
+        "type": "object"
+      },
       "AssessmentItem": {
         "additionalProperties": false,
         "properties": {
@@ -533,6 +560,41 @@
           "agent_tasks_done"
         ],
         "title": "AssessmentItem",
+        "type": "object"
+      },
+      "AssessmentOut": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "by": {
+            "title": "By",
+            "type": "string"
+          },
+          "from_assessment": {
+            "title": "From Assessment",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "to_assessment": {
+            "title": "To Assessment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "from_assessment",
+          "to_assessment",
+          "reason",
+          "by",
+          "at"
+        ],
+        "title": "AssessmentOut",
         "type": "object"
       },
       "AssessmentType": {
@@ -5217,6 +5279,267 @@
         "title": "IncidentWaiting",
         "type": "object"
       },
+      "IndicatorDetailOut": {
+        "additionalProperties": false,
+        "properties": {
+          "assessed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessed At"
+          },
+          "assessed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessed By"
+          },
+          "assessment": {
+            "title": "Assessment",
+            "type": "string"
+          },
+          "assessment_reason": {
+            "title": "Assessment Reason",
+            "type": "string"
+          },
+          "computed_confidence": {
+            "title": "Computed Confidence",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/AssessmentOut"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incidents": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Incidents",
+            "type": "array"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "machines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Machines",
+            "type": "array"
+          },
+          "sighting_count": {
+            "title": "Sighting Count",
+            "type": "integer"
+          },
+          "sightings": {
+            "items": {
+              "$ref": "#/components/schemas/SightingOut"
+            },
+            "title": "Sightings",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired",
+              "suppressed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "techniques": {
+            "items": {
+              "$ref": "#/components/schemas/TechniqueOut"
+            },
+            "title": "Techniques",
+            "type": "array"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "value",
+          "first_seen",
+          "last_seen",
+          "sighting_count",
+          "computed_confidence",
+          "confidence",
+          "assessment",
+          "assessment_reason",
+          "assessed_by",
+          "assessed_at",
+          "expires_at",
+          "status",
+          "sightings",
+          "machines",
+          "techniques",
+          "history",
+          "incidents"
+        ],
+        "title": "IndicatorDetailOut",
+        "type": "object"
+      },
+      "IndicatorOut": {
+        "additionalProperties": false,
+        "properties": {
+          "assessed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessed At"
+          },
+          "assessed_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assessed By"
+          },
+          "assessment": {
+            "title": "Assessment",
+            "type": "string"
+          },
+          "assessment_reason": {
+            "title": "Assessment Reason",
+            "type": "string"
+          },
+          "computed_confidence": {
+            "title": "Computed Confidence",
+            "type": "string"
+          },
+          "confidence": {
+            "title": "Confidence",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "first_seen": {
+            "format": "date-time",
+            "title": "First Seen",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen": {
+            "format": "date-time",
+            "title": "Last Seen",
+            "type": "string"
+          },
+          "sighting_count": {
+            "title": "Sighting Count",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "active",
+              "expired",
+              "suppressed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "value",
+          "first_seen",
+          "last_seen",
+          "sighting_count",
+          "computed_confidence",
+          "confidence",
+          "assessment",
+          "assessment_reason",
+          "assessed_by",
+          "assessed_at",
+          "expires_at",
+          "status"
+        ],
+        "title": "IndicatorOut",
+        "type": "object"
+      },
       "IntrusionAlertOut": {
         "additionalProperties": false,
         "properties": {
@@ -9896,6 +10219,95 @@
         "title": "ShieldQueuedCheck",
         "type": "object"
       },
+      "SightingOut": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "event_time": {
+            "format": "date-time",
+            "title": "Event Time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "incident_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incident Id"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "sensor_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Id"
+          },
+          "sensor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Name"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          },
+          "techniques": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Techniques",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "source_kind",
+          "source_id",
+          "description",
+          "sensor_id",
+          "sensor_name",
+          "techniques",
+          "event_time",
+          "ingested_at",
+          "incident_id"
+        ],
+        "title": "SightingOut",
+        "type": "object"
+      },
       "SignInAlertOut": {
         "additionalProperties": false,
         "properties": {
@@ -10687,6 +11099,25 @@
           "finished_at"
         ],
         "title": "TaskOut",
+        "type": "object"
+      },
+      "TechniqueOut": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TechniqueOut",
         "type": "object"
       },
       "ToolOut": {
@@ -19790,6 +20221,224 @@
         "summary": "Remove Target",
         "tags": [
           "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sentinel/indicators": {
+      "get": {
+        "operationId": "list_indicators_api_workspaces__workspace_id__sentinel_indicators_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "ip",
+                    "domain",
+                    "url",
+                    "sha256",
+                    "cert_sha256",
+                    "user_agent"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Type"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "active",
+              "enum": [
+                "active",
+                "all"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/IndicatorOut"
+                  },
+                  "title": "Response List Indicators Api Workspaces  Workspace Id  Sentinel Indicators Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Indicators",
+        "tags": [
+          "sentinel"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sentinel/indicators/{indicator_id}": {
+      "get": {
+        "operationId": "get_indicator_api_workspaces__workspace_id__sentinel_indicators__indicator_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "indicator_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Indicator Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Indicator",
+        "tags": [
+          "sentinel"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sentinel/indicators/{indicator_id}/assess": {
+      "post": {
+        "operationId": "assess_api_workspaces__workspace_id__sentinel_indicators__indicator_id__assess_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "indicator_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Indicator Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssessIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assess",
+        "tags": [
+          "sentinel"
         ]
       }
     },

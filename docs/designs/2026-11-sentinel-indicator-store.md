@@ -1,6 +1,7 @@
 # SENTINEL: indicator store and correlation (design for review)
 
-Status: **decisions recorded 2026-11-19 (owner: "go with the recommendations"); nothing built yet.** Roadmap: SHIELD v3 phase 3 (`docs/ROADMAP.md`); origin: the
+Status: **decisions recorded 2026-11-19 (owner: "go with the recommendations"); step 3a built (migration 0028, held
+for approval).** Roadmap: SHIELD v3 phase 3 (`docs/ROADMAP.md`); origin: the
 "Active Defense" addendum, reconciled in `docs/designs/2026-11-shield-v3-intrusion-detection.md` §11.2. Direction:
 `docs/JANUS_DIRECTION.md`, pillar 2 (Detect and Investigate) and pillar 5 (Intelligence). Building it needs the
 owner decisions in §12 and, for its migration, explicit approval before push.
@@ -182,3 +183,32 @@ services.
 domain/URL/user agent 90/90/30 days, hashes and fingerprints never; (3) sightings and expired indicators kept 1 year;
 (4) incident correlation as suggestions a person adds; (5) the fixed ATT&CK mapping of §4; (6) no blocking from
 indicators in this phase.
+
+## 13. As built: step 3a (2026-11-19, migration 0028, held for approval)
+
+- **Tables:** `sentinel_indicators`, `sentinel_assessments` (append-only), `sentinel_sightings` (append-only). The
+  app role can't write assessment columns: only `nf_sentinel_assess`, which writes the history row in the same
+  step and takes the assessor from the session (`nf_current_user`), not from the caller. Computed confidence is
+  capped below high by a database `CHECK`.
+- **Extraction** (`api/nightfall/sentinel/extract.py`), in the detector's own transaction:
+  - from intrusion alerts: the source address, plus ATT&CK tags;
+  - from GUARD and approved blocks: the target address, no tags;
+  - from host alerts: technique-only sightings;
+  - from watched-file changes: the new sha256.
+- **Changes from the design:**
+  - **Excluded addresses:** anything that isn't globally routable is never an indicator. That covers private,
+    CGNAT, documentation, loopback, link-local and reserved addresses, as well as multicast, allow-listed addresses
+    and ranges. It's slightly stricter than §3's list.
+  - **Status isn't stored:** it's computed when read (suppressed by assessment, expired by `expires_at`), so it
+    can't drift.
+  - **Sign-in alerts are deferred to 3c.** They belong to a user, not to a workspace, so there's no single workspace
+    to put their addresses in.
+  - **Retention runs on ingest:** the one-year purge (`nf_purge_sentinel`, fixed interval) runs when sensors
+    report, per workspace. There's no new cron.
+- **UI:** SHIELD → SENTINEL Indicators. The list defaults to active indicators. Each indicator page shows observed
+  versus assessed, sightings with their source and incident, ATT&CK techniques, assessment history, and the
+  assessment form (analysts and above).
+- **Verified:**
+  - `test_sentinel.py`: extraction and exclusions, confidence, assessment, history, suppression, permissions, direct
+    writes refused, expiry, retention, isolation;
+  - the browser suite: a sensor alert from a public address becomes an indicator, which a person assesses.

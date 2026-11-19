@@ -43,6 +43,7 @@ from nightfall.core.errors import api_error, not_found
 from nightfall.core.schemas import Model
 from nightfall.core.tenancy.deps import WorkspaceContext, ws_permission
 from nightfall.core.tenancy.permissions import Permission
+from nightfall.sentinel import extract as sentinel
 from nightfall.shield import guard
 from nightfall.shield.sensors import FUTURE_SKEW, Sensor, sensor_router
 
@@ -245,6 +246,10 @@ def raise_alerts(
             )  # fmt: skip
         )
     db.add_all(alerts)
+    db.flush()
+    by_id = {c.id: c for c, _ in rules}
+    for al in alerts:
+        sentinel.from_host_alert(db, al, by_id.get(al.change_id) if al.change_id else None)
     return alerts
 
 
@@ -257,8 +262,12 @@ def report_host(body: HostIn, db: DB, s: Sensor) -> list[GroupResult]:
     applied = [_apply(db, s.sensor, snap, now) for snap in body.snapshots]
     out = [r for r, _ in applied]
     db.flush()
-    alerts = raise_alerts(db, s.sensor, [c for _, cs in applied for c in cs], now)
+    changes = [c for _, cs in applied for c in cs]
+    alerts = raise_alerts(db, s.sensor, changes, now)
+    for c in changes:
+        sentinel.from_host_change(db, c)
     db.flush()
+    sentinel.purge(db)
     db.execute(text("SELECT nf_purge_host_changes(:s)"), {"s": s.sensor.id})
     record(
         db,

@@ -1131,3 +1131,57 @@ class ShieldHostAlert(Base):
     created_at: Mapped[datetime] = _created()
     state: Mapped[str] = mapped_column(server_default=text("'open'"))
     acknowledged_at: Mapped[datetime | None]
+
+
+class SentinelIndicator(Base):
+    """SENTINEL step 3a (migration 0028): an observable (address, domain, URL, hash, certificate
+    fingerprint, user agent) with what JANUS observed (computed_confidence, never high) kept apart
+    from a person's assessment (written only through nf_sentinel_assess)."""
+
+    __tablename__ = "sentinel_indicators"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    type: Mapped[str]
+    value: Mapped[str]
+    first_seen: Mapped[datetime]
+    last_seen: Mapped[datetime]
+    sighting_count: Mapped[int]
+    computed_confidence: Mapped[Confidence] = mapped_column(
+        _pg_enum(Confidence, "confidence_level")
+    )
+    assessment: Mapped[str] = mapped_column(server_default=text("'unreviewed'"))
+    assessment_reason: Mapped[str] = mapped_column(server_default=text("''"))
+    assessed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    assessed_at: Mapped[datetime | None]
+    expires_at: Mapped[datetime | None]
+    created_at: Mapped[datetime] = _created()
+
+
+class SentinelAssessment(Base):
+    """SENTINEL (migration 0028): append-only history of a person's assessments."""
+
+    __tablename__ = "sentinel_assessments"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    indicator_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("sentinel_indicators.id"))
+    from_assessment: Mapped[str]
+    to_assessment: Mapped[str]
+    reason: Mapped[str]
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    at: Mapped[datetime] = _created()
+
+
+class SentinelSighting(Base):
+    """SENTINEL (migration 0028): one observation, pointing at its source row. indicator_id is
+    null for technique-only sightings."""
+
+    __tablename__ = "sentinel_sightings"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    indicator_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("sentinel_indicators.id"))
+    source_kind: Mapped[str]
+    source_id: Mapped[uuid.UUID]
+    sensor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("shield_sensors.id"))
+    techniques: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
+    event_time: Mapped[datetime]
+    ingested_at: Mapped[datetime] = _created()

@@ -2059,6 +2059,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/sentinel/indicators": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Indicators */
+        get: operations["list_indicators_api_workspaces__workspace_id__sentinel_indicators_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/sentinel/indicators/{indicator_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Indicator */
+        get: operations["get_indicator_api_workspaces__workspace_id__sentinel_indicators__indicator_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workspaces/{workspace_id}/sentinel/indicators/{indicator_id}/assess": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assess */
+        post: operations["assess_api_workspaces__workspace_id__sentinel_indicators__indicator_id__assess_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/shield/allowlist": {
         parameters: {
             query?: never;
@@ -2937,6 +2988,16 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** AssessIn */
+        AssessIn: {
+            /**
+             * Assessment
+             * @enum {string}
+             */
+            assessment: "unreviewed" | "malicious" | "benign" | "false_positive";
+            /** Reason */
+            reason: string;
+        };
         /** AssessmentItem */
         AssessmentItem: {
             /** Agent Tasks Done */
@@ -2966,6 +3027,22 @@ export interface components {
             /** Started At */
             started_at: string | null;
             status: components["schemas"]["ProjectStatus"];
+        };
+        /** AssessmentOut */
+        AssessmentOut: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** By */
+            by: string;
+            /** From Assessment */
+            from_assessment: string;
+            /** Reason */
+            reason: string;
+            /** To Assessment */
+            to_assessment: string;
         };
         /**
          * AssessmentType
@@ -4780,6 +4857,102 @@ export interface components {
             /** Waiting For */
             waiting_for: string;
         };
+        /** IndicatorDetailOut */
+        IndicatorDetailOut: {
+            /** Assessed At */
+            assessed_at: string | null;
+            /** Assessed By */
+            assessed_by: string | null;
+            /** Assessment */
+            assessment: string;
+            /** Assessment Reason */
+            assessment_reason: string;
+            /** Computed Confidence */
+            computed_confidence: string;
+            /** Confidence */
+            confidence: string;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /** History */
+            history: components["schemas"]["AssessmentOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incidents */
+            incidents: string[];
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /** Machines */
+            machines: string[];
+            /** Sighting Count */
+            sighting_count: number;
+            /** Sightings */
+            sightings: components["schemas"]["SightingOut"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "expired" | "suppressed";
+            /** Techniques */
+            techniques: components["schemas"]["TechniqueOut"][];
+            /** Type */
+            type: string;
+            /** Value */
+            value: string;
+        };
+        /** IndicatorOut */
+        IndicatorOut: {
+            /** Assessed At */
+            assessed_at: string | null;
+            /** Assessed By */
+            assessed_by: string | null;
+            /** Assessment */
+            assessment: string;
+            /** Assessment Reason */
+            assessment_reason: string;
+            /** Computed Confidence */
+            computed_confidence: string;
+            /** Confidence */
+            confidence: string;
+            /** Expires At */
+            expires_at: string | null;
+            /**
+             * First Seen
+             * Format: date-time
+             */
+            first_seen: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Last Seen
+             * Format: date-time
+             */
+            last_seen: string;
+            /** Sighting Count */
+            sighting_count: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "expired" | "suppressed";
+            /** Type */
+            type: string;
+            /** Value */
+            value: string;
+        };
         /** IntrusionAlertOut */
         IntrusionAlertOut: {
             /** Acknowledged At */
@@ -6584,6 +6757,41 @@ export interface components {
             /** Tool */
             tool: string;
         };
+        /** SightingOut */
+        SightingOut: {
+            /** Description */
+            description: string;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Incident Id */
+            incident_id: string | null;
+            /**
+             * Ingested At
+             * Format: date-time
+             */
+            ingested_at: string;
+            /** Sensor Id */
+            sensor_id: string | null;
+            /** Sensor Name */
+            sensor_name: string | null;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /** Source Kind */
+            source_kind: string;
+            /** Techniques */
+            techniques: string[];
+        };
         /** SignInAlertOut */
         SignInAlertOut: {
             /** Addresses */
@@ -6816,6 +7024,13 @@ export interface components {
             subject_asset_id: string | null;
             /** Subject Finding Id */
             subject_finding_id: string | null;
+        };
+        /** TechniqueOut */
+        TechniqueOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** ToolOut */
         ToolOut: {
@@ -11775,6 +11990,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScopeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_indicators_api_workspaces__workspace_id__sentinel_indicators_get: {
+        parameters: {
+            query?: {
+                type?: ("ip" | "domain" | "url" | "sha256" | "cert_sha256" | "user_agent") | null;
+                status?: "active" | "all";
+                q?: string | null;
+            };
+            header?: never;
+            path: {
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndicatorOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_indicator_api_workspaces__workspace_id__sentinel_indicators__indicator_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                indicator_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndicatorDetailOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assess_api_workspaces__workspace_id__sentinel_indicators__indicator_id__assess_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                indicator_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssessIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IndicatorDetailOut"];
                 };
             };
             /** @description Validation Error */
