@@ -3611,6 +3611,40 @@
         "title": "GraphNode",
         "type": "object"
       },
+      "GroupResult": {
+        "additionalProperties": false,
+        "properties": {
+          "added": {
+            "title": "Added",
+            "type": "integer"
+          },
+          "baseline": {
+            "title": "Baseline",
+            "type": "boolean"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "removed": {
+            "title": "Removed",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "group",
+          "item_count",
+          "added",
+          "removed",
+          "baseline"
+        ],
+        "title": "GroupResult",
+        "type": "object"
+      },
       "GuardianReview": {
         "additionalProperties": false,
         "description": "Advice from the Guardian agent. Never changes the finding's status.",
@@ -3782,6 +3816,187 @@
           "poll_seconds"
         ],
         "title": "HeartbeatOut",
+        "type": "object"
+      },
+      "HostChangeOut": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "item": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "title": "Item",
+            "type": "object"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "action",
+          "item",
+          "observed_at",
+          "ingested_at"
+        ],
+        "title": "HostChangeOut",
+        "type": "object"
+      },
+      "HostGroupOut": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "title": "Group",
+            "type": "string"
+          },
+          "ingested_at": {
+            "format": "date-time",
+            "title": "Ingested At",
+            "type": "string"
+          },
+          "item_count": {
+            "title": "Item Count",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "item_count",
+          "observed_at",
+          "ingested_at",
+          "items"
+        ],
+        "title": "HostGroupOut",
+        "type": "object"
+      },
+      "HostIn": {
+        "additionalProperties": false,
+        "properties": {
+          "snapshots": {
+            "items": {
+              "$ref": "#/components/schemas/SnapshotIn"
+            },
+            "maxItems": 7,
+            "minItems": 1,
+            "title": "Snapshots",
+            "type": "array"
+          }
+        },
+        "required": [
+          "snapshots"
+        ],
+        "title": "HostIn",
+        "type": "object"
+      },
+      "HostOut": {
+        "additionalProperties": false,
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/HostChangeOut"
+            },
+            "title": "Changes",
+            "type": "array"
+          },
+          "groups": {
+            "items": {
+              "$ref": "#/components/schemas/HostGroupOut"
+            },
+            "title": "Groups",
+            "type": "array"
+          },
+          "posture": {
+            "items": {
+              "$ref": "#/components/schemas/PostureOut"
+            },
+            "title": "Posture",
+            "type": "array"
+          },
+          "retention_days": {
+            "title": "Retention Days",
+            "type": "integer"
+          },
+          "sensor_id": {
+            "format": "uuid",
+            "title": "Sensor Id",
+            "type": "string"
+          },
+          "sensor_name": {
+            "title": "Sensor Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sensor_id",
+          "sensor_name",
+          "groups",
+          "posture",
+          "changes",
+          "retention_days"
+        ],
+        "title": "HostOut",
         "type": "object"
       },
       "IdentitiesOut": {
@@ -6854,6 +7069,37 @@
         "title": "PlaybookStepOut",
         "type": "object"
       },
+      "PostureOut": {
+        "additionalProperties": false,
+        "properties": {
+          "check": {
+            "title": "Check",
+            "type": "string"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ok"
+          }
+        },
+        "required": [
+          "check",
+          "ok",
+          "detail"
+        ],
+        "title": "PostureOut",
+        "type": "object"
+      },
       "PreflightCheckOut": {
         "additionalProperties": false,
         "properties": {
@@ -9542,6 +9788,45 @@
           "state"
         ],
         "title": "SignInAlertOut",
+        "type": "object"
+      },
+      "SnapshotIn": {
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "enum": [
+              "accounts",
+              "admins",
+              "ssh_keys",
+              "listeners",
+              "persistence",
+              "software",
+              "posture"
+            ],
+            "title": "Group",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "maxItems": 5000,
+            "title": "Items",
+            "type": "array"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "group",
+          "observed_at",
+          "items"
+        ],
+        "title": "SnapshotIn",
         "type": "object"
       },
       "Sort": {
@@ -12481,6 +12766,52 @@
           }
         },
         "summary": "Heartbeat",
+        "tags": [
+          "shield-sensor"
+        ]
+      }
+    },
+    "/api/sensor/host": {
+      "post": {
+        "description": "Full snapshots from the osquery module. Returns what changed per group.",
+        "operationId": "report_host_api_sensor_host_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HostIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/GroupResult"
+                  },
+                  "title": "Response Report Host Api Sensor Host Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Report Host",
         "tags": [
           "shield-sensor"
         ]
@@ -19899,6 +20230,59 @@
           }
         },
         "summary": "Register Sensor",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/sensors/{sensor_id}/host": {
+      "get": {
+        "operationId": "host_api_workspaces__workspace_id__shield_sensors__sensor_id__host_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sensor_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Sensor Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HostOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Host",
         "tags": [
           "shield"
         ]

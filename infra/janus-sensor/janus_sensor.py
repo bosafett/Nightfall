@@ -21,10 +21,17 @@ Configuration (environment):
   JANUS_SENSOR_STATE         state file, default /var/lib/janus-sensor/state.json
   JANUS_SENSOR_MAX_BLOCK_SECONDS   default 604800 (7 days)
   JANUS_SENSOR_ONCE          "1": one cycle, then exit (for testing)
+  JANUS_SENSOR_MODULES       comma-separated: crowdsec (default), osquery
+  JANUS_SENSOR_OSQUERY_RESULTS   osquery's results log (filesystem logger), for the osquery module
+
+The osquery module (SHIELD v4 step 4a) only reads osquery's local results log, written by the
+fixed pack in osquery/janus.conf. It sends the latest full snapshot of each group. JANUS sends
+no queries back: osquery's remote (distributed) features stay off.
 """
 
 from __future__ import annotations
 
+import hashlib
 import ipaddress
 import json
 import logging
@@ -47,6 +54,23 @@ MAX_BATCH = 100
 SEEN_KEEP = 5000
 API_APPLY_LIMIT = 1000  # the API lists at most this many live blocks per sensor
 FIRST_LOOKBACK = "1h"  # on a fresh start, alerts from the last hour are sent
+MAX_READ = 64 * 1024 * 1024  # osquery results read per cycle
+
+# Query name in the fixed pack -> JANUS group. Several queries can feed one group (platform or
+# package-manager variants); the sensor merges the latest snapshot of each.
+OSQUERY_GROUPS = {
+    "janus_accounts": "accounts",
+    "janus_admins": "admins",
+    "janus_ssh_keys": "ssh_keys",
+    "janus_listeners": "listeners",
+    "janus_persistence_linux": "persistence",
+    "janus_persistence_windows": "persistence",
+    "janus_software_deb": "software",
+    "janus_software_rpm": "software",
+    "janus_software_windows": "software",
+    "janus_posture_linux": "posture",
+    "janus_posture_windows": "posture",
+}
 
 log = logging.getLogger("janus-sensor")
 
@@ -62,6 +86,8 @@ class Config:
     state_path: str
     max_block_seconds: int = 7 * 24 * 3600
     once: bool = False
+    modules: tuple[str, ...] = ("crowdsec",)
+    osquery_results: str = ""
 
     @classmethod
     def from_env(cls, env: dict[str, str]) -> Config:
@@ -77,6 +103,18 @@ class Config:
             raise SystemExit(
                 "JANUS_SENSOR_KEY (or JANUS_SENSOR_KEY_FILE) is missing or invalid."
             )
+        modules = tuple(
+            m.strip()
+            for m in env.get("JANUS_SENSOR_MODULES", "crowdsec").split(",")
+            if m.strip()
+        )
+        if unknown := set(modules) - {"crowdsec", "osquery"}:
+            raise SystemExit(
+                f"Unknown JANUS_SENSOR_MODULES: {', '.join(sorted(unknown))}"
+            )
+        osq = env.get("JANUS_SENSOR_OSQUERY_RESULTS", "")
+        if "osquery" in modules and not osq:
+            raise SystemExit("The osquery module needs JANUS_SENSOR_OSQUERY_RESULTS.")
         allow = [
             ipaddress.ip_network(p.strip(), strict=False)
             for p in env.get("JANUS_SENSOR_ALLOWLIST", "").split(",")
@@ -94,6 +132,8 @@ class Config:
                 env.get("JANUS_SENSOR_MAX_BLOCK_SECONDS", str(7 * 24 * 3600))
             ),
             once=env.get("JANUS_SENSOR_ONCE") == "1",
+            modules=modules,
+            osquery_results=osq,
         )
 
 
@@ -108,6 +148,10 @@ class State:
     refused: list[str] = field(
         default_factory=list
     )  # block ids refused (reported once)
+    osquery_inode: int = 0  # where the results log was read up to
+    osquery_offset: int = 0
+    # Latest snapshot per pack query: {name: {"t": unixTime, "items": [...]}}
+    osquery_cache: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @classmethod
     def load(cls, path: str) -> State:
@@ -116,7 +160,10 @@ class State:
                 d = json.load(f)
             return cls(seen=list(d.get("seen", [])), last_poll=d.get("last_poll"),
                        applied=list(d.get("applied", [])),
-                       refused=list(d.get("refused", [])))  # fmt: skip
+                       refused=list(d.get("refused", [])),
+                       osquery_inode=int(d.get("osquery_inode", 0)),
+                       osquery_offset=int(d.get("osquery_offset", 0)),
+                       osquery_cache=dict(d.get("osquery_cache", {})))  # fmt: skip
         except (OSError, ValueError):
             return cls()
 
@@ -125,7 +172,10 @@ class State:
         tmp = f"{path}.tmp"
         with open(tmp, "w") as f:
             json.dump({"seen": self.seen[-SEEN_KEEP:], "last_poll": self.last_poll,
-                       "applied": self.applied, "refused": self.refused}, f)  # fmt: skip
+                       "applied": self.applied, "refused": self.refused,
+                       "osquery_inode": self.osquery_inode,
+                       "osquery_offset": self.osquery_offset,
+                       "osquery_cache": self.osquery_cache}, f)  # fmt: skip
         os.replace(tmp, path)
 
 
@@ -288,12 +338,87 @@ def refuse_reason(cfg: Config, target: str, seconds: int) -> str | None:
     return None
 
 
+# --- osquery ---------------------------------------------------------------------------------
+
+
+def _sanitize(name: str, row: dict[str, Any]) -> dict[str, Any]:
+    """Persistence commands can carry secrets: send only their sha256."""
+    if OSQUERY_GROUPS.get(name) == "persistence":
+        row = dict(row)
+        cmd = str(row.pop("command", "") or "")
+        row["command_sha256"] = hashlib.sha256(cmd.encode()).hexdigest() if cmd else ""
+    return row
+
+
+def read_osquery(path: str, st: State) -> set[str]:
+    """Read new lines of osquery's results log and update the per-query snapshot cache.
+    Returns the groups that got a newer snapshot. Handles rotation and partial lines."""
+    try:
+        info = os.stat(path)
+    except OSError:
+        return set()
+    if info.st_ino != st.osquery_inode or info.st_size < st.osquery_offset:
+        st.osquery_inode, st.osquery_offset = info.st_ino, 0
+    with open(path, "rb") as f:
+        f.seek(st.osquery_offset)
+        chunk = f.read(MAX_READ)
+    end = chunk.rfind(b"\n")
+    if end < 0:
+        return set()
+    st.osquery_offset += end + 1
+    changed: set[str] = set()
+    for line in chunk[: end + 1].splitlines():
+        try:
+            rec = json.loads(line)
+        except ValueError:
+            continue
+        name = str(rec.get("name", "")).removeprefix("pack_janus_")
+        if name not in OSQUERY_GROUPS or rec.get("action") != "snapshot":
+            continue
+        t = int(rec.get("unixTime") or 0)
+        cached = st.osquery_cache.get(name)
+        if cached is not None and int(cached.get("t", 0)) > t:
+            continue
+        rows = rec.get("snapshot") or []
+        items = [_sanitize(name, r) for r in rows if isinstance(r, dict)]
+        st.osquery_cache[name] = {"t": t, "items": items}
+        changed.add(OSQUERY_GROUPS[name])
+    return changed
+
+
+def host_snapshots(st: State, groups: set[str]) -> list[dict[str, Any]]:
+    """One merged snapshot per changed group, from the latest snapshot of each of its queries."""
+    out = []
+    for group in sorted(groups):
+        names = [
+            n for n, g in OSQUERY_GROUPS.items() if g == group and n in st.osquery_cache
+        ]
+        t = max(int(st.osquery_cache[n]["t"]) for n in names)
+        items = [it for n in names for it in st.osquery_cache[n]["items"]]
+        observed = datetime.fromtimestamp(t, UTC).isoformat()
+        out.append({"group": group, "observed_at": observed, "items": items[:5000]})
+    return out
+
+
 # --- One cycle -------------------------------------------------------------------------------
 
 
 def cycle(cfg: Config, janus: Janus, cs: Cscli, st: State) -> dict[str, int]:
-    stats = {"sent": 0, "applied": 0, "removed": 0, "refused": 0, "orphans": 0}
     janus.call("POST", "/api/sensor/heartbeat", {"agent_version": VERSION})
+    stats: dict[str, int] = {}
+    if "crowdsec" in cfg.modules:
+        stats.update(crowdsec_cycle(cfg, janus, cs, st))
+    if "osquery" in cfg.modules:
+        groups = read_osquery(cfg.osquery_results, st)
+        snaps = host_snapshots(st, groups)
+        if snaps:
+            janus.call("POST", "/api/sensor/host", {"snapshots": snaps})
+        stats["host_groups"] = len(snaps)
+    return stats
+
+
+def crowdsec_cycle(cfg: Config, janus: Janus, cs: Cscli, st: State) -> dict[str, int]:
+    stats = {"sent": 0, "applied": 0, "removed": 0, "refused": 0, "orphans": 0}
 
     # 1. Alerts: everything since the last read (with overlap), minus what was already sent.
     since = FIRST_LOOKBACK

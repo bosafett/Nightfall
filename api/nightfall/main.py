@@ -38,6 +38,7 @@ from nightfall.registry.routes import router as registry_router
 from nightfall.reports.routes import router as reports_router
 from nightfall.scope.ownership import router as ownership_router
 from nightfall.scope.routes import router as scope_router
+from nightfall.shield.host import router as host_router  # also adds /api/sensor/host
 from nightfall.shield.incident_routes import router as incidents_router
 from nightfall.shield.routes import router as shield_router
 from nightfall.shield.sensors import router as intrusion_router
@@ -195,6 +196,7 @@ ROUTERS = (
     identities_router,
     shield_router,
     intrusion_router,
+    host_router,
     sensor_router,
     incidents_router,
     sign_in_router,

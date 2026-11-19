@@ -60,6 +60,39 @@ ending the authorization stops new automatic blocks at once; blocks already appl
 6. **Turn on GUARD (optional).** In JANUS, record the response authorization: which sensors, longest and default
    block, per-hour cap, up to 90 days. Without it every alert stays alert-only.
 
+## Host state with osquery (SHIELD v4 step 4a, optional)
+
+The `osquery` module reports the machine's own state: local accounts, administrators, SSH keys, listening
+services, services/scheduled tasks/startup items, installed software, and posture (firewall, disk encryption,
+OS version). Detection only; nothing is changed on the machine. Design:
+`docs/designs/2026-11-shield-v4-host-network-monitoring.md`.
+
+- **The query pack is fixed:** `osquery/janus.conf` in this repository. JANUS never sends a query back, and the
+  pack turns osquery's remote (distributed) queries and extensions off.
+- **Kept to a minimum:** names and paths; no process command lines, environment or file contents. Cron and
+  scheduled-task commands are sent only as a sha256.
+- JANUS diffs each snapshot against the last one; the first is the baseline. The change log is kept 90 days.
+
+**Linux:**
+
+1. Install osquery from osquery's own packages (osquery.io), then
+   `install -m 644 osquery/janus.conf /etc/osquery/osquery.conf` and `systemctl enable --now osqueryd`.
+2. In `/etc/janus-sensor/sensor.env` add:
+   ```
+   JANUS_SENSOR_MODULES=crowdsec,osquery
+   JANUS_SENSOR_OSQUERY_RESULTS=/var/log/osquery/osqueryd.results.log
+   ```
+   (`JANUS_SENSOR_MODULES=osquery` alone on a machine without CrowdSec.) Then `systemctl restart janus-sensor`.
+3. Within about ten minutes the machine's page in JANUS (SHIELD → Intrusion Detection → the sensor's name)
+   shows its state.
+
+**Windows** (not yet tested on Windows): install osquery's MSI and Python 3.11+, copy `osquery\janus.conf` to
+`C:\Program Files\osquery\osquery.conf`, restart the `osqueryd` service, and run
+`python janus_sensor.py` at start-up (Task Scheduler, "At startup", as SYSTEM) with `JANUS_URL`,
+`JANUS_SENSOR_KEY`, `JANUS_SENSOR_MODULES=osquery`, `JANUS_SENSOR_OSQUERY_RESULTS=C:\Program
+Files\osquery\log\osqueryd.results.log` and `JANUS_SENSOR_STATE=C:\ProgramData\janus-sensor\state.json` set
+as system environment variables.
+
 ## Revoking
 
 Revoke the sensor in JANUS (owner, fresh two-factor): its key stops working at once. Then
@@ -72,3 +105,7 @@ Revoke the sensor in JANUS (owner, fresh two-factor): its key stops working at o
 LAPI running, `JANUS_SENSOR_REAL_CSCLI=1 pytest tests/test_janus_sensor.py` applies and removes real CrowdSec
 decisions (checked against CrowdSec 1.4.6). See `docs/reviews/2026-11-17-shield-phase2-safeguards.md` for the
 safeguard validation, including real `crowdsecurity/ssh-bf` alerts from a replayed sshd log.
+
+The osquery module is tested against osquery's documented results-log format (`api/tests/test_shield_host.py`),
+and every pack query is parsed by SQLite against stub tables of the columns it uses. **It hasn't yet run against
+a real osquery**, on Linux or Windows: that's the first step of its validation.

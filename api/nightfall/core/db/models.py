@@ -1076,3 +1076,34 @@ class ShieldBlock(Base):
     lifted_at: Mapped[datetime | None]
     lifted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
     lifted_reason: Mapped[str] = mapped_column(server_default=text("''"))
+
+
+class ShieldHostState(Base):
+    """SHIELD v4 step 4a (migration 0026): the latest items a machine's osquery module reported
+    for one group. Untrusted data, size-capped, limited to the fixed pack's columns."""
+
+    __tablename__ = "shield_host_state"
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    sensor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shield_sensors.id"), primary_key=True)
+    grp: Mapped[str] = mapped_column(primary_key=True)
+    items: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'"))
+    item_count: Mapped[int] = mapped_column(server_default=text("0"))
+    observed_at: Mapped[datetime]
+    ingested_at: Mapped[datetime] = _created()
+    snapshot_at: Mapped[datetime | None]
+
+
+class ShieldHostChange(Base):
+    """SHIELD v4 step 4a (migration 0026): append-only log of host items added or removed. Kept
+    90 days (nf_purge_host_changes)."""
+
+    __tablename__ = "shield_host_changes"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    sensor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shield_sensors.id"))
+    grp: Mapped[str]
+    action: Mapped[str]
+    item_key: Mapped[str]
+    item: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'"))
+    observed_at: Mapped[datetime]
+    ingested_at: Mapped[datetime] = _created()

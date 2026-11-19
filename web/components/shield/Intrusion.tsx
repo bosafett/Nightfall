@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { api } from "@/lib/api/client";
 import type { IntrusionView, ShieldBlock, ShieldSensorCreated } from "@/lib/api/types";
@@ -256,7 +257,7 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct }: {
           <DataTable head={["Name", "Status", "Last seen", "Version", "Key", ""]}>
             {view.sensors.map((s) => (
               <tr key={s.id} data-testid="sensor-row">
-                <td>{s.name}</td>
+                <td><Link className="underline-offset-2 hover:underline" href={`/w/${ws}/shield/intrusion/sensors/${s.id}`}>{s.name}</Link></td>
                 <td>{s.revoked_at ? <Badge tone="gray">Revoked</Badge> : s.online ? <Badge tone="green">Online</Badge> : <Badge tone="yellow">Offline</Badge>}</td>
                 <td className="text-xs tabular">{formatDateTime(s.last_seen_at)}</td>
                 <td className="font-mono text-xs">{s.agent_version}</td>

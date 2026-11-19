@@ -1,6 +1,6 @@
 # SHIELD v4: endpoint, server and network monitoring for the owner's own machines (design for review)
 
-Status: **design only, not approved, nothing built.** Direction: `docs/JANUS_DIRECTION.md` (pillar 1, Monitor; §5
+Status: **decisions recorded 2026-11-19 (owner: "go with the recommendations"); step 4a in progress.** Direction: `docs/JANUS_DIRECTION.md` (pillar 1, Monitor; §5
 item 5). This is a separately scoped phase: it doesn't change SHIELD v3 phase 2, the BLACKSITE review, or any
 existing gate. Building it needs the owner decisions in §10 and, for its migration, explicit approval before push.
 
@@ -88,10 +88,11 @@ Vercel and Neon stay out of scope (v3 §8).
   only through the sensor routes.
 - **`shield_host_changes`**: append-only change log (sensor, group, item key, `added`/`removed`/`changed`,
   observed and ingested times). Retention decision 4.
-- **Alerts reuse `shield_intrusion_alerts`**: add a `source` column (`crowdsec`, `osquery`, `suricata`) and extend
+- **Alerts (step 4b, its own migration):** reuse `shield_intrusion_alerts` by adding a `source` column (`crowdsec`, `osquery`, `suricata`) and extend
   the category list (`new_admin`, `new_ssh_key`, `new_listener`, `new_persistence`, `file_changed`,
   `posture_degraded`, `network_ids`). GUARD ignores every new category: it still acts only on the four v3 attack
-  categories with a single source address.
+  categories with a single source address. Host alerts have no source address, so 4b must also make `source`
+  (an `inet`, `NOT NULL` today) nullable for host categories; that's why alerts aren't in 0026.
 - **Posture** is computed from `shield_host_state` when read; no table of its own.
 - No change to `shield_blocks`, the authorization, the allow list or the kill switch.
 
@@ -142,6 +143,10 @@ hypotheses and unknowns. In this phase:
    software list (names and versions only) to that service.
 6. **Correlation:** the deterministic "possible compromise" hypothesis rule of §7 (recommended), or alerts only.
 
+**Recorded 2026-11-19 (owner):** all six as recommended: (1) osquery; (2) enroll the Windows workstation; (3)
+Suricata later, once a vantage point exists; (4) 90-day retention; (5) vulnerable-software matching off; (6) the
+deterministic "possible compromise" hypothesis rule.
+
 ## 11. Phases and size
 
 | Step | Scope | Needs |
@@ -154,3 +159,20 @@ hypotheses and unknowns. In this phase:
 Effort: 4a is about the size of SHIELD v3 phase 2 (sensor module, two tables, routes, one page, tests, a live run
 against real osquery on Linux and Windows). 4b is about half that. 4c depends on the network. No paid services; every
 agent is free and runs on machines the owner already has.
+
+## 12. As built: step 4a (2026-11-19, migration 0026, held for approval)
+
+- **Migration 0026:** `shield_host_state` (latest items per sensor and group) and `shield_host_changes`
+  (append-only; the app role has no `DELETE`; `nf_purge_host_changes` removes only one sensor's rows older than 90
+  days and is called on each ingest). RLS by workspace. Nothing for alerts (moved to 4b, see §6).
+- **One mechanism:** the pack sends only full snapshots; the API diffs each against the last and logs what was
+  added or removed. The first snapshot is the baseline and logs nothing; an older snapshot arriving late is
+  ignored. Only the columns listed per group are kept, values are capped at 500 characters, 5,000 items per group.
+- **Sensor:** `osquery` module (`JANUS_SENSOR_MODULES`), reading osquery's results log with rotation and
+  partial-line handling, merging query variants (deb + rpm; Linux + Windows), hashing persistence commands.
+- **Pack:** `infra/janus-sensor/osquery/janus.conf`; remote queries and extensions off.
+- **UI:** each sensor's name on Intrusion Detection opens its machine page: posture, changes (90 days), current
+  state per group.
+- **Verified:** API, sensor and pack tests (`test_shield_host.py`); the browser suite, including a sensor posting
+  host state with its key and the machine page showing it. **Not verified:** a run against real osquery (Linux
+  or Windows), so pack queries are checked for syntax and columns only, against stub tables.

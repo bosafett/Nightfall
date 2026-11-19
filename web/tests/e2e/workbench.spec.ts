@@ -635,6 +635,24 @@ test.describe("as the owner", () => {
     await expect(page.getByTestId("sensor-key")).toContainText(/^nfs_/);
     await expect(page.getByTestId("sensor-row")).toContainText("Offline");
 
+    // The sensor's osquery module reports host state with its key (no cookie); the machine page shows it.
+    const key = (await page.getByTestId("sensor-key").textContent())!.trim();
+    const now = new Date().toISOString();
+    const r = await page.request.post("/api/sensor/host", {
+      headers: { Authorization: `Bearer ${key}` },
+      data: { snapshots: [
+        { group: "accounts", observed_at: now, items: [{ username: "root", uid: 0, shell: "/bin/bash", directory: "/root" }] },
+        { group: "posture", observed_at: now, items: [{ check: "firewall", ok: 0, detail: "0 iptables rule(s)" }] },
+      ] },
+    });
+    expect(r.status()).toBe(200);
+    await page.getByTestId("sensor-row").getByRole("link", { name: "lab-host" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "lab-host" })).toBeVisible();
+    await expect(page.getByTestId("posture")).toContainText("firewall");
+    await expect(page.getByTestId("host-group")).toContainText("Local accounts");
+    await noHorizontalScroll(page);
+    await page.goto(`${workspaceUrl}/shield/intrusion`);
+
     const authForm = page.locator("form", { hasText: "Authorize automatic blocks" });
     await authForm.getByRole("checkbox", { name: "lab-host" }).check();
     await authForm.getByRole("button", { name: "Record authorization" }).click();

@@ -320,6 +320,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sensor/host": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Host
+         * @description Full snapshots from the osquery module. Returns what changed per group.
+         */
+        post: operations["report_host_api_sensor_host_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}": {
         parameters: {
             query?: never;
@@ -2261,6 +2281,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/shield/sensors/{sensor_id}/host": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Host */
+        get: operations["host_api_workspaces__workspace_id__shield_sensors__sensor_id__host_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/shield/sensors/{sensor_id}/revoke": {
         parameters: {
             query?: never;
@@ -4057,6 +4094,19 @@ export interface components {
             record_id: string;
             status?: components["schemas"]["ProjectStatus"] | null;
         };
+        /** GroupResult */
+        GroupResult: {
+            /** Added */
+            added: number;
+            /** Baseline */
+            baseline: boolean;
+            /** Group */
+            group: string;
+            /** Item Count */
+            item_count: number;
+            /** Removed */
+            removed: number;
+        };
         /**
          * GuardianReview
          * @description Advice from the Guardian agent. Never changes the finding's status.
@@ -4135,6 +4185,71 @@ export interface components {
              * Format: uuid
              */
             sensor_id: string;
+        };
+        /** HostChangeOut */
+        HostChangeOut: {
+            /** Action */
+            action: string;
+            /** Group */
+            group: string;
+            /**
+             * Ingested At
+             * Format: date-time
+             */
+            ingested_at: string;
+            /** Item */
+            item: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+        };
+        /** HostGroupOut */
+        HostGroupOut: {
+            /** Group */
+            group: string;
+            /**
+             * Ingested At
+             * Format: date-time
+             */
+            ingested_at: string;
+            /** Item Count */
+            item_count: number;
+            /** Items */
+            items: {
+                [key: string]: string | number | boolean | null;
+            }[];
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+        };
+        /** HostIn */
+        HostIn: {
+            /** Snapshots */
+            snapshots: components["schemas"]["SnapshotIn"][];
+        };
+        /** HostOut */
+        HostOut: {
+            /** Changes */
+            changes: components["schemas"]["HostChangeOut"][];
+            /** Groups */
+            groups: components["schemas"]["HostGroupOut"][];
+            /** Posture */
+            posture: components["schemas"]["PostureOut"][];
+            /** Retention Days */
+            retention_days: number;
+            /**
+             * Sensor Id
+             * Format: uuid
+             */
+            sensor_id: string;
+            /** Sensor Name */
+            sensor_name: string;
         };
         /** IdentitiesOut */
         IdentitiesOut: {
@@ -5339,6 +5454,15 @@ export interface components {
             /** Tool */
             tool: string;
         };
+        /** PostureOut */
+        PostureOut: {
+            /** Check */
+            check: string;
+            /** Detail */
+            detail: string;
+            /** Ok */
+            ok: boolean | null;
+        };
         /** PreflightCheckOut */
         PreflightCheckOut: {
             /** Detail */
@@ -6397,6 +6521,23 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** SnapshotIn */
+        SnapshotIn: {
+            /**
+             * Group
+             * @enum {string}
+             */
+            group: "accounts" | "admins" | "ssh_keys" | "listeners" | "persistence" | "software" | "posture";
+            /** Items */
+            items: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
         };
         /**
          * Sort
@@ -7673,6 +7814,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HeartbeatOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_host_api_sensor_host_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HostIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupResult"][];
                 };
             };
             /** @description Validation Error */
@@ -11900,6 +12074,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SensorCreatedOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    host_api_workspaces__workspace_id__shield_sensors__sensor_id__host_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sensor_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HostOut"];
                 };
             };
             /** @description Validation Error */
