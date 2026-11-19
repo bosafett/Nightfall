@@ -21,7 +21,7 @@ from tests.conftest import WORKER_URL, audit_actions, use
 from tests.phase3_helpers import make_worker
 from tests.test_agents import env  # noqa: F401 - fixture
 from tests.test_sentinel import ATTACKER
-from tests.test_shield import HOST, W, Dns, Tls, authorize, drain
+from tests.test_shield import HOST, Dns, Tls, W, authorize, drain
 from tests.test_shield_guard import _alert, _register, _send, _sensor
 
 EVIL = "cdn.evil-host.net"
@@ -67,8 +67,8 @@ def _incident(client: TestClient, env: dict[str, Any], **body: Any) -> str:
 
 
 def _enter(client: TestClient, env: dict[str, Any], inc: str, type_: str, value: str) -> Any:
-    return client.post(f"{W(env)}/sentinel/incidents/{inc}/indicators",
-                       json={"type": type_, "value": value, "note": "From the proxy log"})  # fmt: skip
+    body = {"type": type_, "value": value, "note": "From the proxy log"}
+    return client.post(f"{W(env)}/sentinel/incidents/{inc}/indicators", json=body)
 
 
 def test_dns_rule_records_targets_outside_scope() -> None:
