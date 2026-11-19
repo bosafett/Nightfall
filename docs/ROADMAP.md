@@ -8,7 +8,7 @@ This roadmap is kept honest: a line is **Delivered** only if it is built and tes
 progress** only while it is being built, and **Planned** otherwise. Nothing here claims a capability that does not
 exist. Design detail lives in `docs/designs/`; this file is the map over the top of them.
 
-_Last updated 2026-11-17._
+_Last updated 2026-11-19._
 
 ## Principles that bound the whole roadmap
 
@@ -55,10 +55,10 @@ JANUS's response tiers).
 | Phase | Scope | State |
 |---|---|---|
 | **1 — JANUS's own detection** | Sign-in alerts; no sensor, no new blocking (the existing throttles already lock). WATCH mode for sign-in signals | **Delivered** (migration 0024) |
-| **2 — CrowdSec sensor + GUARD** | Outbound-only `janus-sensor` on the owner's machines; standing response authorization; time-limited automatic blocks with allow list, caps and kill switch; person-approved tier; Intrusion Detection UI | **In progress** — built and tested (design §10b); awaiting safeguard validation on a real machine and the BLACKSITE review |
-| **3 — SENTINEL indicator store** | Threat-intel repository (IP, domain, hash, fingerprint, ATT&CK technique) with confidence labels, first/last-seen, expiry and false-positive correction; correlation into incidents. New tables, no new infrastructure | **3a delivered** (migration 0028); **3b built** (incident correlation, knows versus suspects; no migration); 3c next |
+| **2 — CrowdSec sensor + GUARD** | Outbound-only `janus-sensor` on the owner's machines; standing response authorization; time-limited automatic blocks with allow list, caps and kill switch; person-approved tier; Intrusion Detection UI | **Delivered, deployed** (built, tested, safeguards validated against real CrowdSec in the build environment, design §10b); pending: a run on the lab host and the BLACKSITE review |
+| **3 — SENTINEL indicator store** | Threat-intel repository (IP, domain, hash, fingerprint, ATT&CK technique) with confidence labels, first/last-seen, expiry and false-positive correction; correlation into incidents. New tables, no new infrastructure | **3a + 3b delivered, deployed** (migration 0028; design §13-14); 3c next (AEGIS domains and certificates, indicators entered by a person, sign-in alerts) |
 | **4 — deception / honeypots** | Isolated decoy services to observe hostile activity, on infrastructure the owner is authorized to run. Gated: needs its own scoping and an explicit owner decision because it stands up new attacker-facing services | **Planned, gated** |
-| **SHIELD v4 — host and network monitoring** | osquery-based host state, file integrity and posture on the owner's Windows and Linux machines through the existing sensor; optional Suricata IDS. Detection only, no new automatic actions. Design: `docs/designs/2026-11-shield-v4-host-network-monitoring.md` | **4a delivered** (host state, migration 0026); **4b built** (host alerts, file integrity, migration 0027 held); 4c (network IDS) later |
+| **SHIELD v4 — host and network monitoring** | osquery-based host state, file integrity and posture on the owner's Windows and Linux machines through the existing sensor; optional Suricata IDS. Detection only, no new automatic actions. Design: `docs/designs/2026-11-shield-v4-host-network-monitoring.md` | **4a + 4b delivered, deployed** (migrations 0026, 0027); not yet run against a real osquery; 4c (network IDS) waits for a vantage point |
 
 Phase 2 safeguards (from the design): the sensor is outbound-only with a fixed action set (no shell, no execution
 endpoint); each sensor has its own revocable key scoped to one machine; automatic blocks run only under a standing
