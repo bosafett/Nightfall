@@ -258,7 +258,8 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct }: {
             {view.sensors.map((s) => (
               <tr key={s.id} data-testid="sensor-row">
                 <td><Link className="underline-offset-2 hover:underline" href={`/w/${ws}/shield/intrusion/sensors/${s.id}`}>{s.name}</Link></td>
-                <td>{s.revoked_at ? <Badge tone="gray">Revoked</Badge> : s.online ? <Badge tone="green">Online</Badge> : <Badge tone="yellow">Offline</Badge>}</td>
+                <td>{s.revoked_at ? <Badge tone="gray">Revoked</Badge> : s.online ? <Badge tone="green">Online</Badge> : <Badge tone="yellow">Offline</Badge>}
+                  {s.open_host_alerts > 0 && <span className="ml-1"><Badge tone="orange">{s.open_host_alerts} host alert{s.open_host_alerts === 1 ? "" : "s"}</Badge></span>}</td>
                 <td className="text-xs tabular">{formatDateTime(s.last_seen_at)}</td>
                 <td className="font-mono text-xs">{s.agent_version}</td>
                 <td className="font-mono text-xs">{s.key_prefix}…</td>

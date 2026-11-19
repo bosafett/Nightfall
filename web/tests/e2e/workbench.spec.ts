@@ -646,10 +646,25 @@ test.describe("as the owner", () => {
       ] },
     });
     expect(r.status()).toBe(200);
+    // A later snapshot adds an account: a host alert (the first snapshot was the baseline).
+    const r2 = await page.request.post("/api/sensor/host", {
+      headers: { Authorization: `Bearer ${key}` },
+      data: { snapshots: [{ group: "accounts", observed_at: new Date().toISOString(), items: [
+        { username: "root", uid: 0, shell: "/bin/bash", directory: "/root" },
+        { username: "eve", uid: 1001, shell: "/bin/sh", directory: "/home/eve" },
+      ] }] },
+    });
+    expect(r2.status()).toBe(200);
+    await page.reload();
+    await expect(page.getByTestId("sensor-row")).toContainText("1 host alert");
     await page.getByTestId("sensor-row").getByRole("link", { name: "lab-host" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "lab-host" })).toBeVisible();
     await expect(page.getByTestId("posture")).toContainText("firewall");
     await expect(page.getByTestId("host-group")).toContainText("Local accounts");
+    const hostAlert = page.getByTestId("host-alert");
+    await expect(hostAlert).toContainText("New local account eve");
+    await hostAlert.getByRole("button", { name: "Acknowledge" }).click();
+    await expect(hostAlert).toContainText("acknowledged");
     await noHorizontalScroll(page);
     await page.goto(`${workspaceUrl}/shield/intrusion`);
 

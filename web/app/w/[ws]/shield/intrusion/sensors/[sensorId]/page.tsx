@@ -3,6 +3,9 @@ import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
 import type { HostView } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
+import { can } from "@/lib/labels";
+import { membership } from "@/lib/workspace";
+import { HostAlerts } from "@/components/shield/HostAlerts";
 import { Badge, DataTable, PageHeader, Panel } from "@/components/ui/primitives";
 
 export const metadata: Metadata = { title: "Machine" };
@@ -10,6 +13,7 @@ export const metadata: Metadata = { title: "Machine" };
 const groupLabel: Record<string, string> = {
   accounts: "Local accounts", admins: "Administrators", ssh_keys: "SSH keys", listeners: "Listening services",
   persistence: "Services, scheduled tasks and startup items", software: "Installed software",
+  files: "Watched files", posture: "Posture",
 };
 
 /** What a field shows for an item: its most telling columns, never more than the API kept. */
@@ -22,13 +26,17 @@ function describe(group: string, item: Record<string, unknown>): string {
     case "listeners": return `${v("process") || "?"} on ${v("address")}:${v("port")}/${v("protocol")}`;
     case "persistence": return `${v("kind")}: ${v("name")}${v("path") && v("path") !== v("name") ? ` (${v("path")})` : ""}`;
     case "software": return `${v("name")} ${v("version")} (${v("source")})`;
+    case "files": return `${v("path")} sha256 ${v("sha256").slice(0, 12)}…`;
+    case "posture": return `${v("check")}: ${v("detail")}`;
     default: return JSON.stringify(item);
   }
 }
 
 export default async function MachinePage({ params }: { params: Promise<{ ws: string; sensorId: string }> }) {
   const { ws, sensorId } = await params;
-  const h = await apiGet<HostView>(`/workspaces/${ws}/shield/sensors/${sensorId}/host`);
+  const [h, me] = await Promise.all([
+    apiGet<HostView>(`/workspaces/${ws}/shield/sensors/${sensorId}/host`), membership(ws),
+  ]);
   return (
     <>
       <PageHeader title={h.sensor_name}
@@ -38,6 +46,9 @@ export default async function MachinePage({ params }: { params: Promise<{ ws: st
         <Panel><p className="text-sm text-muted">No host state yet. Turn on the sensor&apos;s osquery module (infra/janus-sensor/README.md).</p></Panel>
       ) : (
         <div className="space-y-6">
+          <Panel title="Host alerts">
+            <HostAlerts ws={ws} alerts={h.alerts} canAct={can.editFindings(me.role)} />
+          </Panel>
           <Panel title="Posture">
             <ul className="space-y-1 text-sm" data-testid="posture">
               {h.posture.map((p) => (
@@ -56,7 +67,7 @@ export default async function MachinePage({ params }: { params: Promise<{ ws: st
                   <tr key={i} data-testid="host-change">
                     <td className="text-xs tabular">{formatDateTime(c.observed_at)}</td>
                     <td className="text-xs">{groupLabel[c.group] ?? c.group}</td>
-                    <td>{c.action === "added" ? <Badge tone="yellow">Added</Badge> : <Badge tone="gray">Removed</Badge>}</td>
+                    <td>{c.action === "added" ? <Badge tone="yellow">Added</Badge> : c.action === "changed" ? <Badge tone="orange">Changed</Badge> : <Badge tone="gray">Removed</Badge>}</td>
                     <td className="font-mono text-xs">{describe(c.group, c.item)}</td>
                   </tr>
                 ))}

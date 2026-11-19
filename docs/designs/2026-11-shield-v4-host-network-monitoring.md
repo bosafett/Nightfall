@@ -1,6 +1,7 @@
 # SHIELD v4: endpoint, server and network monitoring for the owner's own machines (design for review)
 
-Status: **decisions recorded 2026-11-19 (owner: "go with the recommendations"); step 4a in progress.** Direction: `docs/JANUS_DIRECTION.md` (pillar 1, Monitor; §5
+Status: **decisions recorded 2026-11-19 (owner: "go with the recommendations"); step 4a deployed (migration
+0026); step 4b built (migration 0027, held for approval).** Direction: `docs/JANUS_DIRECTION.md` (pillar 1, Monitor; §5
 item 5). This is a separately scoped phase: it doesn't change SHIELD v3 phase 2, the BLACKSITE review, or any
 existing gate. Building it needs the owner decisions in §10 and, for its migration, explicit approval before push.
 
@@ -176,3 +177,28 @@ agent is free and runs on machines the owner already has.
 - **Verified:** API, sensor and pack tests (`test_shield_host.py`); the browser suite, including a sensor posting
   host state with its key and the machine page showing it. **Not verified:** a run against real osquery (Linux
   or Windows), so pack queries are checked for syntax and columns only, against stub tables.
+
+## 13. As built: step 4b (2026-11-19, migration 0027, held for approval)
+
+- **Host alerts get their own table, `shield_host_alerts`** (a change from §6). Reusing `shield_intrusion_alerts`
+  would have meant making its `source` address nullable, which touches the open-alert dedup index and the GUARD
+  code validated live in v3 phase 2. A separate table keeps that path untouched; GUARD can't see host alerts.
+- **Rules (fixed, deterministic), one alert per change:** new local account (medium); user added to an admin
+  group (high); new SSH key (high); new non-loopback listener (medium); new service, timer, cron entry, kernel
+  module, scheduled task or startup item (medium); a posture check going from OK to not OK (medium); a watched
+  file appearing, changing or disappearing (high). Software changes and posture improving raise nothing. The
+  baseline raises nothing.
+- **File integrity by snapshot, not file events:** the pack hashes a fixed list of files every 10 minutes
+  (`hash` table; Linux and Windows alike), and a hash change is a `changed` entry with the previous item. This
+  fits the one-mechanism design; the cost is up to 10 minutes' delay and no record of which process changed it.
+- **`changed` action** (0027): a value change under the same key (file hash, posture state) is now recorded with
+  the previous item; the database requires `previous` exactly when the action is `changed`.
+- **Correlation (decision 6):** if an attack alert (SSH or web brute force, exploit attempt, web scan) on the
+  same machine was last seen within the hour before the change, the host alert links it and the UI says
+  "Possible compromise, unconfirmed". It's a hypothesis, never a finding; nothing is blocked or changed.
+- **UI:** host alerts on the machine page (acknowledge, resolve: analysts and above); an open-alert count per
+  sensor on Intrusion Detection.
+- **Verified:** `test_shield_host.py` (25 tests: rules, baseline, correlation in and outside the window,
+  lifecycle, permissions, pack parsing); the browser suite (a sensor's later snapshot raises an alert that is
+  shown and acknowledged). **Not verified:** real osquery, as for 4a.
+- **Not built:** incidents from host alerts (decision 4 of v3 still open); network IDS (step 4c, decision 3).

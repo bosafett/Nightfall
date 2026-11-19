@@ -2136,6 +2136,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/shield/host-alerts/{alert_id}/{action}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update Host Alert */
+        post: operations["update_host_alert_api_workspaces__workspace_id__shield_host_alerts__alert_id___action__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/shield/intrusion": {
         parameters: {
             query?: never;
@@ -4100,6 +4117,11 @@ export interface components {
             added: number;
             /** Baseline */
             baseline: boolean;
+            /**
+             * Changed
+             * @default 0
+             */
+            changed: number;
             /** Group */
             group: string;
             /** Item Count */
@@ -4186,6 +4208,38 @@ export interface components {
              */
             sensor_id: string;
         };
+        /** HostAlertOut */
+        HostAlertOut: {
+            /** Acknowledged At */
+            acknowledged_at: string | null;
+            /** Category */
+            category: string;
+            /** Correlated Alert Id */
+            correlated_alert_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Observed At
+             * Format: date-time
+             */
+            observed_at: string;
+            /** Possible Compromise */
+            possible_compromise: boolean;
+            /** Severity */
+            severity: string;
+            /** State */
+            state: string;
+            /** Title */
+            title: string;
+        };
         /** HostChangeOut */
         HostChangeOut: {
             /** Action */
@@ -4206,6 +4260,10 @@ export interface components {
              * Format: date-time
              */
             observed_at: string;
+            /** Previous */
+            previous: {
+                [key: string]: string | number | boolean | null;
+            } | null;
         };
         /** HostGroupOut */
         HostGroupOut: {
@@ -4235,6 +4293,8 @@ export interface components {
         };
         /** HostOut */
         HostOut: {
+            /** Alerts */
+            alerts: components["schemas"]["HostAlertOut"][];
             /** Changes */
             changes: components["schemas"]["HostChangeOut"][];
             /** Groups */
@@ -4757,6 +4817,8 @@ export interface components {
              * Format: date-time
              */
             generated_at: string;
+            /** Host Alerts Open */
+            host_alerts_open: number;
             /** Sensors */
             sensors: components["schemas"]["SensorOut"][];
             /** Sensors Offline */
@@ -6264,6 +6326,11 @@ export interface components {
             name: string;
             /** Online */
             online: boolean;
+            /**
+             * Open Host Alerts
+             * @default 0
+             */
+            open_host_alerts: number;
             /** Revoked At */
             revoked_at: string | null;
             /** Revoked Reason */
@@ -6298,6 +6365,11 @@ export interface components {
             name: string;
             /** Online */
             online: boolean;
+            /**
+             * Open Host Alerts
+             * @default 0
+             */
+            open_host_alerts: number;
             /** Revoked At */
             revoked_at: string | null;
             /** Revoked Reason */
@@ -6528,7 +6600,7 @@ export interface components {
              * Group
              * @enum {string}
              */
-            group: "accounts" | "admins" | "ssh_keys" | "listeners" | "persistence" | "software" | "posture";
+            group: "accounts" | "admins" | "ssh_keys" | "listeners" | "persistence" | "software" | "posture" | "files";
             /** Items */
             items: {
                 [key: string]: unknown;
@@ -11811,6 +11883,37 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["BlockOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_host_alert_api_workspaces__workspace_id__shield_host_alerts__alert_id___action__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                alert_id: string;
+                action: "acknowledge" | "resolve";
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

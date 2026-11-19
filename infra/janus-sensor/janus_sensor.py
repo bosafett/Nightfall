@@ -68,6 +68,8 @@ OSQUERY_GROUPS = {
     "janus_software_deb": "software",
     "janus_software_rpm": "software",
     "janus_software_windows": "software",
+    "janus_files_linux": "files",
+    "janus_files_windows": "files",
     "janus_posture_linux": "posture",
     "janus_posture_windows": "posture",
 }

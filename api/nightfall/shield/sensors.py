@@ -35,7 +35,7 @@ from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Depends, Request
 from pydantic import Field, StringConstraints, field_validator
-from sqlalchemy import or_, select, text
+from sqlalchemy import func, or_, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -45,6 +45,7 @@ from nightfall.core.db.models import (
     ActorType,
     ShieldBlock,
     ShieldBlockAllowlistEntry,
+    ShieldHostAlert,
     ShieldIntrusionAlert,
     ShieldResponseAuthorization,
     ShieldResponseSettings,
@@ -373,6 +374,7 @@ class SensorOut(Model):
     agent_version: str
     revoked_at: datetime | None
     revoked_reason: str
+    open_host_alerts: int = 0  # SHIELD v4: alerts from this machine's host state
 
 
 class SensorCreatedOut(SensorOut):
@@ -505,6 +507,7 @@ class IntrusionOut(Model):
     blocks_24h: int
     sensors_offline: int
     approved_max_seconds: int
+    host_alerts_open: int  # SHIELD v4, all sensors
 
 
 class _Names:
@@ -684,6 +687,15 @@ def intrusion(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) ->
         if b.alert_id:
             by_alert.setdefault(b.alert_id, []).append(b.id)
     sensor_out = [_sensor_out(s, names, now) for s in sensors]
+    open_host = dict(
+        db.execute(
+            select(ShieldHostAlert.sensor_id, func.count())
+            .where(ShieldHostAlert.workspace_id == ws, ShieldHostAlert.state == "open")
+            .group_by(ShieldHostAlert.sensor_id)
+        ).all()
+    )
+    for so in sensor_out:
+        so.open_host_alerts = int(open_host.get(so.id, 0))
     return IntrusionOut(
         generated_at=now,
         sensors=sensor_out,
@@ -723,6 +735,7 @@ def intrusion(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) ->
         blocks_24h=sum(b.created_at > now - timedelta(hours=24) for b in blocks),
         sensors_offline=sum(1 for s in sensor_out if s.revoked_at is None and not s.online),
         approved_max_seconds=APPROVED_MAX_SECONDS,
+        host_alerts_open=int(sum(open_host.values())),
     )
 
 

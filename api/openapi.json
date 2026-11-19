@@ -3622,6 +3622,11 @@
             "title": "Baseline",
             "type": "boolean"
           },
+          "changed": {
+            "default": 0,
+            "title": "Changed",
+            "type": "integer"
+          },
           "group": {
             "title": "Group",
             "type": "string"
@@ -3818,6 +3823,84 @@
         "title": "HeartbeatOut",
         "type": "object"
       },
+      "HostAlertOut": {
+        "additionalProperties": false,
+        "properties": {
+          "acknowledged_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acknowledged At"
+          },
+          "category": {
+            "title": "Category",
+            "type": "string"
+          },
+          "correlated_alert_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Correlated Alert Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "possible_compromise": {
+            "title": "Possible Compromise",
+            "type": "boolean"
+          },
+          "severity": {
+            "title": "Severity",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "severity",
+          "title",
+          "observed_at",
+          "created_at",
+          "state",
+          "acknowledged_at",
+          "possible_compromise",
+          "correlated_alert_id"
+        ],
+        "title": "HostAlertOut",
+        "type": "object"
+      },
       "HostChangeOut": {
         "additionalProperties": false,
         "properties": {
@@ -3861,12 +3944,43 @@
             "format": "date-time",
             "title": "Observed At",
             "type": "string"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
           }
         },
         "required": [
           "group",
           "action",
           "item",
+          "previous",
           "observed_at",
           "ingested_at"
         ],
@@ -3938,7 +4052,7 @@
             "items": {
               "$ref": "#/components/schemas/SnapshotIn"
             },
-            "maxItems": 7,
+            "maxItems": 8,
             "minItems": 1,
             "title": "Snapshots",
             "type": "array"
@@ -3953,6 +4067,13 @@
       "HostOut": {
         "additionalProperties": false,
         "properties": {
+          "alerts": {
+            "items": {
+              "$ref": "#/components/schemas/HostAlertOut"
+            },
+            "title": "Alerts",
+            "type": "array"
+          },
           "changes": {
             "items": {
               "$ref": "#/components/schemas/HostChangeOut"
@@ -3991,6 +4112,7 @@
         "required": [
           "sensor_id",
           "sensor_name",
+          "alerts",
           "groups",
           "posture",
           "changes",
@@ -5197,6 +5319,10 @@
             "title": "Generated At",
             "type": "string"
           },
+          "host_alerts_open": {
+            "title": "Host Alerts Open",
+            "type": "integer"
+          },
           "sensors": {
             "items": {
               "$ref": "#/components/schemas/SensorOut"
@@ -5223,7 +5349,8 @@
           "alerts",
           "blocks_24h",
           "sensors_offline",
-          "approved_max_seconds"
+          "approved_max_seconds",
+          "host_alerts_open"
         ],
         "title": "IntrusionOut",
         "type": "object"
@@ -9082,6 +9209,11 @@
             "title": "Online",
             "type": "boolean"
           },
+          "open_host_alerts": {
+            "default": 0,
+            "title": "Open Host Alerts",
+            "type": "integer"
+          },
           "revoked_at": {
             "anyOf": [
               {
@@ -9175,6 +9307,11 @@
           "online": {
             "title": "Online",
             "type": "boolean"
+          },
+          "open_host_alerts": {
+            "default": 0,
+            "title": "Open Host Alerts",
+            "type": "integer"
           },
           "revoked_at": {
             "anyOf": [
@@ -9801,7 +9938,8 @@
               "listeners",
               "persistence",
               "software",
-              "posture"
+              "posture",
+              "files"
             ],
             "title": "Group",
             "type": "string"
@@ -19827,6 +19965,65 @@
           }
         },
         "summary": "Lift Block",
+        "tags": [
+          "shield"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/shield/host-alerts/{alert_id}/{action}": {
+      "post": {
+        "operationId": "update_host_alert_api_workspaces__workspace_id__shield_host_alerts__alert_id___action__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "alert_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Alert Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "acknowledge",
+                "resolve"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Host Alert",
         "tags": [
           "shield"
         ]

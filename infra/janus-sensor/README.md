@@ -72,6 +72,10 @@ OS version). Detection only; nothing is changed on the machine. Design:
 - **Kept to a minimum:** names and paths; no process command lines, environment or file contents. Cron and
   scheduled-task commands are sent only as a sha256.
 - JANUS diffs each snapshot against the last one; the first is the baseline. The change log is kept 90 days.
+- **Host alerts** (step 4b): a new account, administrator, SSH key, listening service or persistence item, a
+  posture check getting worse, or a watched file (`/etc/passwd`, `/etc/shadow`, `/etc/sudoers*`, `sshd_config`,
+  the sensor's and osquery's own files; Windows `hosts`) changing. If an attack on the same machine was seen in
+  the hour before, the alert is marked "possible compromise, unconfirmed". Alerts only; nothing is changed.
 
 **Linux:**
 

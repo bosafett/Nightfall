@@ -1105,5 +1105,29 @@ class ShieldHostChange(Base):
     action: Mapped[str]
     item_key: Mapped[str]
     item: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default=text("'{}'"))
+    previous: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONB(none_as_null=True)
+    )  # 'changed' only (0027)
     observed_at: Mapped[datetime]
     ingested_at: Mapped[datetime] = _created()
+
+
+class ShieldHostAlert(Base):
+    """SHIELD v4 step 4b (migration 0027): an alert raised by a security-relevant host change.
+    correlated_alert_id is a hypothesis (possible compromise), never a finding."""
+
+    __tablename__ = "shield_host_alerts"
+    id: Mapped[uuid.UUID] = _uuid_pk_col()
+    workspace_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("workspaces.id"))
+    sensor_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("shield_sensors.id"))
+    category: Mapped[str]
+    severity: Mapped[Severity] = mapped_column(_pg_enum(Severity, "severity"))
+    title: Mapped[str]
+    change_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("shield_host_changes.id"))
+    correlated_alert_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("shield_intrusion_alerts.id")
+    )
+    observed_at: Mapped[datetime]
+    created_at: Mapped[datetime] = _created()
+    state: Mapped[str] = mapped_column(server_default=text("'open'"))
+    acknowledged_at: Mapped[datetime | None]
