@@ -58,6 +58,7 @@ JANUS's response tiers).
 | **2 — CrowdSec sensor + GUARD** | Outbound-only `janus-sensor` on the owner's machines; standing response authorization; time-limited automatic blocks with allow list, caps and kill switch; person-approved tier; Intrusion Detection UI | **In progress** — built and tested (design §10b); awaiting safeguard validation on a real machine and the BLACKSITE review |
 | **3 — SENTINEL indicator store** | Threat-intel repository (IP, domain, hash, fingerprint, ATT&CK technique) with confidence labels, first/last-seen, expiry and false-positive correction; correlation into incidents. New tables, no new infrastructure | **Planned** |
 | **4 — deception / honeypots** | Isolated decoy services to observe hostile activity, on infrastructure the owner is authorized to run. Gated: needs its own scoping and an explicit owner decision because it stands up new attacker-facing services | **Planned, gated** |
+| **SHIELD v4 — host and network monitoring** | osquery-based host state, file integrity and posture on the owner's Windows and Linux machines through the existing sensor; optional Suricata IDS. Detection only, no new automatic actions. Design: `docs/designs/2026-11-shield-v4-host-network-monitoring.md` | **Design for review**; 6 owner decisions open |
 
 Phase 2 safeguards (from the design): the sensor is outbound-only with a fixed action set (no shell, no execution
 endpoint); each sensor has its own revocable key scoped to one machine; automatic blocks run only under a standing
