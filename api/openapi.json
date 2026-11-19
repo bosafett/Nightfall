@@ -2380,6 +2380,68 @@
         "title": "ControlOut",
         "type": "object"
       },
+      "CorrelationOut": {
+        "additionalProperties": false,
+        "properties": {
+          "knows": {
+            "items": {
+              "$ref": "#/components/schemas/StatementOut"
+            },
+            "title": "Knows",
+            "type": "array"
+          },
+          "linked_alerts": {
+            "title": "Linked Alerts",
+            "type": "integer"
+          },
+          "sequence": {
+            "items": {
+              "$ref": "#/components/schemas/nightfall__sentinel__correlation__StepOut"
+            },
+            "title": "Sequence",
+            "type": "array"
+          },
+          "shared_indicators": {
+            "items": {
+              "$ref": "#/components/schemas/SharedIndicatorOut"
+            },
+            "title": "Shared Indicators",
+            "type": "array"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedOut"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "suspects": {
+            "items": {
+              "$ref": "#/components/schemas/StatementOut"
+            },
+            "title": "Suspects",
+            "type": "array"
+          },
+          "unknowns": {
+            "items": {
+              "$ref": "#/components/schemas/StatementOut"
+            },
+            "title": "Unknowns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "linked_alerts",
+          "shared_indicators",
+          "suggestions",
+          "sequence",
+          "knows",
+          "suspects",
+          "unknowns"
+        ],
+        "title": "CorrelationOut",
+        "type": "object"
+      },
       "Decision": {
         "additionalProperties": false,
         "properties": {
@@ -4738,6 +4800,11 @@
             ],
             "title": "Kind",
             "type": "string"
+          },
+          "unknown": {
+            "default": false,
+            "title": "Unknown",
+            "type": "boolean"
           }
         },
         "required": [
@@ -7158,7 +7225,7 @@
           },
           "steps": {
             "items": {
-              "$ref": "#/components/schemas/StepOut"
+              "$ref": "#/components/schemas/nightfall__findings__paths__StepOut"
             },
             "title": "Steps",
             "type": "array"
@@ -8159,6 +8226,79 @@
           "reason"
         ],
         "title": "RefusedIn",
+        "type": "object"
+      },
+      "RelatedOut": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "escalation_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Escalation Kind"
+          },
+          "event_time": {
+            "format": "date-time",
+            "title": "Event Time",
+            "type": "string"
+          },
+          "incident_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Incident Id"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "sensor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Name"
+          },
+          "source_id": {
+            "format": "uuid",
+            "title": "Source Id",
+            "type": "string"
+          },
+          "source_kind": {
+            "title": "Source Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_kind",
+          "source_id",
+          "description",
+          "sensor_name",
+          "event_time",
+          "incident_id",
+          "escalation_kind",
+          "reason"
+        ],
+        "title": "RelatedOut",
         "type": "object"
       },
       "RelationshipOut": {
@@ -9888,6 +10028,35 @@
         "title": "Severity",
         "type": "string"
       },
+      "SharedIndicatorOut": {
+        "additionalProperties": false,
+        "properties": {
+          "elsewhere": {
+            "items": {
+              "$ref": "#/components/schemas/RelatedOut"
+            },
+            "title": "Elsewhere",
+            "type": "array"
+          },
+          "indicator": {
+            "$ref": "#/components/schemas/IndicatorOut"
+          },
+          "machines": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Machines",
+            "type": "array"
+          }
+        },
+        "required": [
+          "indicator",
+          "machines",
+          "elsewhere"
+        ],
+        "title": "SharedIndicatorOut",
+        "type": "object"
+      },
       "ShieldAlertOut": {
         "additionalProperties": false,
         "properties": {
@@ -10528,6 +10697,48 @@
         "title": "SourcesOut",
         "type": "object"
       },
+      "StatementOut": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "StatementOut",
+        "type": "object"
+      },
       "StatusIn": {
         "additionalProperties": false,
         "properties": {
@@ -10585,109 +10796,6 @@
           "description"
         ],
         "title": "StepIn",
-        "type": "object"
-      },
-      "StepOut": {
-        "additionalProperties": false,
-        "properties": {
-          "asset_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Asset Id"
-          },
-          "asset_value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Asset Value"
-          },
-          "description": {
-            "title": "Description",
-            "type": "string"
-          },
-          "finding_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finding Id"
-          },
-          "finding_ref": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finding Ref"
-          },
-          "finding_severity": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/Severity"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "finding_status": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/ValidationStatus"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "finding_title": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Finding Title"
-          },
-          "ordinal": {
-            "title": "Ordinal",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "ordinal",
-          "description",
-          "asset_id",
-          "asset_value",
-          "finding_id",
-          "finding_ref",
-          "finding_title",
-          "finding_status",
-          "finding_severity"
-        ],
-        "title": "StepOut",
         "type": "object"
       },
       "TargetType": {
@@ -12780,6 +12888,151 @@
           "role"
         ],
         "title": "WorkspaceSummary",
+        "type": "object"
+      },
+      "nightfall__findings__paths__StepOut": {
+        "additionalProperties": false,
+        "properties": {
+          "asset_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Id"
+          },
+          "asset_value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Asset Value"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "finding_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Id"
+          },
+          "finding_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Ref"
+          },
+          "finding_severity": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Severity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finding_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ValidationStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "finding_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finding Title"
+          },
+          "ordinal": {
+            "title": "Ordinal",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "ordinal",
+          "description",
+          "asset_id",
+          "asset_value",
+          "finding_id",
+          "finding_ref",
+          "finding_title",
+          "finding_status",
+          "finding_severity"
+        ],
+        "title": "StepOut",
+        "type": "object"
+      },
+      "nightfall__sentinel__correlation__StepOut": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "event_time": {
+            "format": "date-time",
+            "title": "Event Time",
+            "type": "string"
+          },
+          "sensor_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sensor Name"
+          },
+          "technique_id": {
+            "title": "Technique Id",
+            "type": "string"
+          },
+          "technique_name": {
+            "title": "Technique Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "event_time",
+          "technique_id",
+          "technique_name",
+          "description",
+          "sensor_name"
+        ],
+        "title": "StepOut",
         "type": "object"
       }
     }
@@ -20221,6 +20474,59 @@
         "summary": "Remove Target",
         "tags": [
           "scope"
+        ]
+      }
+    },
+    "/api/workspaces/{workspace_id}/sentinel/incidents/{incident_id}/correlation": {
+      "get": {
+        "operationId": "incident_correlation_api_workspaces__workspace_id__sentinel_incidents__incident_id__correlation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "incident_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Incident Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrelationOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Incident Correlation",
+        "tags": [
+          "sentinel"
         ]
       }
     },

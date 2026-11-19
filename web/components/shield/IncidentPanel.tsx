@@ -32,12 +32,14 @@ export function IncidentPanel({ ws, incident: inc, addable, findings, canWork, c
             e.preventDefault();
             const form = e.currentTarget;
             const kind = text(form, "kind"), body = text(form, "body");
-            if (body && (await post("entries", { kind, body }))) form.reset();
+            const entry = kind === "unknown" ? { kind: "note", body, unknown: true } : { kind, body };
+            if (body && (await post("entries", entry))) form.reset();
           }}>
             <div className="flex flex-wrap gap-2">
               <Select name="kind" aria-label="Entry type" defaultValue="note">
                 <option value="note">Note: something observed or decided</option>
                 <option value="action">Action: something you did outside JANUS</option>
+                <option value="unknown">Unknown: something the investigation doesn&apos;t know yet</option>
               </Select>
               <Input name="body" required maxLength={4000} placeholder="What happened, or what was done" aria-label="Entry text" className="min-w-0 flex-1" />
               <Button type="submit" disabled={busy}>Add to timeline</Button>

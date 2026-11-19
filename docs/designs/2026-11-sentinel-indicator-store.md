@@ -212,3 +212,29 @@ indicators in this phase.
   - `test_sentinel.py`: extraction and exclusions, confidence, assessment, history, suppression, permissions, direct
     writes refused, expiry, retention, isolation;
   - the browser suite: a sensor alert from a public address becomes an indicator, which a person assesses.
+
+## 14. As built: step 3b (2026-11-19, no migration)
+
+- **`GET /sentinel/incidents/{id}/correlation`** (`api/nightfall/sentinel/correlation.py`), computed when read
+  from the sensor alerts a person linked to the incident. Links are found in the incident's timeline entries,
+  written by decision 4's escalation, and in intrusion alerts' `incident_id`. It returns:
+  - **shared indicators:** with the machines that saw them, and their sightings outside the incident;
+  - **suggestions:** other intrusion or host alerts sharing an indicator, each with its reason (for example
+    "Shares ip … with 1 linked alert(s)"). Adding one is the decision 4 escalation; nothing is attached
+    automatically. Indicators assessed benign or false positive suggest nothing;
+  - **the technique sequence:** in time order, from the linked alerts only;
+  - **knows versus suspects:**
+    - *knows* (validated by a person): assessed indicators, validated, remediated and ruled-out findings;
+    - *suspects* (inferred, unconfirmed): unreviewed indicators with their computed confidence, the
+      possible-compromise rule, correlation, and findings not yet validated, including who proposed them
+      (a rule, an AI agent or a person);
+  - **unknowns:** the investigator's own list.
+- **Unknowns** reuse the existing note entry: a timeline entry of type *Unknown* is a note with
+  `{"unknown": true}` in its data. No new incident field or state.
+- **UI:** an incident with linked sensor alerts shows a SENTINEL panel with knows, suspects, unknowns, the
+  technique sequence, its indicators, and the suggestions, each with an *Add to incident* button.
+- **Verified:**
+  - `test_sentinel_correlation.py`: shared indicators across two machines, suggestion reason and escalation, the
+    sequence limited to linked alerts, knows versus suspects before and after an assessment, unknowns, a
+    suggestion disappearing once added, suppressed indicators suggesting nothing, isolation;
+  - the browser suite: the panel shows, and an Unknown entry lands in its list.

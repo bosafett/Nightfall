@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@/lib/api/server";
-import type { Finding, IncidentDetail, ShieldAlert } from "@/lib/api/types";
+import type { Correlation, Finding, IncidentDetail, ShieldAlert } from "@/lib/api/types";
 import { formatDateTime } from "@/lib/format";
 import { can } from "@/lib/labels";
 import { membership } from "@/lib/workspace";
 import { IncidentPanel } from "@/components/shield/IncidentPanel";
+import { IncidentCorrelation } from "@/components/shield/IncidentCorrelation";
 import { incidentStateLabel, severityTone } from "@/components/shield/labels";
 import { Alert, Badge, PageHeader, Panel } from "@/components/ui/primitives";
 
@@ -14,7 +15,10 @@ const ENTRY: Record<string, string> = { event: "Event", note: "Note", action: "A
 
 export default async function IncidentPage({ params }: { params: Promise<{ ws: string; incidentId: string }> }) {
   const { ws, incidentId } = await params;
-  const [inc, me] = await Promise.all([apiGet<IncidentDetail>(`/workspaces/${ws}/incidents/${incidentId}`), membership(ws)]);
+  const [inc, me, correlation] = await Promise.all([
+    apiGet<IncidentDetail>(`/workspaces/${ws}/incidents/${incidentId}`), membership(ws),
+    apiGet<Correlation>(`/workspaces/${ws}/sentinel/incidents/${incidentId}/correlation`),
+  ]);
   const inProgress = ["open", "contained", "recovering"].includes(inc.state);
   const canWork = can.editFindings(me.role), canManage = can.manageIncidents(me.role);
   const linked = new Set(inc.items.filter((i) => i.kind === "alert").map((i) => i.item_id));
@@ -61,6 +65,7 @@ export default async function IncidentPage({ params }: { params: Promise<{ ws: s
               </ul>
             )}
           </Panel>
+          <IncidentCorrelation ws={ws} incidentId={inc.id} c={correlation} canWork={canWork && inProgress} />
           <IncidentPanel ws={ws} incident={inc} addable={addable.map((a) => ({ id: a.id, title: a.title }))}
             findings={findings.map((f) => ({ id: f.id, title: `${f.ref} ${f.title}` }))} canWork={canWork && inProgress} canManage={canManage} mfaHint={inProgress} />
           <Panel title="Timeline">

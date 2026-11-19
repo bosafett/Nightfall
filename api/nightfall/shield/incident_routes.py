@@ -72,6 +72,9 @@ class IncidentItemIn(Model):
 class IncidentEntryIn(Model):
     kind: Literal["note", "action"]
     body: Text
+    unknown: bool = (
+        False  # a note listing something the investigation doesn't know yet (SENTINEL 3b)
+    )
 
 
 class IncidentCheckIn(Model):
@@ -541,7 +544,8 @@ def add_incident_entry(
 ) -> IncidentDetailOut:
     inc = _incident(db, ctx, incident_id)
     _in_progress(inc)
-    logic.add_entry(db, inc, body.kind, body.body, {}, ctx.user_id)
+    data = {"unknown": True} if body.unknown and body.kind == "note" else {}
+    logic.add_entry(db, inc, body.kind, body.body, data, ctx.user_id)
     _audit(db, ctx, f"incident.{body.kind}_added", inc)
     return _detail(db, inc)
 

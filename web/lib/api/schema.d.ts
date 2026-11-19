@@ -2059,6 +2059,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workspaces/{workspace_id}/sentinel/incidents/{incident_id}/correlation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Incident Correlation */
+        get: operations["incident_correlation_api_workspaces__workspace_id__sentinel_incidents__incident_id__correlation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workspaces/{workspace_id}/sentinel/indicators": {
         parameters: {
             query?: never;
@@ -3722,6 +3739,23 @@ export interface components {
             /** Proven */
             proven: boolean;
         };
+        /** CorrelationOut */
+        CorrelationOut: {
+            /** Knows */
+            knows: components["schemas"]["StatementOut"][];
+            /** Linked Alerts */
+            linked_alerts: number;
+            /** Sequence */
+            sequence: components["schemas"]["nightfall__sentinel__correlation__StepOut"][];
+            /** Shared Indicators */
+            shared_indicators: components["schemas"]["SharedIndicatorOut"][];
+            /** Suggestions */
+            suggestions: components["schemas"]["RelatedOut"][];
+            /** Suspects */
+            suspects: components["schemas"]["StatementOut"][];
+            /** Unknowns */
+            unknowns: components["schemas"]["StatementOut"][];
+        };
         /** Decision */
         Decision: {
             /** Action */
@@ -4626,6 +4660,11 @@ export interface components {
              * @enum {string}
              */
             kind: "note" | "action";
+            /**
+             * Unknown
+             * @default false
+             */
+            unknown: boolean;
         };
         /** IncidentEntryOut */
         IncidentEntryOut: {
@@ -5585,7 +5624,7 @@ export interface components {
             reviewed_by: string | null;
             status: components["schemas"]["AttackPathStatus"];
             /** Steps */
-            steps: components["schemas"]["StepOut"][];
+            steps: components["schemas"]["nightfall__findings__paths__StepOut"][];
             /** Title */
             title: string;
         };
@@ -5944,6 +5983,31 @@ export interface components {
             id: string;
             /** Reason */
             reason: string;
+        };
+        /** RelatedOut */
+        RelatedOut: {
+            /** Description */
+            description: string;
+            /** Escalation Kind */
+            escalation_kind: string | null;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+            /** Incident Id */
+            incident_id: string | null;
+            /** Reason */
+            reason: string;
+            /** Sensor Name */
+            sensor_name: string | null;
+            /**
+             * Source Id
+             * Format: uuid
+             */
+            source_id: string;
+            /** Source Kind */
+            source_kind: string;
         };
         /** RelationshipOut */
         RelationshipOut: {
@@ -6642,6 +6706,14 @@ export interface components {
          * @enum {string}
          */
         Severity: "critical" | "high" | "medium" | "low" | "info";
+        /** SharedIndicatorOut */
+        SharedIndicatorOut: {
+            /** Elsewhere */
+            elsewhere: components["schemas"]["RelatedOut"][];
+            indicator: components["schemas"]["IndicatorOut"];
+            /** Machines */
+            machines: string[];
+        };
         /** ShieldAlertOut */
         ShieldAlertOut: {
             /** Acknowledged At */
@@ -6879,6 +6951,17 @@ export interface components {
             /** Stale After Days */
             stale_after_days: number;
         };
+        /** StatementOut */
+        StatementOut: {
+            /** At */
+            at?: string | null;
+            /** By */
+            by?: string | null;
+            /** Kind */
+            kind: string;
+            /** Text */
+            text: string;
+        };
         /** StatusIn */
         StatusIn: {
             /**
@@ -6896,25 +6979,6 @@ export interface components {
             description: string;
             /** Finding Id */
             finding_id?: string | null;
-        };
-        /** StepOut */
-        StepOut: {
-            /** Asset Id */
-            asset_id: string | null;
-            /** Asset Value */
-            asset_value: string | null;
-            /** Description */
-            description: string;
-            /** Finding Id */
-            finding_id: string | null;
-            /** Finding Ref */
-            finding_ref: string | null;
-            finding_severity: components["schemas"]["Severity"] | null;
-            finding_status: components["schemas"]["ValidationStatus"] | null;
-            /** Finding Title */
-            finding_title: string | null;
-            /** Ordinal */
-            ordinal: number;
         };
         /**
          * TargetType
@@ -7643,6 +7707,41 @@ export interface components {
             role: components["schemas"]["Role"];
             /** Slug */
             slug: string;
+        };
+        /** StepOut */
+        nightfall__findings__paths__StepOut: {
+            /** Asset Id */
+            asset_id: string | null;
+            /** Asset Value */
+            asset_value: string | null;
+            /** Description */
+            description: string;
+            /** Finding Id */
+            finding_id: string | null;
+            /** Finding Ref */
+            finding_ref: string | null;
+            finding_severity: components["schemas"]["Severity"] | null;
+            finding_status: components["schemas"]["ValidationStatus"] | null;
+            /** Finding Title */
+            finding_title: string | null;
+            /** Ordinal */
+            ordinal: number;
+        };
+        /** StepOut */
+        nightfall__sentinel__correlation__StepOut: {
+            /** Description */
+            description: string;
+            /**
+             * Event Time
+             * Format: date-time
+             */
+            event_time: string;
+            /** Sensor Name */
+            sensor_name: string | null;
+            /** Technique Id */
+            technique_id: string;
+            /** Technique Name */
+            technique_name: string;
         };
     };
     responses: never;
@@ -11990,6 +12089,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ScopeOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    incident_correlation_api_workspaces__workspace_id__sentinel_incidents__incident_id__correlation_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                incident_id: string;
+                workspace_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CorrelationOut"];
                 };
             };
             /** @description Validation Error */

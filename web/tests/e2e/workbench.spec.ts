@@ -669,6 +669,12 @@ test.describe("as the owner", () => {
     await hostAlert.getByRole("button", { name: "Incident…" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Add to incident" }).click();
     await expect(page.getByText(/Host alert added: New local account eve/)).toBeVisible();
+    // SENTINEL 3b on the incident: knows / suspects / unknowns; an Unknown entry lands in its list.
+    await expect(page.getByText("SENTINEL: what JANUS knows and suspects")).toBeVisible();
+    await page.getByLabel("Entry type").selectOption("unknown");
+    await page.getByLabel("Entry text").fill("Was the eve account created by an admin?");
+    await page.getByRole("button", { name: "Add to timeline" }).click();
+    await expect(page.getByTestId("unknowns")).toContainText("Was the eve account created by an admin?");
 
     // SENTINEL: an attack from a public address becomes an indicator; a person assesses it.
     const r3 = await page.request.post("/api/sensor/alerts", {

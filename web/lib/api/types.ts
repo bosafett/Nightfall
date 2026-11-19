@@ -99,3 +99,4 @@ export type IntrusionAlert = S["IntrusionAlertOut"];
 export type HostView = S["HostOut"];
 export type Indicator = S["IndicatorOut"];
 export type IndicatorDetail = S["IndicatorDetailOut"];
+export type Correlation = S["CorrelationOut"];
