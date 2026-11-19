@@ -200,6 +200,35 @@ self-hosted on machines you already run.
 - **Not in this step:** alert-only mode for new rules in their first week, intrusion counts on the AEGIS overview,
   Vercel firewall proposals.
 
+## 10c. As built: the trial week (2026-11-19, migration 0030)
+
+Safeguard 21 (§7: "alert-only mode for new rules for their first week").
+
+- **Trial days on the authorization:** `trial_days`, 0 to 7, defaults to 7 in the API and the UI. For that many days
+  after the owner authorizes automatic response, GUARD runs every check and then, instead of blocking:
+  - answers the sensor `alert_only` with "Trial week: GUARD would have blocked …";
+  - writes `shield.guard.trial` to the audit log.
+
+  The owner may choose fewer days when authorizing, which already needs the owner with a fresh 2FA code. A
+  renewal or replacement starts its own trial unless the owner sets 0.
+- **New rules:** a category added to GUARD later is listed in `guard.NEW_RULES` with the time it shipped. It
+  stays alert-only for its first week under every authorization, including one with no trial.
+- **Database backstop:**
+  - `nf_shield_block_guard` refuses an automatic block during the authorization's trial, so a bug in the API
+    can't skip it;
+  - `trial_days` can't be edited after the authorization is recorded;
+  - authorizations recorded before 0030 have 0 trial days.
+- **UI:**
+  - the status shows *Trial week*, with the date automatic blocks start;
+  - alerts GUARD would have blocked read "Would have blocked (trial)";
+  - the authorization form has *Trial days (0–7)*.
+- **Not changed:** person-approved blocks work as before during the trial.
+- **Verified:**
+  - `test_shield_guard_trial.py`: the default trial records and blocks nothing; the same authorization blocks
+    after the trial; the owner can choose 0; `trial_days` can't be edited; the database refuses when the API's
+    check is bypassed; a new rule's first week;
+  - the browser suite: a first authorization shows the trial week.
+
 ## 11. Reconciling the "Active Defense & Counterintelligence" addendum (received 2026-11-17)
 
 An addendum arrived framing SHIELD as a wider defensive-intelligence system across five divisions (AEGIS,

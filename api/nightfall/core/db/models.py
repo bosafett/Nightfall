@@ -993,6 +993,7 @@ class ShieldResponseAuthorization(Base):
     max_block_seconds: Mapped[int]
     default_block_seconds: Mapped[int]
     per_hour_cap: Mapped[int]
+    trial_days: Mapped[int] = mapped_column(server_default=text("0"))  # migration 0030
     authorized_by_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     authorized_at: Mapped[datetime] = _created()
     expires_at: Mapped[datetime]

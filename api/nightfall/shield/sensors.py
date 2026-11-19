@@ -43,6 +43,7 @@ from nightfall.core.audit.writer import record
 from nightfall.core.clock import utcnow
 from nightfall.core.db.models import (
     ActorType,
+    AuditEvent,
     ShieldBlock,
     ShieldBlockAllowlistEntry,
     ShieldHostAlert,
@@ -402,6 +403,8 @@ class ResponseAuthorizationIn(Model):
     default_block_seconds: int = Field(3600, ge=60, le=14400)
     per_hour_cap: int = Field(50, ge=1, le=1000)
     days: int = Field(90, ge=1, le=90)
+    # Safeguard 21: GUARD only records what it would have blocked for this many days.
+    trial_days: int = Field(7, ge=0, le=7)
 
 
 class ResponseAuthorizationOut(Model):
@@ -411,6 +414,8 @@ class ResponseAuthorizationOut(Model):
     max_block_seconds: int
     default_block_seconds: int
     per_hour_cap: int
+    trial_days: int
+    trial_ends_at: datetime
     authorized_by: str
     authorized_at: datetime
     expires_at: datetime
@@ -500,6 +505,7 @@ class IntrusionAlertOut(Model):
     state: str
     acknowledged_at: datetime | None
     block_ids: list[uuid.UUID]
+    would_have_blocked: bool = False  # GUARD's trial week: it would have blocked this one
 
 
 class IntrusionOut(Model):
@@ -508,6 +514,7 @@ class IntrusionOut(Model):
     authorization: ResponseAuthorizationOut | None  # the live one, if any
     settings: SettingsOut
     automatic_active: bool  # a live authorization and the kill switch off
+    trial_active: bool  # the live authorization is still in its trial week
     allowlist: list[AllowlistOut]
     blocks: list[BlockOut]  # live ones and the last 7 days
     alerts: list[IntrusionAlertOut]  # open ones and the last 7 days
@@ -558,6 +565,8 @@ def _auth_out(
         max_block_seconds=a.max_block_seconds,
         default_block_seconds=a.default_block_seconds,
         per_hour_cap=a.per_hour_cap,
+        trial_days=a.trial_days,
+        trial_ends_at=a.authorized_at + timedelta(days=a.trial_days),
         authorized_by=names(a.authorized_by_user_id) or "?",
         authorized_at=a.authorized_at,
         expires_at=a.expires_at,
@@ -703,12 +712,23 @@ def intrusion(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) ->
     )
     for so in sensor_out:
         so.open_host_alerts = int(open_host.get(so.id, 0))
+    trial = set(
+        db.scalars(
+            select(AuditEvent.entity_id).where(
+                AuditEvent.workspace_id == ws,
+                AuditEvent.action == "shield.guard.trial",
+                AuditEvent.entity_id.in_([a.id for a in alerts]),
+            )
+        )
+    ) if alerts else set()  # fmt: skip
     return IntrusionOut(
         generated_at=now,
         sensors=sensor_out,
         authorization=_auth_out(auth, names, now) if auth else None,
         settings=_settings_out(st, names),
         automatic_active=auth is not None and not (st and st.automatic_paused),
+        trial_active=auth is not None
+        and now < auth.authorized_at + timedelta(days=auth.trial_days),
         allowlist=[
             AllowlistOut(
                 id=e.id,
@@ -736,6 +756,7 @@ def intrusion(db: DB, ctx: WorkspaceContext = ws_permission(Permission.READ)) ->
                 state=a.state,
                 acknowledged_at=a.acknowledged_at,
                 block_ids=by_alert.get(a.id, []),
+                would_have_blocked=a.id in trial,
             )  # fmt: skip
             for a in alerts
         ],
@@ -818,6 +839,7 @@ def authorize_response(
         max_block_seconds=body.max_block_seconds,
         default_block_seconds=body.default_block_seconds,
         per_hour_cap=body.per_hour_cap,
+        trial_days=body.trial_days,
         authorized_by_user_id=ctx.user_id,
         authorized_at=now,
         expires_at=now + timedelta(days=body.days),
@@ -828,7 +850,8 @@ def authorize_response(
         db, ctx, "shield.response.authorized", "shield_response_authorization", a.id,
         sensor_ids=[str(i) for i in ids], max_block_seconds=a.max_block_seconds,
         default_block_seconds=a.default_block_seconds, per_hour_cap=a.per_hour_cap,
-        expires_at=a.expires_at.isoformat(), replaces=str(old.id) if old else None,
+        trial_days=a.trial_days, expires_at=a.expires_at.isoformat(),
+        replaces=str(old.id) if old else None,
     )  # fmt: skip
     return _auth_out(a, _Names(db), now)
 

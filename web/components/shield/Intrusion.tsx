@@ -48,6 +48,7 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incide
   const [maxMin, setMaxMin] = useState(240);
   const [cap, setCap] = useState(50);
   const [days, setDays] = useState(90);
+  const [trialDays, setTrialDays] = useState(7);
   const [cidr, setCidr] = useState("");
   const [note, setNote] = useState("");
   const [target, setTarget] = useState("");
@@ -79,7 +80,7 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incide
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="intrusion-status">
         <div className="rounded-lg border border-border bg-surface p-3">
           <p className="text-xs text-muted">GUARD (automatic blocks)</p>
-          <p className="mt-1">{paused ? <Badge tone="yellow">Paused</Badge> : view.automatic_active ? <Badge tone="green">Active</Badge> : <Badge tone="gray">Alert only</Badge>}</p>
+          <p className="mt-1">{paused ? <Badge tone="yellow">Paused</Badge> : view.automatic_active ? (view.trial_active ? <Badge tone="yellow">Trial week</Badge> : <Badge tone="green">Active</Badge>) : <Badge tone="gray">Alert only</Badge>}</p>
         </div>
         <div className="rounded-lg border border-border bg-surface p-3">
           <p className="text-xs text-muted">Sensors online</p>
@@ -174,7 +175,7 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incide
                 <td>{a.sensor_name}</td>
                 <td className="tabular">{a.count}</td>
                 <td className="text-xs tabular">{formatDateTime(a.last_event_time)}</td>
-                <td className="text-xs">{a.block_ids.length > 0 ? "Blocked" : "Alert only"}</td>
+                <td className="text-xs">{a.block_ids.length > 0 ? "Blocked" : a.would_have_blocked ? "Would have blocked (trial)" : "Alert only"}</td>
                 <td className="space-x-1 whitespace-nowrap">
                   {canAct && a.state === "open" && <Button variant="secondary" disabled={busy} onClick={() => post(`/intrusion-alerts/${a.id}/acknowledge`)}>Acknowledge</Button>}
                   {canAct && a.state !== "resolved" && <Button variant="secondary" disabled={busy} onClick={() => post(`/intrusion-alerts/${a.id}/resolve`)}>Resolve</Button>}
@@ -201,6 +202,9 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incide
               Block one address for {auth.default_block_seconds / 60} min by default, at most {auth.max_block_seconds / 60} min · at most {auth.per_hour_cap} automatic blocks per sensor per hour ·
               authorized by {auth.authorized_by} {formatDateTime(auth.authorized_at)} · expires {formatDateTime(auth.expires_at)}
             </p>
+            {view.trial_active && (
+              <p className="mt-1 text-xs" data-testid="trial-week">Trial week until {formatDateTime(auth.trial_ends_at)}: GUARD records what it would have blocked and blocks nothing. Review those alerts, then automatic blocks start on their own.</p>
+            )}
             {isAdmin && (
               <div className="mt-2">
                 <ConfirmButton label="End authorization" title="End the response authorization?" confirmLabel="End"
@@ -213,7 +217,7 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incide
         {isOwner && live.length > 0 && (
           <form className="mt-4 space-y-3 rounded-md border border-border p-3" onSubmit={async (e) => {
             e.preventDefault();
-            await post("/response-authorization", { sensor_ids: authSensors, default_block_seconds: defMin * 60, max_block_seconds: maxMin * 60, per_hour_cap: cap, days });
+            await post("/response-authorization", { sensor_ids: authSensors, default_block_seconds: defMin * 60, max_block_seconds: maxMin * 60, per_hour_cap: cap, days, trial_days: trialDays });
           }}>
             <p className="text-sm font-medium">{auth ? "Replace the authorization" : "Authorize automatic blocks"} (owner, two-factor)</p>
             <p className="text-xs text-muted">GUARD will block a single address on the machine that saw an SSH or web brute force, exploit attempt or web scan. Never an allow-listed, loopback or reserved address; never a range.</p>
@@ -223,7 +227,9 @@ export function Intrusion({ ws, view, isOwner, isAdmin, canAct, projects, incide
               <Field label="Longest block (min)"><Input type="number" min={1} max={240} value={maxMin} onChange={(e) => setMaxMin(Number(e.target.value))} /></Field>
               <Field label="Cap per sensor per hour"><Input type="number" min={1} max={1000} value={cap} onChange={(e) => setCap(Number(e.target.value))} /></Field>
               <Field label="Days (≤90)"><Input type="number" min={1} max={90} value={days} onChange={(e) => setDays(Number(e.target.value))} /></Field>
+              <Field label="Trial days (0–7)"><Input type="number" min={0} max={7} value={trialDays} onChange={(e) => setTrialDays(Number(e.target.value))} /></Field>
             </div>
+            <p className="text-xs text-muted">During the trial GUARD only records what it would have blocked, so you can check it against real traffic first. 7 days is recommended for a first authorization.</p>
             <Button type="submit" variant="primary" disabled={busy || authSensors.length === 0 || defMin > maxMin}>Record authorization</Button>
           </form>
         )}

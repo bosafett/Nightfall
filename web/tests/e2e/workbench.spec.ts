@@ -705,13 +705,15 @@ test.describe("as the owner", () => {
     await authForm.getByRole("checkbox", { name: "lab-host" }).check();
     await authForm.getByRole("button", { name: "Record authorization" }).click();
     await expect(page.getByTestId("response-authorization")).toContainText("lab-host");
-    await expect(page.getByTestId("intrusion-status")).toContainText("Active");
+    // Safeguard 21: a first authorization starts with a trial week (records, blocks nothing).
+    await expect(page.getByTestId("intrusion-status")).toContainText("Trial week");
+    await expect(page.getByTestId("trial-week")).toContainText("would have blocked");
 
     await page.getByRole("button", { name: "Pause automatic response" }).click();
     await page.getByRole("dialog").getByRole("button", { name: "Pause" }).click();
     await expect(page.getByTestId("intrusion-status")).toContainText("Paused");
     await page.getByRole("button", { name: /^Resume/ }).click();
-    await expect(page.getByTestId("intrusion-status")).toContainText("Active");
+    await expect(page.getByTestId("intrusion-status")).toContainText("Trial week");
 
     const allowForm = page.locator("form", { hasText: "Note" });
     await allowForm.getByLabel("Address or range").fill("198.51.100.0/24");

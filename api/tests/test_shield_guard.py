@@ -49,7 +49,8 @@ def _alert(source: str, scenario: str = "crowdsecurity/ssh-bf", **kw: Any) -> di
 
 
 def _authorize(client: TestClient, base: str, sensors: list[str], **kw: Any) -> dict[str, Any]:
-    r = client.post(f"{base}/response-authorization", json={"sensor_ids": sensors, **kw})
+    body = {"sensor_ids": sensors, "trial_days": 0, **kw}  # the trial week has its own tests
+    r = client.post(f"{base}/response-authorization", json=body)
     assert r.status_code == 201, r.text
     return dict(r.json())
 

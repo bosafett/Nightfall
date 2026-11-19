@@ -5073,6 +5073,11 @@ export interface components {
             source: string;
             /** State */
             state: string;
+            /**
+             * Would Have Blocked
+             * @default false
+             */
+            would_have_blocked: boolean;
         };
         /** IntrusionOut */
         IntrusionOut: {
@@ -5101,6 +5106,8 @@ export interface components {
             /** Sensors Offline */
             sensors_offline: number;
             settings: components["schemas"]["SettingsOut"];
+            /** Trial Active */
+            trial_active: boolean;
         };
         /** InviteCreatedOut */
         InviteCreatedOut: {
@@ -6204,6 +6211,11 @@ export interface components {
             per_hour_cap: number;
             /** Sensor Ids */
             sensor_ids: string[];
+            /**
+             * Trial Days
+             * @default 7
+             */
+            trial_days: number;
         };
         /** ResponseAuthorizationOut */
         ResponseAuthorizationOut: {
@@ -6240,6 +6252,13 @@ export interface components {
             per_hour_cap: number;
             /** Sensor Ids */
             sensor_ids: string[];
+            /** Trial Days */
+            trial_days: number;
+            /**
+             * Trial Ends At
+             * Format: date-time
+             */
+            trial_ends_at: string;
         };
         /** ReviewCounts */
         ReviewCounts: {

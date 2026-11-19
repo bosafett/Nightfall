@@ -11,7 +11,9 @@ alert-only and says why. It blocks only when every one of these holds:
   * a live standing response authorization covers this sensor and the block_ip action;
   * no live allow-list entry covers the address (refused, and recorded, if one does);
   * the address isn't already blocked on this sensor;
-  * the sensor has had fewer than the authorization's per-hour cap of automatic blocks.
+  * the sensor has had fewer than the authorization's per-hour cap of automatic blocks;
+  * the trial week is over (migration 0030): the authorization's trial days, and a new rule's
+    first week (NEW_RULES). Until then GUARD records what it would have blocked, and doesn't.
 
 The database (nf_shield_block_guard) enforces the allow list and the authorization's limits
 again, so a bug here can't create a violating block; the cap and kill switch are policy that
@@ -45,6 +47,11 @@ CATEGORIES = ("ssh_bruteforce", "web_scan", "exploit_attempt", "http_bruteforce"
 
 # GUARD acts on these; "other" is always alert-only.
 AUTO_CATEGORIES = frozenset({"ssh_bruteforce", "http_bruteforce", "exploit_attempt", "web_scan"})
+
+# Safeguard 21: a category added to AUTO_CATEGORIES later goes here with the time it shipped,
+# and stays alert-only for its first week everywhere, whatever the authorization says.
+NEW_RULES: dict[Category, datetime] = {}
+TRIAL = timedelta(days=7)
 
 SEVERITY: dict[Category, Severity] = {
     "exploit_attempt": Severity.HIGH,
@@ -160,6 +167,14 @@ def automatic_blocks_last_hour(db: Session, sensor_id: uuid.UUID, now: datetime)
     )
 
 
+def trial_ends(auth: ShieldResponseAuthorization, category: Category) -> datetime:
+    """When automatic blocks for this category start under this authorization."""
+    ends = auth.authorized_at + timedelta(days=auth.trial_days)
+    if category in NEW_RULES:
+        ends = max(ends, NEW_RULES[category] + TRIAL)
+    return ends
+
+
 @dataclass
 class Decision:
     outcome: str  # "blocked" | "already_blocked" | "alert_only" | "refused"
@@ -218,6 +233,13 @@ def decide(
         return Decision(
             "alert_only",
             f"This sensor reached its cap of {auth.per_hour_cap} automatic blocks an hour.",
+        )
+    if now < (ends := trial_ends(auth, alert.category)):
+        _audit(db, sensor, "shield.guard.trial", alert, target=target, trial_ends=ends.isoformat())
+        return Decision(
+            "alert_only",
+            f"Trial week: GUARD would have blocked {target}. Automatic blocks start "
+            f"{ends:%Y-%m-%d %H:%M} UTC.",
         )
     block = ShieldBlock(
         workspace_id=sensor.workspace_id,

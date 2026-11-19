@@ -40,7 +40,7 @@ Reproduce: `JANUS_LIVE_VALIDATION=1 pytest -s tests/test_shield_live_validation.
 | 18 | Every action audited | Live run produced `shield.sensor.registered`, `response.authorized/paused/resumed`, `allowlist.added`, `guard.blocked/refused/cap_reached`, `block.approved/lifted`, `sensor.alerts/decisions/block_refused/revoked` | **Pass** |
 | 19 | CrowdSec's own bans don't bypass JANUS | Live: with the `janus_alert` profile, CrowdSec records the alert and the bouncer ignores it (it acts on `ban` only) | **Pass, with the README profile** |
 | 20 | Alert content is data, never instructions | Category chosen from a fixed list; 8 KB cap on raw; 100 per batch; UI renders as text | **Pass** |
-| 21 | New rules alert-only for their first week (§7 false positives) | — | **Not built** |
+| 21 | New rules alert-only for their first week (§7 false positives) | Built 2026-11-19 (migration 0030, design §10c): API tests, including the database refusing a block during the trial | **Pass (API tests; not yet live)** |
 
 ## Defects found and fixed during validation
 
