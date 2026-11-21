@@ -97,4 +97,6 @@ the first time, verify it works, and move on.
 
 - Long-term architectural direction: `docs/JANUS_DIRECTION.md` (direction only — it does not expand active scope).
 - Current phase status and principles: `docs/ROADMAP.md`.
-- Database migrations are never pushed without explicit owner approval.
+- Database migrations are never pushed without explicit owner approval. Production applies every pending
+  migration on start-up (`api/nightfall/serverless.py`, `migrate_on_start`), so merging a migration to `main`
+  deploys it. A migration awaiting approval stays on its own branch, never on `main`, until the owner approves it.
